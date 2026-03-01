@@ -1,0 +1,33 @@
+---
+description: Core project conventions and coding standards
+alwaysApply: true
+---
+
+# Emergency Medical Triage - Project Standards
+
+## Project Context
+- Python-first development. All application code is in Python.
+- AWS stack: Lambda, Bedrock, Aurora PostgreSQL, S3, API Gateway.
+- Healthcare/safety-critical: favor conservative defaults, clear error handling, auditability.
+
+## General Standards
+- Use type hints in Python. Prefer explicit over implicit.
+- Log errors with context; never swallow exceptions silently.
+- **IAM and Secrets Manager only.** The module uses IAM roles (managed identity) for authentication—Lambda, ECS, and other services assume roles and get temporary credentials. No .env files, no hardcoded credentials, no long-lived API keys. Application secrets (DB passwords, third-party keys) go in Secrets Manager.
+- Keep functions focused; extract reusable logic into modules.
+- Write docstrings for public functions and classes.
+
+## Safety-First (Triage / Medical Logic)
+- When AI confidence is low (< 85%), default to "treat as high priority." Enforced by reasoning agent via action group.
+- Always include safety disclaimers in AI-generated medical guidance.
+- Validate inputs; reject malformed or suspicious data early.
+- Use strict schema for severity/confidence (see medical-triage.mdc).
+
+## Trace Review and Audit
+- **Trace review for medical audit**: Admin and Dev review Bedrock traces (prompts, KB refs, action group calls).
+- Enable model invocation logging and trace events for compliance.
+
+## Architecture Decisions
+- **Model**: Claude Sonnet.
+- **Action groups**: Lambda + Knowledge Base. Minimal tools in critical path; no overengineering.
+- **Load tests**: Deferred. Follow standard practices for timeouts.

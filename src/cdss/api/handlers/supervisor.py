@@ -1,0 +1,4 @@
+"""Supervisor agent - routes intents to sub-agents."""
+
+def handler(event, context):
+    return {"statusCode": 501, "body": '{"error":"Not implemented"}'}

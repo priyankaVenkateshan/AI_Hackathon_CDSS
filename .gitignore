@@ -42,3 +42,14 @@ Thumbs.db
 htmlcov/
 .pytest_cache/
 .tox/
+
+# Terraform local state and lock (keep infrastructure code; ignore state)
+*.tfstate
+*.tfstate.*
+.terraform/
+*.tfplan
+terraform.tfvars
+**/lambda.zip
+
+# Old folder merged into infrastructure/
+infrastructure_/

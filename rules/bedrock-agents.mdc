@@ -1,0 +1,50 @@
+---
+description: AWS Bedrock Agents patterns - action groups, Lambda, Knowledge Base, tracing
+globs: ["**/*.py", "**/terraform/**/*.tf"]
+alwaysApply: false
+---
+
+# Bedrock Agents - Patterns and Best Practices
+
+## Overview
+
+Use **AWS Bedrock Agents** for Triage, Hospital Matcher, and Routing. Model: **Claude Sonnet**. Action groups: Lambda + Knowledge Base. Multiple agents in Phase 3.
+
+## Agent Architecture
+
+- **Triage Agent**: Reasoning agent with action groups. Enforces `confidence < 85% → high priority` via action group.
+- **Action Groups**: Lambda for business logic + Knowledge Base for RAG. One Lambda per action group; each action group can have up to 11 API operations.
+- **Model**: Claude Sonnet. Tool names must follow `^[a-zA-Z0-9_-]{1,64}$`; avoid double underscores in action group and API names.
+
+## Action Group Patterns
+
+- Define actions via **OpenAPI schema** or **function details**.
+- Lambda receives: agent metadata, user input, session ID, action group name, API path, HTTP method, parameters.
+- Lambda returns: response with metadata and populated fields.
+- **Resource-based policy**: Lambda must allow Amazon Bedrock service principal.
+- **force_high_priority**: Implement as a dedicated action group (invoked when confidence < 85%).
+
+## Knowledge Base
+
+- Combine KB (RAG) with agents for documentation + validation.
+- Use for medical protocol cross-validation and WHO guidelines.
+- No prod data for hackathon: use MCP or synthetic data. Optionally fetch WHO guidelines via MCP or store in Aurora.
+
+## Observability and Trace Review
+
+- Enable **model invocation logging** to capture prompts and responses.
+- Use **trace events** for orchestration steps, prompts, KB references, code.
+- **Trace review for medical audit**: Admin and Dev review traces for compliance and quality.
+
+## Structured Output (Claude Cookbooks)
+
+- Use **tool use** to extract structured JSON. Define tools with strict `input_schema` (type, properties, required).
+- Validate model output with **Pydantic** before use. Map tool input to Pydantic models, validate, then invoke.
+- For triage: severity, confidence, recommendations in strict schema (see medical-triage.mdc).
+
+## Best Practices
+
+- Keep action group count minimal; only required tools in critical path (no overengineering).
+- IaC (Terraform) for repeatable agent deployment.
+- Set up monitoring workflows for production logs analysis.
+- Timeouts: follow standard practices; load tests deferred.
