@@ -1,0 +1,19 @@
+{
+  "name": "cdss-platform",
+  "version": "1.0.0",
+  "private": true,
+  "description": "CDSS — Clinical Decision Support System",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:dashboard": "npm run dev --workspace=apps/doctor-dashboard",
+    "dev:surgery": "npm run dev --workspace=apps/surgery-planner",
+    "build:all": "npm run build --workspaces",
+    "lint": "npm run lint --workspaces"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
