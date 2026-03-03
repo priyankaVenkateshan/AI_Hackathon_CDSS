@@ -1,5 +1,5 @@
 ---
-description: Python coding standards and best practices
+description: Python coding standards and best practices for CDSS services
 globs: "**/*.py"
 alwaysApply: false
 ---
@@ -27,6 +27,10 @@ except ClientError as e:
     raise
 ```
 
+For **clinical logic** (patient risk, surgery readiness, scheduling), prefer:
+- Explicit custom exception types (e.g., `ClinicalRuleViolation`, `DataIntegrityError`).
+- Clear mapping of errors to HTTP status codes or MCP error responses.
+
 ## Imports
 - Standard library first, then third-party, then local.
 - Use absolute imports. One import per line for readability.
@@ -37,3 +41,5 @@ except ClientError as e:
 def assess_triage(symptoms: list[str], vitals: dict[str, float]) -> TriageResult:
     ...
 ```
+
+Where possible, reference the core data models from the CDSS design (PatientRecord, Surgery, HospitalResource, ConversationRecord) instead of loose `dict` types.

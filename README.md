@@ -49,6 +49,44 @@ AI_HACKATHON_CDSS/
 | [Requirements](clinical-decision-support-system/requirements.md) | User stories, acceptance criteria, and system requirements |
 | [Design](clinical-decision-support-system/design.md) | Architecture, multi-agent design, RBAC, and integration details |
 
+## Python and virtual environment
+
+**All Python dependencies must be installed only inside the project virtual environment** (no global `pip install`).
+
+- **Location:** `D:\AI_Hackathon_CDSS\.venv` (or `<repo>\.venv`). The venv lives on the same drive as the repo so it does not use C: space.
+- **Backend dependencies:** Listed in `backend/agents/requirements.txt`. They are already installed in `.venv` (boto3, botocore, pydantic, python-dateutil, etc.).
+
+**Use the venv for every Python/pip command:**
+
+**PowerShell (Windows):**
+```powershell
+# Activate
+.\.venv\Scripts\Activate.ps1
+
+# Then run Python or pip (everything stays inside .venv)
+pip install -r backend\agents\requirements.txt   # only if you add new deps
+python -m your_module
+```
+
+**Or call the venv’s executables directly (no activate):**
+```powershell
+.\.venv\Scripts\pip.exe install -r backend\agents\requirements.txt
+.\.venv\Scripts\python.exe -m your_module
+```
+
+**CMD (Windows):**
+```cmd
+.venv\Scripts\activate.bat
+pip install -r backend\agents\requirements.txt
+```
+
+Do **not** run `pip install` or `python -m` without activating `.venv` or using `.venv\Scripts\pip.exe` / `.venv\Scripts\python.exe`, so that nothing is installed globally.
+
+To (re)install backend dependencies into the venv only, from repo root run:
+```powershell
+.\scripts\install-python-deps.ps1
+```
+
 ## Key Capabilities
 
 - **Patient Agent** — Patient profiles, surgery readiness, medical history, multilingual data

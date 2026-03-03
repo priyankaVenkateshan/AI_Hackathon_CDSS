@@ -21,7 +21,10 @@ export default function Login() {
 
         const result = await login(email, password);
         if (result.success) {
-            navigate(from, { replace: true });
+            const role = result.user?.role;
+            const isPatient = role === 'patient';
+            const targetPath = isPatient ? '/patient-portal' : (from || '/');
+            navigate(targetPath, { replace: true });
         } else {
             setError(result.message || 'Login failed');
         }
@@ -69,7 +72,7 @@ export default function Login() {
                 <div className="login-footer">
                     <p>Secured by Hospital KMS & Biometric Auth</p>
                     <div className="demo-hint">
-                        <small>Demo: priya@cdss.ai / vikram@cdss.ai (pwd: ***REDACTED***)</small>
+                        <small>Demo: Staff priya@cdss.ai / Admin admin@cdss.ai — Patient rajesh@patient.demo (pwd: ***REDACTED***)</small>
                     </div>
                 </div>
             </div>

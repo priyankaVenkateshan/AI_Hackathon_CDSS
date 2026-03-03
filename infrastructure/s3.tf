@@ -65,7 +65,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "documents" {
 }
 
 resource "aws_s3_bucket_public_access_block" "documents" {
-  bucket = aws_s3_bucket.documents.id
+  bucket                  = aws_s3_bucket.documents.id
   block_public_acls       = true
   block_public_policy     = true
   ignore_public_acls      = true
@@ -92,7 +92,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "corpus" {
 }
 
 resource "aws_s3_bucket_public_access_block" "corpus" {
-  bucket = aws_s3_bucket.corpus.id
+  bucket                  = aws_s3_bucket.corpus.id
   block_public_acls       = true
   block_public_policy     = true
   ignore_public_acls      = true

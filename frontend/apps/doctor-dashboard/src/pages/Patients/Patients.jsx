@@ -81,6 +81,7 @@ export default function Patients() {
                     <thead>
                         <tr>
                             <th>Patient</th>
+                            <th>Patient ID</th>
                             <th>Age / Gender</th>
                             <th>Ward</th>
                             <th>Conditions</th>
@@ -99,10 +100,10 @@ export default function Patients() {
                                         </div>
                                         <div className="patient-name-cell__text">
                                             <span className="patient-name-cell__name">{p.name}</span>
-                                            <span className="patient-name-cell__id">{p.id}</span>
                                         </div>
                                     </div>
                                 </td>
+                                <td><span className="mono" style={{ fontSize: 'var(--text-sm)' }}>{p.id}</span></td>
                                 <td>{p.age != null ? `${p.age}y` : '—'} / {(p.gender || 'M')[0]}</td>
                                 <td>{p.ward || '—'}</td>
                                 <td>{Array.isArray(p.conditions) ? p.conditions.join(', ') : (p.conditions || '—')}</td>
