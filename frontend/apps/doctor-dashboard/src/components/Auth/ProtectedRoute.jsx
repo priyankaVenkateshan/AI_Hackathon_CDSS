@@ -1,6 +1,8 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
+import { roles } from '../../context/AuthContext';
+
 export default function ProtectedRoute({ children, requiredRoles }) {
     const { user, loading, hasRole } = useAuth();
     const location = useLocation();
@@ -12,7 +14,7 @@ export default function ProtectedRoute({ children, requiredRoles }) {
     }
 
     if (requiredRoles && !hasRole(requiredRoles)) {
-        return <Navigate to="/" replace />;
+        return <Navigate to={user?.role === roles.PATIENT ? '/patient-portal' : '/'} replace />;
     }
 
     return children;

@@ -30,7 +30,8 @@ resource "aws_api_gateway_method" "api_proxy_any" {
   rest_api_id   = aws_api_gateway_rest_api.main.id
   resource_id   = aws_api_gateway_resource.api_proxy.id
   http_method   = "ANY"
-  authorization = "NONE"
+  authorization = var.api_require_cognito ? "COGNITO_USER_POOLS" : "NONE"
+  authorizer_id = var.api_require_cognito ? aws_api_gateway_authorizer.cognito.id : null
   request_parameters = {
     "method.request.path.proxy" = true
   }
@@ -41,7 +42,7 @@ resource "aws_api_gateway_integration" "api_proxy" {
   resource_id             = aws_api_gateway_resource.api_proxy.id
   http_method             = aws_api_gateway_method.api_proxy_any.http_method
   type                    = "AWS_PROXY"
-  integration_http_method  = "POST"
+  integration_http_method = "POST"
   uri                     = module.cdss_lambda.invoke_arn
 }
 
@@ -53,11 +54,6 @@ resource "aws_lambda_permission" "cdss_api_gateway" {
   source_arn    = "${aws_api_gateway_rest_api.main.execution_arn}/*/*/api/*"
 }
 
-resource "aws_api_gateway_resource" "triage" {
-  rest_api_id = aws_api_gateway_rest_api.main.id
-  parent_id   = aws_api_gateway_rest_api.main.root_resource_id
-  path_part   = "triage"
-}
 
 resource "aws_api_gateway_resource" "health" {
   rest_api_id = aws_api_gateway_rest_api.main.id
@@ -83,34 +79,7 @@ resource "aws_api_gateway_integration" "health_mock" {
   uri                     = aws_lambda_function.health.invoke_arn
 }
 
-# POST /triage
-resource "aws_api_gateway_method" "triage_post" {
-  rest_api_id   = aws_api_gateway_rest_api.main.id
-  resource_id   = aws_api_gateway_resource.triage.id
-  http_method   = "POST"
-  authorization = "NONE"
 
-  request_parameters = {}
-}
-
-resource "aws_api_gateway_integration" "triage_post" {
-  rest_api_id             = aws_api_gateway_rest_api.main.id
-  resource_id             = aws_api_gateway_resource.triage.id
-  http_method             = aws_api_gateway_method.triage_post.http_method
-  type                    = "AWS_PROXY"
-  integration_http_method = "POST"
-  uri                     = var.enable_triage ? aws_lambda_function.triage[0].invoke_arn : aws_lambda_function.health.invoke_arn
-}
-
-resource "aws_lambda_permission" "triage_api_gateway" {
-  count = var.enable_triage ? 1 : 0
-
-  statement_id  = "AllowAPIGatewayInvokeTriage"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.triage[0].function_name
-  principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_api_gateway_rest_api.main.execution_arn}/*/*/triage"
-}
 
 # AWS_PROXY passes response through from Lambda; no method/integration response needed
 
@@ -119,16 +88,14 @@ resource "aws_api_gateway_deployment" "main" {
 
   triggers = {
     redeployment = sha1(jsonencode([
-      aws_api_gateway_resource.triage.id,
       aws_api_gateway_resource.health.id,
       aws_api_gateway_resource.api.id,
       aws_api_gateway_resource.api_proxy.id,
       aws_api_gateway_method.health_get.id,
       aws_api_gateway_integration.health_mock.id,
-      aws_api_gateway_method.triage_post.id,
-      aws_api_gateway_integration.triage_post.id,
       aws_api_gateway_method.api_proxy_any.id,
       aws_api_gateway_integration.api_proxy.id,
+      aws_api_gateway_authorizer.cognito.id,
     ]))
   }
 

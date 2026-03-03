@@ -19,6 +19,14 @@ import AdminAnalytics from './pages/Admin/AdminAnalytics';
 import AdminResources from './pages/Admin/AdminResources';
 import Settings from './pages/Settings/Settings';
 import Login from './pages/Login/Login';
+import DoctorModuleGuard from './components/Auth/DoctorModuleGuard';
+import PatientPortalGuard from './components/Auth/PatientPortalGuard';
+import PatientPortalLayout from './components/PatientPortal/PatientPortalLayout';
+import PatientPortalHome from './pages/PatientPortal/PatientPortalHome';
+import PatientPortalHistory from './pages/PatientPortal/PatientPortalHistory';
+import PatientPortalMedications from './pages/PatientPortal/PatientPortalMedications';
+import PatientPortalSummary from './pages/PatientPortal/PatientPortalSummary';
+import PatientPortalAppointments from './pages/PatientPortal/PatientPortalAppointments';
 import './App.css';
 
 function AppLayout() {
@@ -69,7 +77,23 @@ function App() {
           <BrowserRouter>
           <Routes>
             <Route path="/login" element={<Login />} />
-            <Route path="/*" element={<AppLayout />} />
+            <Route path="/patient-portal" element={
+              <PatientPortalGuard>
+                <PatientPortalLayout />
+              </PatientPortalGuard>
+            }>
+              <Route index element={<PatientPortalHome />} />
+              <Route path="summary" element={<PatientPortalSummary />} />
+              <Route path="medication-tracker" element={<PatientPortalMedications />} />
+              <Route path="appointments" element={<PatientPortalAppointments />} />
+              <Route path="history" element={<PatientPortalAppointments />} />
+              <Route path="medications" element={<PatientPortalMedications />} />
+            </Route>
+            <Route path="/*" element={
+              <DoctorModuleGuard>
+                <AppLayout />
+              </DoctorModuleGuard>
+            } />
           </Routes>
         </BrowserRouter>
         </AuthApiBridge>

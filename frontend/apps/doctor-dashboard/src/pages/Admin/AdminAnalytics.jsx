@@ -5,6 +5,7 @@ import '../Settings/AdminShared.css';
 
 const mockAnalytics = {
   otUtilization: [{ ot: 'OT-1', percent: 78 }, { ot: 'OT-2', percent: 45 }, { ot: 'OT-3', percent: 90 }],
+  otRecommendations: 'OT-2 underutilized (45%). Consider moving elective cases from OT-1 to balance load. OT-3 at 90% — monitor for overrun.',
   otConflicts: [
     { id: 'c1', ot: 'OT-1', date: '2026-03-05', time: '09:00', message: 'Double-booked: ACL Reconstruction & Cardiac Cath requested same slot' },
   ],
@@ -42,6 +43,7 @@ export default function AdminAnalytics() {
 
   const ot = data?.otUtilization || [];
   const conflicts = data?.otConflicts || [];
+  const otRecommendations = data?.otRecommendations || data?.otRecommendation || '';
   const agents = data?.agentUsage || [];
   const reminders = data?.reminderStats || {};
 
@@ -60,6 +62,9 @@ export default function AdminAnalytics() {
               </li>
             ))}
           </ul>
+          {otRecommendations && (
+            <p className="admin-muted" style={{ marginTop: 'var(--space-2)', fontSize: 'var(--text-xs)' }}>Recommendations: {otRecommendations}</p>
+          )}
         </div>
         <div className="admin-card">
           <h2 className="admin-card__title">OT Conflicts</h2>

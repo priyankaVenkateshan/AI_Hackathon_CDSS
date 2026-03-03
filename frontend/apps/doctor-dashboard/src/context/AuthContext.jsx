@@ -7,7 +7,8 @@ export const roles = {
     DOCTOR: 'doctor',
     SURGEON: 'surgeon',
     NURSE: 'nurse',
-    ADMIN: 'admin'
+    ADMIN: 'admin',
+    PATIENT: 'patient',
 };
 
 const users = [
@@ -15,6 +16,7 @@ const users = [
     { id: 'u2', name: 'Dr. Vikram Patel', role: roles.SURGEON, email: 'vikram@cdss.ai', password: '***REDACTED***' },
     { id: 'u3', name: 'Nurse Anjali', role: roles.NURSE, email: 'anjali@cdss.ai', password: '***REDACTED***' },
     { id: 'u4', name: 'Admin Sameer', role: roles.ADMIN, email: 'admin@cdss.ai', password: '***REDACTED***' },
+    { id: 'PT-1001', name: 'Rajesh Kumar', role: roles.PATIENT, email: 'rajesh@patient.demo', password: '***REDACTED***' },
 ];
 
 const CDSS_USER_KEY = 'cdss_user';
@@ -55,7 +57,7 @@ export function AuthProvider({ children }) {
                 const sessionUser = await cognitoSignIn(email, password);
                 setUser(sessionUser);
                 localStorage.setItem(CDSS_USER_KEY, JSON.stringify(sessionUser));
-                return { success: true };
+                return { success: true, user: sessionUser };
             } catch (err) {
                 const message = err.message || err.name === 'NotAuthorizedException' ? 'Invalid credentials' : 'Login failed';
                 return { success: false, message };
@@ -67,7 +69,7 @@ export function AuthProvider({ children }) {
             const userWithToken = { ...userWithoutPassword, token: userWithoutPassword.id };
             setUser(userWithToken);
             localStorage.setItem(CDSS_USER_KEY, JSON.stringify(userWithToken));
-            return { success: true };
+            return { success: true, user: userWithToken };
         }
         return { success: false, message: 'Invalid credentials' };
     };
