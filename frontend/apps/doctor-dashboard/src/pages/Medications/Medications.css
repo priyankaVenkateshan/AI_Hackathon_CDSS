@@ -197,44 +197,6 @@
   font-size: 11px;
 }
 
-/* Pending Clinical Tasks */
-.cw-tasks-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.cw-tasks-item {
-  padding: 10px 0;
-  border-bottom: 1px solid #f3f4f6;
-}
-
-.cw-tasks-item:last-child {
-  border-bottom: none;
-}
-
-.cw-tasks-link {
-  display: block;
-  width: 100%;
-  text-align: left;
-  background: none;
-  border: none;
-  font-size: 14px;
-  color: #374151;
-  cursor: pointer;
-  padding: 4px 0;
-}
-
-.cw-tasks-link:hover {
-  color: #2563eb;
-}
-
-.cw-tasks-count {
-  color: #6b7280;
-  font-weight: 500;
-  margin-left: 4px;
-}
-
 /* 3. Right sidebar – Operational Alert Center – 30% (4 cols) */
 .cw-sidebar {
   grid-column: span 4;
@@ -314,38 +276,6 @@
 .cw-alert__time {
   font-size: 11px;
   opacity: 0.8;
-}
-
-/* 4. Today's Schedule Panel */
-.cw-schedule-section {
-  grid-column: 1 / -1;
-}
-
-.cw-schedule-timeline {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.cw-schedule-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 14px;
-}
-
-.cw-schedule__time {
-  font-weight: 600;
-  color: #374151;
-  min-width: 80px;
-}
-
-.cw-schedule__dash {
-  color: #9ca3af;
-}
-
-.cw-schedule__activity {
-  color: #111827;
 }
 
 /* Responsive */

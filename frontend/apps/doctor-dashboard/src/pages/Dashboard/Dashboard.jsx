@@ -1,22 +1,48 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { patients, todaySchedule, pendingClinicalTasks, clinicalAlerts } from '../../data/mockData';
+import { patients, todaySchedule, clinicalUpdates } from '../../data/mockData';
 import { useActivity } from '../../context/ActivityContext';
 import { useAuth } from '../../context/AuthContext';
-import { roles } from '../../context/AuthContext';
 import './Dashboard.css';
+
+const ICON_SIZE = 20;
+
+function ClinicalUpdateIcon({ type, className }) {
+  const props = { width: ICON_SIZE, height: ICON_SIZE, className, 'aria-hidden': true };
+  switch (type) {
+    case 'discharge_pending':
+      return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <path d="M14 2v6h6M9 15l2 2 4-4" />
+        </svg>
+      );
+    case 'upcoming_surgery':
+      return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+          <path d="M5 4v16M9 4v16M15 4v16M19 4v16M3 8h18M3 16h18" />
+        </svg>
+      );
+    case 'follow_up_reminder':
+      return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+          <path d="M16 2v4M8 2v4M3 10h18" />
+        </svg>
+      );
+    default:
+      return null;
+  }
+}
 
 function Dashboard() {
   const navigate = useNavigate();
   const { logActivity } = useActivity();
-  const { user, hasRole } = useAuth();
-  const isSurgeon = hasRole(roles.SURGEON);
+  useAuth();
 
   useEffect(() => {
     logActivity('view_dashboard');
   }, [logActivity]);
-
-  const tasksToShow = pendingClinicalTasks.filter((t) => !t.surgeonOnly || isSurgeon);
 
   const scheduleWithLocation = todaySchedule.map((s) => {
     const type = s.type || 'Consultation';
@@ -33,13 +59,6 @@ function Dashboard() {
 
   const myPatients = patients.filter((p) => p.status !== 'scheduled').slice(0, 6);
 
-  const priorityClass = (p) => {
-    const s = (p || '').toLowerCase();
-    if (s === 'high') return 'high';
-    if (s === 'medium') return 'medium';
-    return 'low';
-  };
-
   const scheduleTypeClass = (type) => {
     if (type === 'Consultation') return 'consultation';
     if (type === 'Follow-up') return 'followup';
@@ -49,35 +68,10 @@ function Dashboard() {
 
   return (
     <div className="dash page-enter">
+      <p style={{ margin: '0 0 16px', fontSize: '14px', color: '#059669', fontWeight: 600 }}>✓ Dashboard updated — Recent Alerts replaced with Clinical Updates</p>
       <div className="dash__grid">
-        {/* ─── Top Section: 2-column responsive ─── */}
-        <section className="dash__top dash__top--left">
-          <div className="dash-card">
-            <h2 className="dash-card__title">Pending Clinical Tasks</h2>
-            <ul className="dash-tasks">
-              {tasksToShow.map((task) => (
-                <li key={task.id} className="dash-tasks__item">
-                  <div className="dash-tasks__main">
-                    <span className="dash-tasks__patient">{task.patientName}</span>
-                    <span className="dash-tasks__type">{task.taskType}</span>
-                    <span className={`dash-tasks__priority dash-tasks__priority--${priorityClass(task.priority)}`}>
-                      {task.priority}
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    className="dash-tasks__action"
-                    onClick={() => navigate('/patients')}
-                  >
-                    Quick Action
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </section>
-
-        <section className="dash__top dash__top--right">
+        {/* ─── Top Section: Today's Schedule (full width) ─── */}
+        <section className="dash__top dash__top--full">
           <div className="dash-card">
             <h2 className="dash-card__title">Today&apos;s Schedule</h2>
             <ul className="dash-schedule">
@@ -105,7 +99,7 @@ function Dashboard() {
           </div>
         </section>
 
-        {/* ─── Row 2: Patient Overview Summary + Recent Alerts ─── */}
+        {/* ─── Row 2: Patient Overview Summary + Clinical Updates ─── */}
         <section className="dash__row2 dash__summary">
           <div className="dash-card dash-card--summary">
             <h2 className="dash-card__title">Patient Overview Summary</h2>
@@ -127,27 +121,30 @@ function Dashboard() {
           </div>
         </section>
 
-        <section className="dash__row2 dash__alerts">
-          <div className="dash-card">
-            <h2 className="dash-card__title">Recent Alerts</h2>
-            <p className="dash-alerts__note">Clinical alerts only</p>
-            <ul className="dash-alerts-list">
-              {clinicalAlerts.slice(0, 5).map((a) => (
-                <li key={a.id} className={`dash-alert dash-alert--${a.type}`}>
-                  <div className="dash-alert__head">
-                    <span className="dash-alert__title">{a.title}</span>
-                    <span className="dash-alert__time">{a.time}</span>
+        <section className="dash__row2 dash__updates">
+          <div className="dash-card dash-card--updates">
+            <h2 className="dash-card__title">Clinical Updates</h2>
+            <ul className="dash-updates-list">
+              {clinicalUpdates.map((u) => (
+                <li key={u.id} className={`dash-update dash-update--${u.priority}`}>
+                  <span className="dash-update__icon" aria-hidden>
+                    <ClinicalUpdateIcon type={u.type} className="dash-update__icon-svg" />
+                  </span>
+                  <div className="dash-update__body">
+                    <span className="dash-update__title">{u.title}</span>
+                    <span className="dash-update__patient">{u.patientName}</span>
+                    <p className="dash-update__desc">{u.description}</p>
+                    <div className="dash-update__meta">
+                      <span className="dash-update__time">{u.time}</span>
+                      <button
+                        type="button"
+                        className="dash-update__btn"
+                        onClick={() => navigate('/patients')}
+                      >
+                        Review
+                      </button>
+                    </div>
                   </div>
-                  <p className="dash-alert__message">{a.message}</p>
-                  {a.patient && a.patient !== '—' && (
-                    <button
-                      type="button"
-                      className="dash-alert__action"
-                      onClick={() => navigate('/patients')}
-                    >
-                      View
-                    </button>
-                  )}
                 </li>
               ))}
             </ul>

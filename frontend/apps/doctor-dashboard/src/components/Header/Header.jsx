@@ -11,7 +11,6 @@ const pathLabels = {
   '/surgery': 'Surgeries',
   '/resources': 'Resources',
   '/medications': 'Clinical Tasks',
-  '/schedule': 'Schedule',
   '/reports': 'Reports',
   '/profile': 'Profile',
   '/admin/users': 'Users',

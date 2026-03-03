@@ -20,7 +20,6 @@ import AdminAnalytics from './pages/Admin/AdminAnalytics';
 import AdminResources from './pages/Admin/AdminResources';
 import Settings from './pages/Settings/Settings';
 import Resources from './pages/Resources/Resources';
-import Schedule from './pages/Schedule/Schedule';
 import Reports from './pages/Reports/Reports';
 import Profile from './pages/Profile/Profile';
 import Login from './pages/Login/Login';
@@ -56,7 +55,6 @@ function AppLayout() {
               </ProtectedRoute>
             } />
             <Route path="/medications" element={<ProtectedRoute><Medications /></ProtectedRoute>} />
-            <Route path="/schedule" element={<ProtectedRoute><Schedule /></ProtectedRoute>} />
             <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             <Route path="/resources" element={<ProtectedRoute><Resources /></ProtectedRoute>} />
