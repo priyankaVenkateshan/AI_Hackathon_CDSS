@@ -9,7 +9,6 @@ const navItems = [
     { path: '/patients', icon: '👥', label: 'Patients', tooltip: 'Patients' },
     { path: '/surgery', icon: '🔪', label: 'Surgeries', tooltip: 'Surgical Schedule' },
     { path: '/medications', icon: '📋', label: 'Clinical Tasks', tooltip: 'Clinical Tasks' },
-    { path: '/schedule', icon: '📅', label: 'Schedule', tooltip: 'Schedule' },
     { path: '/reports', icon: '📊', label: 'Reports', tooltip: 'Reports' },
     { path: '/profile', icon: '👤', label: 'Profile', tooltip: 'Profile' },
     { section: 'System', roles: [roles.ADMIN] },
