@@ -24,6 +24,34 @@
     gap: var(--space-4);
 }
 
+.header__module-badge {
+    font-size: var(--text-xs);
+    font-weight: 600;
+    color: var(--color-primary);
+    background: var(--color-primary-bg);
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-md);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.header__breadcrumbs {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 2px;
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+}
+
+.header__breadcrumb-sep {
+    color: var(--text-tertiary);
+}
+
+.header__breadcrumb-item {
+    color: var(--text-secondary);
+}
+
 .header__greeting {
     display: flex;
     flex-direction: column;
@@ -193,4 +221,105 @@
 .header__profile-role {
     font-size: var(--text-xs);
     color: var(--text-muted);
+}
+
+/* Operations-focused header layout */
+.header--ops {
+    padding: 0 24px;
+}
+
+.header--ops .header__inner {
+    display: grid;
+    grid-template-columns: 1fr minmax(200px, 400px) 1fr;
+    align-items: center;
+    gap: 24px;
+    width: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.header--ops .header__left {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+}
+
+.header__portal-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #2563EB;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.header--ops .header__center {
+    justify-self: center;
+    width: 100%;
+    max-width: 360px;
+    position: relative;
+}
+
+.header--ops .header__center .header__search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 14px;
+    pointer-events: none;
+}
+
+.header--ops .header__center .header__search-input {
+    width: 100%;
+    padding: 10px 16px;
+    padding-left: 36px;
+    border-radius: 12px;
+    border: 1px solid var(--surface-border);
+    background: var(--surface-bg);
+    font-size: 14px;
+}
+
+.header--ops .header__right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    justify-self: end;
+}
+
+.header__icon-btn--notify {
+    position: relative;
+}
+
+.header__notify-dot {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #dc2626;
+}
+
+.header__shift-badge {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 12px;
+}
+
+.header__shift-badge--on {
+    background: #dcfce7;
+    color: #166534;
+    border: 1px solid #bbf7d0;
+}
+
+.header__shift-badge--off {
+    background: #f3f4f6;
+    color: #6b7280;
+    border: 1px solid #e5e7eb;
+}
+
+.header--ops .header__avatar {
+    background: #2563eb;
+    color: #fff;
 }

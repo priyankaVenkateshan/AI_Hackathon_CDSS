@@ -320,6 +320,15 @@ export const todaySchedule = [
   { time: '15:30', patient: 'Arjun Nair', type: 'Pre-op Check', status: 'upcoming' },
 ];
 
+/** For dashboard: task type, patient, priority, used for surgeons (pre-op clearance) and doctors */
+export const pendingClinicalTasks = [
+  { id: 't1', patientName: 'Rajesh Kumar', taskType: 'Lab review pending', priority: 'High' },
+  { id: 't2', patientName: 'Lakshmi Devi', taskType: 'Prescription approval pending', priority: 'High' },
+  { id: 't3', patientName: 'Mohammed Farhan', taskType: 'Discharge summary pending', priority: 'Medium' },
+  { id: 't4', patientName: 'Ananya Singh', taskType: 'Consultation follow-ups', priority: 'Low' },
+  { id: 't5', patientName: 'Arjun Nair', taskType: 'Pre-op clearance', priority: 'Medium', surgeonOnly: true },
+];
+
 export const aiAlerts = [
   {
     id: 'alert-1',
@@ -370,6 +379,11 @@ export const aiAlerts = [
     time: '2 hr ago',
   },
 ];
+
+/** Clinical alerts only (no AI marketing / Global Risk Pulse) for dashboard */
+export const clinicalAlerts = aiAlerts.filter(
+  (a) => ['critical', 'warning', 'info', 'success'].includes(a.type)
+);
 
 export const consultationHistory = [
   {

@@ -1,430 +1,414 @@
 /* ============================================
-   Dashboard Page Styles
+   Task-first Doctor/Surgeon Dashboard
+   12-column grid, hospital-grade UI
    ============================================ */
 
-.dashboard {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    grid-template-rows: auto auto 1fr;
-    gap: var(--space-5);
+.dash {
+  padding: 24px;
+  background: #ffffff;
+  min-height: calc(100vh - var(--header-height));
 }
 
-/* ─── Stats Row ─── */
-.dashboard__stats {
+.dash__grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* ─── Cards ─── */
+.dash-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  padding: 24px;
+  height: 100%;
+  min-width: 0;
+}
+
+.dash-card__title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 16px;
+  letter-spacing: 0.01em;
+}
+
+/* ─── Top section: 2-column responsive ─── */
+.dash__top {
+  grid-column: span 6;
+}
+
+.dash__top--left .dash-card {
+  min-height: 280px;
+}
+
+.dash__top--right .dash-card {
+  min-height: 280px;
+}
+
+/* Pending Clinical Tasks */
+.dash-tasks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.dash-tasks__item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.dash-tasks__item:last-child {
+  border-bottom: none;
+}
+
+.dash-tasks__main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1 1 200px;
+}
+
+.dash-tasks__patient {
+  font-weight: 600;
+  color: #111827;
+  font-size: 14px;
+}
+
+.dash-tasks__type {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.dash-tasks__priority {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 12px;
+  text-transform: uppercase;
+}
+
+.dash-tasks__priority--high {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.dash-tasks__priority--medium {
+  background: #fffbeb;
+  color: #b45309;
+}
+
+.dash-tasks__priority--low {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.dash-tasks__action {
+  flex-shrink: 0;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #2563eb;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.dash-tasks__action:hover {
+  background: #dbeafe;
+  border-color: #1d4ed8;
+}
+
+/* Today's Schedule */
+.dash-schedule {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.dash-schedule__item {
+  display: grid;
+  grid-template-columns: 56px 1fr auto auto auto;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid #f3f4f6;
+  font-size: 14px;
+}
+
+.dash-schedule__item:last-child {
+  border-bottom: none;
+}
+
+.dash-schedule__item--consultation {
+  border-left: 3px solid #2563eb;
+  padding-left: 8px;
+  margin-left: -8px;
+}
+
+.dash-schedule__item--followup {
+  border-left: 3px solid #059669;
+  padding-left: 8px;
+  margin-left: -8px;
+}
+
+.dash-schedule__item--surgery {
+  border-left: 3px solid #dc2626;
+  padding-left: 8px;
+  margin-left: -8px;
+}
+
+.dash-schedule__time {
+  font-weight: 600;
+  color: #374151;
+  font-size: 13px;
+}
+
+.dash-schedule__patient {
+  color: #111827;
+}
+
+.dash-schedule__type,
+.dash-schedule__location {
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.dash-schedule__btn {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #2563eb;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.dash-schedule__btn:hover {
+  background: #dbeafe;
+}
+
+/* ─── Row 2: Patient Overview Summary + Recent Alerts ─── */
+.dash__row2 {
+  grid-column: span 6;
+}
+
+.dash-card--summary {
+  min-width: 0;
+}
+
+.dash-summary__content {
+  min-width: 0;
+}
+
+.dash-summary__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.dash-summary__btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.dash-summary__btn:hover {
+  background: #eff6ff;
+  border-color: #93c5fd;
+}
+
+.dash-summary__btn-name {
+  font-weight: 600;
+  color: #111827;
+  font-size: 14px;
+}
+
+.dash-summary__btn-meta {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 4px;
+}
+
+/* Recent Alerts (clinical only) */
+.dash-alerts__note {
+  font-size: 11px;
+  color: #9ca3af;
+  margin: -8px 0 12px;
+}
+
+.dash-alerts-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dash-alert {
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid;
+  font-size: 13px;
+}
+
+.dash-alert--critical {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #991b1b;
+}
+
+.dash-alert--warning {
+  background: #fffbeb;
+  border-color: #fde68a;
+  color: #92400e;
+}
+
+.dash-alert--info {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1e40af;
+}
+
+.dash-alert--success {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  color: #065f46;
+}
+
+.dash-alert__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.dash-alert__title {
+  font-weight: 600;
+}
+
+.dash-alert__time {
+  font-size: 11px;
+  opacity: 0.9;
+}
+
+.dash-alert__message {
+  margin: 0 0 8px;
+  font-size: 12px;
+  line-height: 1.4;
+  opacity: 0.95;
+}
+
+.dash-alert__action {
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  background: rgba(0, 0, 0, 0.06);
+  border: none;
+  cursor: pointer;
+}
+
+.dash-alert__action:hover {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+/* ─── Responsive: tablet and small ─── */
+@media (max-width: 1200px) {
+  .dash__top,
+  .dash__row2 {
     grid-column: 1 / -1;
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: var(--space-4);
+  }
+
+  .dash-schedule__item {
+    grid-template-columns: 56px 1fr auto auto;
+  }
+
+  .dash-schedule__btn {
+    grid-column: 2 / -1;
+    justify-self: start;
+  }
 }
 
-.stat-card {
-    background: var(--surface-card);
-    border-radius: var(--radius-lg);
-    padding: var(--space-5);
-    border: 1px solid var(--surface-border);
-    display: flex;
-    align-items: center;
-    gap: var(--space-4);
-    transition: all var(--duration-fast) var(--ease-out);
-    cursor: default;
-}
+@media (max-width: 768px) {
+  .dash {
+    padding: 16px;
+  }
 
-.stat-card:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-lg);
-}
+  .dash__grid {
+    gap: 16px;
+  }
 
-.stat-card__icon {
-    width: 48px;
-    height: 48px;
-    border-radius: var(--radius-md);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.4rem;
-    flex-shrink: 0;
-}
+  .dash-card {
+    padding: 16px;
+  }
 
-.stat-card__icon--primary {
-    background: var(--color-primary-bg);
-}
-
-.stat-card__icon--secondary {
-    background: var(--color-secondary-bg);
-}
-
-.stat-card__icon--accent {
-    background: var(--color-accent-bg);
-}
-
-.stat-card__icon--warning {
-    background: var(--color-warning-bg);
-}
-
-.stat-card__info {
-    display: flex;
+  .dash-tasks__item {
     flex-direction: column;
-}
+    align-items: flex-start;
+  }
 
-.stat-card__value {
-    font-size: var(--text-3xl);
-    font-weight: 800;
-    color: var(--text-primary);
-    letter-spacing: -0.02em;
-    line-height: 1.1;
-}
+  .dash-tasks__action {
+    align-self: flex-start;
+  }
 
-.stat-card__label {
-    font-size: var(--text-sm);
-    color: var(--text-secondary);
-    margin-top: 2px;
-}
+  .dash-schedule__item {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
 
-.stat-card__trend {
-    font-size: var(--text-xs);
-    font-weight: 600;
-    margin-top: 2px;
-}
+  .dash-schedule__time {
+    grid-column: 1;
+  }
 
-.stat-card__trend--up {
-    color: var(--color-secondary);
-}
+  .dash-schedule__patient {
+    grid-column: 2;
+  }
 
-.stat-card__trend--down {
-    color: var(--color-critical);
-}
+  .dash-schedule__type,
+  .dash-schedule__location {
+    grid-column: 1;
+    font-size: 11px;
+  }
 
-/* ─── Patient Queue ─── */
-.dashboard__queue {
-    grid-column: 1 / 3;
-    background: var(--surface-card);
-    border-radius: var(--radius-lg);
-    border: 1px solid var(--surface-border);
-    overflow: hidden;
-}
+  .dash-schedule__btn {
+    grid-column: 2;
+    grid-row: 2;
+    justify-self: end;
+  }
 
-.card-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: var(--space-4) var(--space-5);
-    border-bottom: 1px solid var(--surface-border);
-}
-
-.card-header__title {
-    font-size: var(--text-base);
-    font-weight: 700;
-    color: var(--text-primary);
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-}
-
-.card-header__action {
-    font-size: var(--text-sm);
-    color: var(--color-primary);
-    font-weight: 500;
-    cursor: pointer;
-    transition: opacity var(--duration-fast);
-}
-
-.card-header__action:hover {
-    opacity: 0.8;
-}
-
-.queue-list {
-    padding: var(--space-2);
-}
-
-.queue-item {
-    display: flex;
-    align-items: center;
-    gap: var(--space-4);
-    padding: var(--space-3) var(--space-4);
-    border-radius: var(--radius-md);
-    transition: all var(--duration-fast) var(--ease-out);
-    cursor: pointer;
-}
-
-.queue-item:hover {
-    background: var(--surface-hover);
-}
-
-.queue-item__avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: var(--radius-md);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 600;
-    font-size: var(--text-sm);
-    color: white;
-    flex-shrink: 0;
-}
-
-.queue-item__avatar--male {
-    background: linear-gradient(135deg, hsl(220, 90%, 56%), hsl(220, 90%, 70%));
-}
-
-.queue-item__avatar--female {
-    background: linear-gradient(135deg, hsl(280, 70%, 55%), hsl(320, 70%, 65%));
-}
-
-.queue-item__info {
-    flex: 1;
-    min-width: 0;
-}
-
-.queue-item__name {
-    font-size: var(--text-sm);
-    font-weight: 600;
-    color: var(--text-primary);
-}
-
-.queue-item__details {
-    font-size: var(--text-xs);
-    color: var(--text-secondary);
-    display: flex;
-    gap: var(--space-2);
-}
-
-.queue-item__vitals {
-    display: flex;
-    gap: var(--space-3);
-}
-
-.vital-mini {
-    font-size: var(--text-xs);
-    font-family: var(--font-mono);
-    color: var(--text-secondary);
-    display: flex;
-    align-items: center;
-    gap: 3px;
-}
-
-.vital-mini--critical {
-    color: var(--color-critical);
-    font-weight: 600;
-}
-
-.queue-item__severity {
-    padding: 2px 8px;
-    border-radius: var(--radius-full);
-    font-size: 0.625rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    flex-shrink: 0;
-}
-
-.severity--critical {
-    background: var(--color-critical-bg);
-    color: var(--color-critical);
-    animation: pulse-glow 2s ease-in-out infinite;
-}
-
-.severity--high {
-    background: var(--color-warning-bg);
-    color: var(--color-warning);
-}
-
-.severity--moderate {
-    background: var(--color-primary-bg);
-    color: var(--color-primary);
-}
-
-.severity--low {
-    background: var(--color-secondary-bg);
-    color: var(--color-secondary);
-}
-
-/* ─── AI Alerts ─── */
-.dashboard__alerts {
-    grid-column: 3 / 4;
-    grid-row: 2 / 4;
-    background: var(--surface-card);
-    border-radius: var(--radius-lg);
-    border: 1px solid var(--surface-border);
-    overflow: hidden;
-}
-
-.alert-list {
-    padding: var(--space-2);
-    display: flex;
+  .dash-summary__actions {
     flex-direction: column;
-    gap: var(--space-2);
-}
+    align-items: stretch;
+  }
 
-.alert-item {
-    padding: var(--space-3) var(--space-4);
-    border-radius: var(--radius-md);
-    border-left: 3px solid transparent;
-    transition: all var(--duration-fast) var(--ease-out);
-    cursor: pointer;
-}
-
-.alert-item:hover {
-    background: var(--surface-hover);
-    transform: translateX(2px);
-}
-
-.alert-item--critical {
-    border-left-color: var(--color-critical);
-}
-
-.alert-item--warning {
-    border-left-color: var(--color-warning);
-}
-
-.alert-item--info {
-    border-left-color: var(--color-primary);
-}
-
-.alert-item--success {
-    border-left-color: var(--color-secondary);
-}
-
-.alert-item__header {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-    margin-bottom: var(--space-1);
-}
-
-.alert-item__icon {
-    font-size: var(--text-sm);
-}
-
-.alert-item__title {
-    font-size: var(--text-sm);
-    font-weight: 600;
-    color: var(--text-primary);
-}
-
-.alert-item__time {
-    font-size: var(--text-xs);
-    color: var(--text-muted);
-    margin-left: auto;
-}
-
-.alert-item__message {
-    font-size: var(--text-xs);
-    color: var(--text-secondary);
-    line-height: 1.5;
-}
-
-/* ─── Schedule ─── */
-.dashboard__schedule {
-    grid-column: 1 / 3;
-    background: var(--surface-card);
-    border-radius: var(--radius-lg);
-    border: 1px solid var(--surface-border);
-    overflow: hidden;
-}
-
-.schedule-list {
-    padding: var(--space-2) var(--space-4);
-}
-
-.schedule-item {
-    display: flex;
-    align-items: center;
-    gap: var(--space-4);
-    padding: var(--space-3) 0;
-    border-bottom: 1px solid var(--surface-border);
-}
-
-.schedule-item:last-child {
-    border-bottom: none;
-}
-
-.schedule-item__time {
-    font-size: var(--text-sm);
-    font-family: var(--font-mono);
-    font-weight: 500;
-    color: var(--text-secondary);
-    width: 52px;
-    flex-shrink: 0;
-}
-
-.schedule-item__line {
-    width: 2px;
-    height: 32px;
-    background: var(--surface-border);
-    border-radius: var(--radius-full);
-    position: relative;
-    flex-shrink: 0;
-}
-
-.schedule-item__dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-}
-
-.schedule-item__dot--completed {
-    background: var(--color-secondary);
-}
-
-.schedule-item__dot--in-progress {
-    background: var(--color-primary);
-    animation: pulse-glow 2s infinite;
-    box-shadow: 0 0 8px var(--color-primary);
-}
-
-.schedule-item__dot--upcoming {
-    background: var(--surface-border);
-}
-
-.schedule-item__dot--open {
-    background: transparent;
-    border: 2px dashed var(--text-muted);
-}
-
-.schedule-item__info {
-    flex: 1;
-}
-
-.schedule-item__patient {
-    font-size: var(--text-sm);
-    font-weight: 600;
-    color: var(--text-primary);
-}
-
-.schedule-item__type {
-    font-size: var(--text-xs);
-    color: var(--text-secondary);
-}
-
-.schedule-item__status {
-    font-size: var(--text-xs);
-    font-weight: 600;
-    padding: 2px 8px;
-    border-radius: var(--radius-full);
-}
-
-.status--completed {
-    background: var(--color-success-bg);
-    color: var(--color-success);
-}
-
-.status--in-progress {
-    background: var(--color-primary-bg);
-    color: var(--color-primary);
-}
-
-.status--upcoming {
-    background: var(--surface-hover);
-    color: var(--text-muted);
-}
-
-.status--open {
-    background: transparent;
-    color: var(--text-muted);
-    border: 1px dashed var(--surface-border);
+  .dash-summary__btn {
+    max-width: none;
+  }
 }

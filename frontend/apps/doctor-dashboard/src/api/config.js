@@ -27,3 +27,12 @@ export function isCognitoEnabled() {
 export function isMockMode() {
   return config.useMock || !config.apiUrl;
 }
+
+/** Call once at app init to warn if live API is expected but URL is missing. */
+export function validateEnv() {
+  if (!config.useMock && !config.apiUrl) {
+    console.warn(
+      '[CDSS] VITE_USE_MOCK is false but VITE_API_URL is empty. Set VITE_API_URL in .env or use VITE_USE_MOCK=true for mock data.'
+    );
+  }
+}

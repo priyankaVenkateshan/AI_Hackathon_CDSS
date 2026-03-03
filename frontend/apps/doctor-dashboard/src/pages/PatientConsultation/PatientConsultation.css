@@ -20,12 +20,15 @@
 
 .patient-header {
     background: var(--surface-card);
-    border-radius: var(--radius-lg);
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
     border: 1px solid var(--surface-border);
-    padding: var(--space-6);
+    padding: var(--space-5);
     display: flex;
-    align-items: center;
+    flex-wrap: wrap;
+    align-items: flex-start;
     gap: var(--space-5);
+    overflow: hidden;
 }
 
 .patient-header__avatar {
@@ -50,7 +53,8 @@
 }
 
 .patient-header__info {
-    flex: 1;
+    flex: 1 1 200px;
+    min-width: 0;
 }
 
 .patient-header__name {
@@ -74,6 +78,54 @@
     gap: var(--space-1);
 }
 
+.patient-header__meta-item--id {
+    font-family: var(--font-mono);
+}
+
+.patient-header__key-indicators {
+    display: flex;
+    gap: var(--space-4);
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    margin-top: var(--space-2);
+}
+
+.patient-header__ki {
+    font-weight: 500;
+}
+
+.patient-header__risk-meter {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-top: var(--space-2);
+}
+
+.patient-header__risk-label {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+}
+
+.patient-header__risk-bar {
+    width: 80px;
+    height: 6px;
+    background: var(--surface-bg);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+}
+
+.patient-header__risk-fill {
+    height: 100%;
+    background: var(--color-primary);
+    border-radius: var(--radius-full);
+}
+
+.patient-header__risk-value {
+    font-size: var(--text-sm);
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
 .patient-header__conditions {
     display: flex;
     gap: var(--space-2);
@@ -92,8 +144,16 @@
 
 .patient-header__actions {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    flex-wrap: wrap;
     gap: var(--space-2);
+    align-items: center;
+    min-width: 0;
+    flex: 1 1 auto;
+}
+.patient-header__actions .btn {
+    flex-shrink: 0;
+    margin: 0;
 }
 
 .consultation-badge {
@@ -656,4 +716,79 @@
 
 .back-link:hover {
     color: var(--color-primary);
+}
+
+/* Surgery Readiness Modal (AI Agent) */
+.surgery-readiness-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.surgery-readiness-modal {
+    background: var(--surface-card);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--surface-border);
+    max-width: 440px;
+    width: 90%;
+    max-height: 90vh;
+    overflow: auto;
+}
+
+.surgery-readiness-modal__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-4);
+    border-bottom: 1px solid var(--surface-border);
+}
+
+.surgery-readiness-modal__header h3 {
+    margin: 0;
+    font-size: var(--text-lg);
+}
+
+.surgery-readiness-modal__close {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--text-muted);
+}
+
+.surgery-readiness-modal__body {
+    padding: var(--space-4);
+}
+
+.surgery-readiness-modal__row {
+    margin-bottom: var(--space-3);
+    font-size: var(--text-sm);
+}
+
+.surgery-readiness-modal__row span:first-child {
+    display: block;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: var(--space-1);
+}
+
+.surgery-readiness-modal__status--pending { color: var(--color-warning); }
+.surgery-readiness-modal__status--cleared { color: var(--color-success, #0a0); }
+.surgery-readiness-modal__status--not_assessed { color: var(--text-muted); }
+
+/* Patient Summary card: keep buttons inside on small screens */
+@media (max-width: 900px) {
+    .patient-header {
+        padding: var(--space-4);
+    }
+    .patient-header__actions {
+        width: 100%;
+        flex-basis: 100%;
+    }
 }

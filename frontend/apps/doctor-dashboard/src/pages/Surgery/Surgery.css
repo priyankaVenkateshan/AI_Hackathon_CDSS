@@ -14,6 +14,91 @@
     color: var(--text-primary);
 }
 
+.surgery-page__desc {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+.surgery-section-title {
+    font-size: var(--text-lg);
+    font-weight: 600;
+    margin: 0 0 var(--space-3);
+}
+
+.surgery-schedule-table-wrap {
+    background: var(--surface-card);
+    border: 1px solid var(--surface-border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+
+.surgery-schedule-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.surgery-schedule-table th,
+.surgery-schedule-table td {
+    padding: var(--space-3) var(--space-4);
+    text-align: left;
+    border-bottom: 1px solid var(--surface-border);
+}
+
+.surgery-schedule-table th {
+    font-size: var(--text-xs);
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    background: var(--surface-bg);
+}
+
+.surgery-status-tag {
+    font-size: var(--text-xs);
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+}
+
+.surgery-status-tag--scheduled { background: var(--color-primary-bg); color: var(--color-primary); }
+.surgery-status-tag--in_progress { background: var(--color-warning-bg); color: var(--color-warning); }
+.surgery-status-tag--pre_op { background: var(--color-secondary-bg); color: var(--color-secondary); }
+.surgery-status-tag--emergency { background: var(--color-critical-bg, rgba(204,0,0,0.1)); color: var(--color-critical); }
+
+.surgery-complication-simulator {
+    margin-top: var(--space-5);
+}
+
+.complication-simulator__card {
+    background: var(--surface-card);
+    border: 1px solid var(--surface-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-4);
+}
+
+.complication-simulator__row {
+    margin-bottom: var(--space-3);
+}
+
+.complication-simulator__label {
+    font-size: var(--text-xs);
+    font-weight: 600;
+    color: var(--text-muted);
+    display: block;
+    margin-bottom: var(--space-1);
+}
+
+.complication-simulator__value {
+    font-size: var(--text-sm);
+    color: var(--text-primary);
+}
+
+.complication-simulator__actions {
+    margin: 0;
+    padding-left: var(--space-5);
+    font-size: var(--text-sm);
+    color: var(--text-primary);
+}
+
 .surgery-board {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
