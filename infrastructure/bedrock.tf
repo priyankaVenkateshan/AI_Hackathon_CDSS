@@ -10,8 +10,8 @@ resource "aws_iam_policy" "bedrock_invoke" {
     Version = "2012-10-17"
     Statement = [
       {
-        Effect   = "Allow"
-        Action   = ["bedrock:InvokeModel", "bedrock:InvokeModelWithResponseStream"]
+        Effect = "Allow"
+        Action = ["bedrock:InvokeModel", "bedrock:InvokeModelWithResponseStream"]
         Resource = [
           "arn:aws:bedrock:ap-south-1::foundation-model/*",
           "arn:aws:bedrock:ap-south-1:*:inference-profile/*",
@@ -26,6 +26,24 @@ resource "aws_iam_policy" "bedrock_invoke" {
       {
         Effect   = "Allow"
         Action   = ["bedrock:InvokeAgent"]
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "transcribe:StartTranscriptionJob",
+          "transcribe:GetTranscriptionJob",
+          "transcribe:ListTranscriptionJobs"
+        ]
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "translate:TranslateText",
+          "translate:GetTerminology",
+          "translate:ListTerminologies"
+        ]
         Resource = "*"
       }
     ]

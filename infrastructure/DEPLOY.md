@@ -47,7 +47,7 @@ Invoke-WebRequest -Uri "$url/api/" -Method GET
 ```
 
 You should see:
-- **GET /health** → `{"status":"ok","service":"emergency-medical-triage"}`
+- **GET /health** → `{"status":"ok","service":"cdss"}`
 - **GET /api/** → `{"service":"cdss","status":"ok"}`
 
 ## If your IAM user cannot be granted tagging permissions

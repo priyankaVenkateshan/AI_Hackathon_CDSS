@@ -2,8 +2,8 @@ provider "aws" {
   region = var.aws_region
   default_tags {
     tags = {
-      Project    = "CDSS"
-      ManagedBy  = "Terraform"
+      Project   = "CDSS"
+      ManagedBy = "Terraform"
     }
   }
 }

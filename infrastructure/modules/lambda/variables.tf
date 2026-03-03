@@ -32,3 +32,16 @@ variable "attach_bedrock_policy" {
   type        = bool
   default     = true
 }
+
+# VPC config for RDS access (optional). When set, Lambdas run in VPC; ensure Bedrock VPC endpoint or NAT if needed.
+variable "vpc_subnet_ids" {
+  description = "Subnet IDs for Lambda VPC config (e.g. private subnets for RDS access)"
+  type        = list(string)
+  default     = []
+}
+
+variable "vpc_security_group_ids" {
+  description = "Security group IDs for Lambda VPC config"
+  type        = list(string)
+  default     = []
+}
