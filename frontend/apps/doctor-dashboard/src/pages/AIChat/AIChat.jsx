@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { isMockMode } from '../../api/config';
 import { postAgent } from '../../api/client';
+import { useActivity } from '../../context/ActivityContext';
 import './AIChat.css';
 
 const welcomePrompts = [
@@ -14,6 +15,7 @@ export default function AIChat() {
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
     const [isTyping, setIsTyping] = useState(false);
+    const { logActivity } = useActivity();
 
     const handleSend = (text) => {
         const msg = text || input;
@@ -22,6 +24,7 @@ export default function AIChat() {
         setMessages(prev => [...prev, { role: 'user', text: msg, time: 'Now' }]);
         setInput('');
         setIsTyping(true);
+        logActivity('ai_chat');
 
         if (!isMockMode()) {
             postAgent({ message: msg, history: messages })

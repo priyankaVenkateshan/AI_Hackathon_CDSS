@@ -1,189 +1,181 @@
-import { useState, useEffect } from 'react';
-import { isMockMode } from '../../api/config';
-import { getMedications, sendNudge, scheduleReminder } from '../../api/client';
-import { medications, patients } from '../../data/mockData';
+import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { patients } from '../../data/mockData';
 import './Medications.css';
 
+const OPERATIONAL_ALERTS = [
+  { id: 1, title: 'Doctor absent', detail: 'You are assigned to manage 6 additional patients.', type: 'Staffing', time: '08:10', action: 'View' },
+  { id: 2, title: 'Emergency admission assigned', detail: 'New emergency admission assigned to you.', type: 'Emergency', time: '08:45', action: 'View' },
+  { id: 3, title: 'OT rescheduled', detail: 'Knee reconstruction moved to 4:30 PM, OT-3.', type: 'Shift', time: '09:05', action: 'View' },
+  { id: 4, title: 'ICU consult requested', detail: 'ICU consult requested for Ward 5 patient.', type: 'Emergency', time: '09:15', action: 'Acknowledge' },
+  { id: 5, title: 'Shift extended by 2 hours', detail: 'Overtime approved. Shift end 8:00 PM.', type: 'Shift', time: '09:30', action: 'View' },
+  { id: 6, title: 'Nurse escalation', detail: 'Escalation request from Ward 3 (pain management).', type: 'Escalation', time: '09:45', action: 'Acknowledge' },
+];
+
+const PENDING_TASKS = [
+  { label: 'Review Lab Results', count: 3 },
+  { label: 'Sign Discharge Summary', count: 2 },
+  { label: 'Approve Prescriptions', count: 5 },
+  { label: 'Respond to Nurse Escalation', count: 1 },
+  { label: 'Complete Case Notes', count: null },
+];
+
+const TODAY_SCHEDULE = [
+  { time: '09:00 AM', activity: 'OPD Consultation' },
+  { time: '11:00 AM', activity: 'Ward Rounds' },
+  { time: '01:30 PM', activity: 'Surgery (Appendectomy)' },
+  { time: '04:00 PM', activity: 'ICU Review' },
+  { time: '06:00 PM', activity: 'Case Documentation' },
+];
+
+const SUMMARY_CARDS = [
+  { label: 'Patients Assigned Today', value: 14, updated: '5' },
+  { label: 'Critical Cases', value: 2, updated: '2' },
+  { label: 'Pending Notes', value: 5, updated: '3' },
+  { label: 'Surgeries / Procedures Today', value: 3, updated: '1' },
+];
+
+function SummaryCard({ label, value, updated }) {
+  return (
+    <div className="cw-card cw-summary-card">
+      <span className="cw-summary-card__dot" aria-hidden />
+      <div className="cw-summary-card__value">{value}</div>
+      <div className="cw-summary-card__label">{label}</div>
+      <div className="cw-summary-card__updated">Updated {updated} mins ago</div>
+    </div>
+  );
+}
+
 export default function Medications() {
-    const [sentReminders, setSentReminders] = useState([]);
-    const [scheduledReminders, setScheduledReminders] = useState([]);
-    const [nudgeLoading, setNudgeLoading] = useState(null);
-    const [filter, setFilter] = useState('all');
-    const [medsList, setMedsList] = useState(isMockMode() ? medications : []);
-    const [loading, setLoading] = useState(!isMockMode());
-    const [error, setError] = useState(null);
+  const navigate = useNavigate();
+  const [sortBy, setSortBy] = useState('priority'); // priority | name
 
-    useEffect(() => {
-        if (isMockMode()) {
-            setMedsList(medications);
-            return;
-        }
-        let cancelled = false;
-        setLoading(true);
-        setError(null);
-        getMedications()
-            .then((data) => {
-                if (cancelled) return;
-                setMedsList(Array.isArray(data) ? data : (data.medications || data.items || []));
-            })
-            .catch((err) => {
-                if (!cancelled) setError(err.message || 'Failed to load medications');
-            })
-            .finally(() => {
-                if (!cancelled) setLoading(false);
-            });
-        return () => { cancelled = true; };
-    }, []);
-
-    const patientsForAdherence = isMockMode() ? patients : [];
-    const avgAdherence = patientsForAdherence.length
-        ? (patientsForAdherence.reduce((acc, p) => acc + (p.adherence || 0), 0) / patientsForAdherence.length) * 100
-        : 0;
-
-    const adherenceTrend7d = [84, 82, 85, 86, 84, 83, avgAdherence.toFixed(0)].map((v, i, arr) => typeof v === 'number' ? v : parseFloat(v));
-    const trendLabel = adherenceTrend7d.length ? `7-day trend: ${adherenceTrend7d[0]}% → ${adherenceTrend7d[adherenceTrend7d.length - 1]}%` : '';
-
-    const handleSendReminder = (med) => {
-        if (sentReminders.includes(med.id)) return;
-        const patientId = patients.find(p => p.name === med.patient)?.id;
-        if (!isMockMode() && patientId) {
-            setNudgeLoading(med.id);
-            sendNudge(patientId, med.id)
-                .then(() => { setSentReminders(prev => [...prev, med.id]); })
-                .catch(() => {})
-                .finally(() => setNudgeLoading(null));
-        } else {
-            setSentReminders([...sentReminders, med.id]);
-        }
-    };
-
-    const handleScheduleReminder = (med) => {
-        const at = new Date(Date.now() + 60 * 60 * 1000).toISOString();
-        const patientId = patients.find(p => p.name === med.patient)?.id;
-        if (!isMockMode() && patientId) {
-            scheduleReminder(patientId, med.id, at).then(() => setScheduledReminders(prev => [...prev, med.id])).catch(() => {});
-        } else {
-            setScheduledReminders(prev => [...prev, med.id]);
-        }
-    };
-
-    const filteredMeds = medsList.filter(med => {
-        if (filter === 'overdue') return med.status === 'overdue';
-        if (filter === 'interactions') return (med.interactions || []).length > 0;
-        return true;
-    });
-
-    if (loading && !isMockMode()) {
-        return (
-            <div className="meds-page page-enter" style={{ padding: '2rem', textAlign: 'center' }}>
-                <p>Loading medications…</p>
-            </div>
-        );
+  const todayPatients = useMemo(() => {
+    const list = patients.filter((p) => p.status !== 'scheduled').map((p) => ({
+      ...p,
+      priority: (p.severity || 'moderate').toLowerCase() === 'critical' ? 'High' : (p.severity || 'moderate').toLowerCase() === 'high' ? 'High' : (p.severity || 'moderate').toLowerCase() === 'moderate' ? 'Medium' : 'Low',
+    }));
+    if (sortBy === 'priority') {
+      const order = { High: 0, Medium: 1, Low: 2 };
+      return [...list].sort((a, b) => order[a.priority] - order[b.priority]);
     }
+    return [...list].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+  }, [sortBy]);
 
-    if (error) {
-        return (
-            <div className="meds-page page-enter" style={{ padding: '2rem', textAlign: 'center' }}>
-                <p style={{ color: 'var(--color-error, #c00)' }}>{error}</p>
-                <button className="btn btn--primary" onClick={() => window.location.reload()}>Retry</button>
+  const priorityClass = (p) => (p === 'High' ? 'high' : p === 'Medium' ? 'medium' : 'low');
+
+  return (
+    <div className="cw-page page-enter">
+      <div className="cw-breadcrumb">Doctor Portal / Dashboard / Clinical Workboard</div>
+      <h1 className="cw-title">Clinical Workboard</h1>
+
+      <div className="cw-grid">
+        {/* 1. Top Summary Strip */}
+        <section className="cw-section cw-summary-strip">
+          {SUMMARY_CARDS.map((card) => (
+            <SummaryCard key={card.label} label={card.label} value={card.value} updated={card.updated} />
+          ))}
+        </section>
+
+        {/* 2. Primary Work Area - Left 70% */}
+        <section className="cw-main">
+          {/* A. Today's Patient List */}
+          <div className="cw-card cw-patients-card">
+            <h2 className="cw-card__title">Today's Patient List</h2>
+            <div className="cw-table-wrap">
+              <table className="cw-table">
+                <thead>
+                  <tr>
+                    <th>Patient Name</th>
+                    <th>Age / Gender</th>
+                    <th>Room / OPD</th>
+                    <th>Diagnosis</th>
+                    <th>
+                      <button
+                        type="button"
+                        className="cw-sort-btn"
+                        onClick={() => setSortBy(sortBy === 'priority' ? 'name' : 'priority')}
+                      >
+                        Priority {sortBy === 'priority' ? '▼' : '▲'}
+                      </button>
+                    </th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {todayPatients.map((p) => (
+                    <tr key={p.id}>
+                      <td>{p.name}</td>
+                      <td>{p.age != null ? `${p.age}` : '—'} / {(p.gender || '—').slice(0, 1)}</td>
+                      <td>{p.ward || 'OPD'}</td>
+                      <td>{(Array.isArray(p.conditions) ? p.conditions : [p.conditions]).filter(Boolean).slice(0, 2).join(', ') || '—'}</td>
+                      <td>
+                        <span className={`cw-priority cw-priority--${priorityClass(p.priority)}`}>{p.priority}</span>
+                      </td>
+                      <td>
+                        <button type="button" className="cw-btn cw-btn--view" onClick={() => navigate(`/patient/${p.id}`)}>View Case</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-        );
-    }
+          </div>
 
-    return (
-        <div className="meds-page page-enter">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h1 className="meds-page__title">💊 Medication Adherence Hub</h1>
-                <div className="filter-group" style={{ display: 'flex', gap: 'var(--space-2)' }}>
-                    <button
-                        className={`filter-btn ${filter === 'all' ? 'active' : ''}`}
-                        onClick={() => setFilter('all')}
-                        style={{ padding: '4px 12px', borderRadius: '4px', border: '1px solid var(--surface-border)', background: 'var(--surface-card)', cursor: 'pointer' }}
-                    >
-                        All
-                    </button>
-                    <button
-                        className={`filter-btn ${filter === 'overdue' ? 'active' : ''}`}
-                        onClick={() => setFilter('overdue')}
-                        style={{ padding: '4px 12px', borderRadius: '4px', border: '1px solid var(--surface-border)', background: 'var(--surface-card)', cursor: 'pointer' }}
-                    >
-                        Overdue
-                    </button>
+          {/* B. Pending Clinical Tasks */}
+          <div className="cw-card cw-tasks-card">
+            <h2 className="cw-card__title">Pending Clinical Tasks</h2>
+            <ul className="cw-tasks-list">
+              {PENDING_TASKS.map((task) => (
+                <li key={task.label} className="cw-tasks-item">
+                  <button type="button" className="cw-tasks-link">
+                    {task.label}
+                    {task.count != null && <span className="cw-tasks-count">({task.count})</span>}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+
+        {/* 3. Right 30% - Operational Alert Center */}
+        <aside className="cw-sidebar">
+          <div className="cw-card cw-alerts-card">
+            <h2 className="cw-card__title">Operational Alert Center</h2>
+            <div className="cw-alerts-list">
+              {OPERATIONAL_ALERTS.map((a) => (
+                <div key={a.id} className={`cw-alert cw-alert--${a.type.toLowerCase()}`}>
+                  <div className="cw-alert__head">
+                    <span className="cw-alert__title">{a.title}</span>
+                    <span className="cw-alert__type">{a.type}</span>
+                  </div>
+                  <p className="cw-alert__detail">{a.detail}</p>
+                  <div className="cw-alert__foot">
+                    <span className="cw-alert__time">{a.time}</span>
+                    <button type="button" className="cw-btn cw-btn--sm">{a.action}</button>
+                  </div>
                 </div>
+              ))}
             </div>
+          </div>
+        </aside>
 
-            {/* Adherence Header Section */}
-            <div className="meds-header animate-in">
-                <div className="adherence-stat">
-                    <span className="adherence-stat__label">Global Patient Adherence</span>
-                    <span className="adherence-stat__value">{avgAdherence.toFixed(1)}%</span>
+        {/* 4. Today's Schedule Panel - full width */}
+        <section className="cw-section cw-schedule-section">
+          <div className="cw-card cw-schedule-card">
+            <h2 className="cw-card__title">Today's Schedule</h2>
+            <div className="cw-schedule-timeline">
+              {TODAY_SCHEDULE.map((slot) => (
+                <div key={slot.time} className="cw-schedule-item">
+                  <span className="cw-schedule__time">{slot.time}</span>
+                  <span className="cw-schedule__dash">–</span>
+                  <span className="cw-schedule__activity">{slot.activity}</span>
                 </div>
-                <div className="adherence-bar-container">
-                    <div className="adherence-bar" style={{ width: `${avgAdherence}%` }}></div>
-                </div>
-                {trendLabel && <div className="adherence-trend" style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: 'var(--space-1)' }}>{trendLabel}</div>}
-                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', maxWidth: '200px' }}>
-                    🤖 AI Tip: Evening adherence is 12% lower than morning. Consider evening SMS nudges.
-                </div>
+              ))}
             </div>
-
-            {patientsForAdherence.some(p => (p.adherence || 0) < 0.8) && (
-                <div className="meds-escalation-block animate-in" style={{ marginBottom: 'var(--space-4)', padding: 'var(--space-4)', background: 'var(--color-warning-bg)', border: '1px solid var(--color-warning)', borderRadius: 'var(--radius-lg)' }}>
-                    <h3 style={{ fontSize: 'var(--text-base)', marginBottom: 'var(--space-2)' }}>⚠️ Non-adherence escalation (Req 6.6)</h3>
-                    <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', marginBottom: 'var(--space-2)' }}>Patients below 80% adherence — healthcare providers notified for follow-up.</p>
-                    <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                        {patientsForAdherence.filter(p => (p.adherence || 0) < 0.8).map((p) => (
-                            <li key={p.id} style={{ padding: 'var(--space-2)', fontSize: 'var(--text-sm)' }}>
-                                {p.name} (ID: {p.id}) — {Math.round((p.adherence || 0) * 100)}% adherence
-                            </li>
-                        ))}
-                    </ul>
-                </div>
-            )}
-
-            <div className="meds-grid">
-                {filteredMeds.map((med, i) => (
-                    <div key={med.id}
-                        className={`med-card animate-in animate-in-delay-${Math.min(i + 1, 6)} ${(med.interactions || []).length > 0 ? 'med-card--interaction' : ''}`}
-                    >
-                        <div className="med-card__header">
-                            <span className="med-card__name">💊 {med.medication}</span>
-                            <span className={`med-card__status med-status--${med.status}`}>{med.status ? med.status.replace('-', ' ') : '—'}</span>
-                        </div>
-                        <div className="med-card__patient">👤 {med.patient}</div>
-                        <div className="med-card__details">
-                            <span className="med-card__detail-item">🔄 {med.frequency}</span>
-                            <span className="med-card__detail-item">⏰ Next: {med.nextDose ? new Date(med.nextDose).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</span>
-                        </div>
-
-                        {med.interactions?.length > 0 && (
-                            <div className="med-card__interaction">
-                                ⚠️ Interaction: {(med.interactions || []).join(', ')}
-                            </div>
-                        )}
-
-                        {med.status === 'overdue' && (
-                            <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
-                                <button
-                                    className="med-card__nudge-btn"
-                                    onClick={() => handleSendReminder(med)}
-                                    disabled={sentReminders.includes(med.id) || nudgeLoading === med.id}
-                                >
-                                    {sentReminders.includes(med.id) ? '✅ Reminder Sent' : nudgeLoading === med.id ? 'Sending…' : '📱 Send Patient Nudge'}
-                                </button>
-                                <button
-                                    className="med-card__nudge-btn"
-                                    style={{ background: 'var(--surface-card)', border: '1px solid var(--surface-border)' }}
-                                    onClick={() => handleScheduleReminder(med)}
-                                    disabled={scheduledReminders.includes(med.id)}
-                                >
-                                    {scheduledReminders.includes(med.id) ? '⏰ Scheduled' : 'Schedule reminder'}
-                                </button>
-                            </div>
-                        )}
-                    </div>
-                ))}
-            </div>
-        </div>
-    );
+          </div>
+        </section>
+      </div>
+    </div>
+  );
 }

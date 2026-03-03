@@ -265,6 +265,27 @@ input, textarea, select {
 
 .mono { font-family: var(--font-mono); }
 
+.btn {
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  transition: all var(--duration-fast);
+}
+.btn--sm {
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-xs);
+}
+.btn--ghost {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid transparent;
+}
+.btn--ghost:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
 /* ─── Page Transition ─── */
 .page-enter {
   animation: fadeInUp 300ms var(--ease-out) both;

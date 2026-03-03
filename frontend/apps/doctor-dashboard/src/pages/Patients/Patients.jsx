@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { isMockMode } from '../../api/config';
 import { getPatients } from '../../api/client';
 import { patients } from '../../data/mockData';
+import { useActivity } from '../../context/ActivityContext';
 import './Patients.css';
 
 const getInitials = (name) => name.split(' ').map(n => n[0]).join('');
@@ -12,9 +13,16 @@ const filters = ['All', 'Critical', 'High', 'Moderate', 'Low'];
 export default function Patients() {
     const [activeFilter, setActiveFilter] = useState('All');
     const [list, setList] = useState(isMockMode() ? patients : []);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [selectedPatient, setSelectedPatient] = useState(null);
     const [loading, setLoading] = useState(!isMockMode());
     const [error, setError] = useState(null);
     const navigate = useNavigate();
+    const { logActivity } = useActivity();
+
+    useEffect(() => {
+        logActivity('view_patient_list');
+    }, [logActivity]);
 
     useEffect(() => {
         if (isMockMode()) {
@@ -42,6 +50,25 @@ export default function Patients() {
         ? list
         : list.filter(p => (p.severity || '').toLowerCase() === activeFilter.toLowerCase());
 
+    const searchFiltered = !searchQuery.trim()
+        ? filtered
+        : filtered.filter(
+            p =>
+                (p.name || '').toLowerCase().includes(searchQuery.trim().toLowerCase()) ||
+                (p.id || '').toLowerCase().includes(searchQuery.trim().toLowerCase())
+        );
+
+    const riskScore = (p) => {
+        const s = (p.severity || '').toLowerCase();
+        if (s === 'critical') return 8;
+        if (s === 'high') return 6;
+        if (s === 'moderate') return 4;
+        if (s === 'low') return 2;
+        return 5;
+    };
+
+    const aiSummaryForPatient = selectedPatient || searchFiltered[0];
+
     if (loading && !isMockMode()) {
         return (
             <div className="patients-page page-enter" style={{ padding: '2rem', textAlign: 'center' }}>
@@ -62,7 +89,16 @@ export default function Patients() {
     return (
         <div className="patients-page page-enter">
             <div className="patients-page__header">
-                <h1 className="patients-page__title">👥 Patients</h1>
+                <h1 className="patients-page__title">🔍 Patient Search</h1>
+                <div className="patients-page__search-engine">
+                    <input
+                        type="text"
+                        className="patients-search-input"
+                        placeholder="Search by Name or Patient ID"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                </div>
                 <div className="patients-page__filters">
                     {filters.map(f => (
                         <button
@@ -74,6 +110,57 @@ export default function Patients() {
                         </button>
                     ))}
                 </div>
+            </div>
+
+            <div className="patients-page__content">
+                <div className="patients-quick-cards">
+                    {searchFiltered.map((p) => (
+                        <div
+                            key={p.id}
+                            className={`patient-quick-card ${selectedPatient?.id === p.id ? 'selected' : ''}`}
+                            onClick={() => { setSelectedPatient(p); navigate(`/patient/${p.id}`); }}
+                        >
+                            <div className="patient-quick-card__meta">
+                                <span className="patient-quick-card__name">{p.name}</span>
+                                <span className="patient-quick-card__id">ID: {p.id}</span>
+                                <span className="patient-quick-card__demog">{p.age != null ? `${p.age}y` : '—'} / {(p.gender || 'M')[0]} · {p.bloodGroup || '—'}</span>
+                            </div>
+                            <div className="patient-quick-card__risk">
+                                <span className="patient-quick-card__risk-label">Clinical Risk</span>
+                                <span className="patient-quick-card__risk-value">{riskScore(p)}/10</span>
+                            </div>
+                            <div className="patient-quick-card__conditions">
+                                {(Array.isArray(p.conditions) ? p.conditions : [p.conditions]).filter(Boolean).slice(0, 3).map((c, i) => (
+                                    <span key={i} className="patient-quick-card__tag">{c}</span>
+                                ))}
+                            </div>
+                            <div className="patient-quick-card__last-visit">Last visit: {p.lastVisit || '—'}</div>
+                        </div>
+                    ))}
+                </div>
+
+                {aiSummaryForPatient && (
+                    <div className="patients-ai-summary-panel">
+                        <h3 className="patients-ai-summary-panel__title">AI-Generated Clinical Summary</h3>
+                        <div className="patients-ai-summary-panel__section">
+                            <h4>Major Diagnoses</h4>
+                            <p>{(Array.isArray(aiSummaryForPatient.conditions) ? aiSummaryForPatient.conditions : [aiSummaryForPatient.conditions]).filter(Boolean).join('; ') || '—'}</p>
+                        </div>
+                        <div className="patients-ai-summary-panel__section">
+                            <h4>Treatment Plan</h4>
+                            <p>Current AI-suggested regime: {(aiSummaryForPatient.conditions || [])[0] ? `Focus on ${(aiSummaryForPatient.conditions || [])[0]} management; medication review as per last visit.` : '—'}</p>
+                        </div>
+                        <div className="patients-ai-summary-panel__section">
+                            <h4>Risk Factors</h4>
+                            <p>{(aiSummaryForPatient.surgeryReadiness?.riskFactors || []).length > 0 ? aiSummaryForPatient.surgeryReadiness.riskFactors.join('; ') : 'Allergies and comorbidities per record. Monitor vitals.'}</p>
+                        </div>
+                        <div className="patients-ai-summary-panel__section">
+                            <h4>Recommended Follow-Up</h4>
+                            <p>{aiSummaryForPatient.nextAppointment ? `Next appointment scheduled. Recheck vitals and labs at next visit.` : 'Schedule follow-up as clinically indicated.'}</p>
+                        </div>
+                        <button type="button" className="btn btn--primary" onClick={() => navigate(`/patient/${aiSummaryForPatient.id}`)}>Open full record →</button>
+                    </div>
+                )}
             </div>
 
             <div className="patients-table animate-in">
@@ -91,7 +178,7 @@ export default function Patients() {
                         </tr>
                     </thead>
                     <tbody>
-                        {filtered.map((p, i) => (
+                        {searchFiltered.map((p, i) => (
                             <tr key={p.id} className={`animate-in animate-in-delay-${Math.min(i + 1, 6)}`} onClick={() => navigate(`/patient/${p.id}`)}>
                                 <td>
                                     <div className="patient-name-cell">

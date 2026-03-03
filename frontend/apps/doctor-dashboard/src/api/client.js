@@ -119,6 +119,11 @@ export function getAuditLog(params = {}) {
   return api.get(`/api/v1/admin/audit${qs ? `?${qs}` : ''}`);
 }
 
+/** Doctor_ID-linked activity log (Criteria 4). Backend may expose POST /api/v1/activity */
+export function postActivityLog(body) {
+  return api.post('/api/v1/activity', body).catch(() => null);
+}
+
 export function getSystemConfig() {
   return api.get('/api/v1/admin/config');
 }

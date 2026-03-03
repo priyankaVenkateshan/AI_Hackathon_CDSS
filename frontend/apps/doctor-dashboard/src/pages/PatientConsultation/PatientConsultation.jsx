@@ -1,6 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useActivity } from '../../context/ActivityContext';
 import { isMockMode } from '../../api/config';
 import { getPatient, startConsultation, saveConsultation } from '../../api/client';
 import { patients, consultationHistory } from '../../data/mockData';
@@ -49,7 +50,9 @@ export default function PatientConsultation() {
     const [consultationNotes, setConsultationNotes] = useState('');
     const [savingNotes, setSavingNotes] = useState(false);
     const [consultationStartTime, setConsultationStartTime] = useState(null);
+    const [surgeryReadinessModalOpen, setSurgeryReadinessModalOpen] = useState(false);
     const { user } = useAuth();
+    const { logActivity } = useActivity();
 
     const summaryLang = typeof localStorage !== 'undefined' ? (localStorage.getItem(SUMMARY_LANG_KEY) || 'en') : 'en';
 
@@ -77,6 +80,10 @@ export default function PatientConsultation() {
             });
         return () => { cancelled = true; };
     }, [patientId]);
+
+    useEffect(() => {
+        if (patientId && patient) logActivity('view_patient', { patientId });
+    }, [patientId, patient, logActivity]);
 
     const patientResolved = patient || (isMockMode() ? patients.find(p => p.id === patientId) : null);
 
@@ -128,6 +135,7 @@ export default function PatientConsultation() {
         setMessages(prev => [...prev, { role: 'user', text: message, time: 'Now' }]);
         setMessage('');
         setIsTyping(true);
+        logActivity('ai_chat_patient', { patientId });
         setTimeout(() => {
             setIsTyping(false);
             setMessages(prev => [...prev, {
@@ -147,8 +155,10 @@ export default function PatientConsultation() {
                 setConsultationStarted(true);
                 setStartConsultationLoading(false);
             }, 800);
+            logActivity('start_consultation', { patientId });
             return;
         }
+        logActivity('start_consultation', { patientId });
         startConsultation(patientId, user?.id)
             .then((data) => {
                 setConsultationStartTime(new Date());
@@ -162,6 +172,7 @@ export default function PatientConsultation() {
     const handleSaveConsultationNotes = () => {
         setSavingNotes(true);
         const payload = { notes: consultationNotes, ai_summary: aiSummaryFromStart };
+        logActivity('save_consultation', { patientId, detail: 'Consultation notes saved' });
         if (isMockMode()) {
             setTimeout(() => {
                 setHistory(prev => [...prev, {
@@ -186,6 +197,14 @@ export default function PatientConsultation() {
     };
 
     const timeSavedMinutes = consultationStartTime ? 6 : 0;
+    const clinicalRiskScore = (() => {
+        const s = (patientResolved?.severity || '').toLowerCase();
+        if (s === 'critical') return 8;
+        if (s === 'high') return 6;
+        if (s === 'moderate') return 4;
+        if (s === 'low') return 2;
+        return 5;
+    })();
 
     return (
         <div className="page-enter">
@@ -207,6 +226,18 @@ export default function PatientConsultation() {
                                 <span className="patient-header__meta-item">🩸 {patientResolved.bloodGroup}</span>
                                 <span className="patient-header__meta-item">🏥 {patientResolved.ward}</span>
                             </div>
+                            <div className="patient-header__key-indicators">
+                                <span className="patient-header__ki">Allergies: None documented</span>
+                                <span className="patient-header__ki">Conditions: {(patientResolved.conditions || []).length}</span>
+                                <span className="patient-header__ki">Medications: {history.reduce((n, c) => n + (c.prescriptions || []).length, 0)}</span>
+                            </div>
+                            <div className="patient-header__risk-meter">
+                                <span className="patient-header__risk-label">Risk</span>
+                                <div className="patient-header__risk-bar">
+                                    <div className="patient-header__risk-fill" style={{ width: `${clinicalRiskScore * 10}%` }} />
+                                </div>
+                                <span className="patient-header__risk-value">{clinicalRiskScore}/10</span>
+                            </div>
                             <div className="patient-header__conditions">
                                 {(patientResolved.conditions || []).map((cond, i) => (
                                     <span key={i} className="condition-tag">{cond}</span>
@@ -225,9 +256,52 @@ export default function PatientConsultation() {
                             <button className="btn btn--outline" onClick={() => navigate('/surgery', { state: { patientId, patientName: patientResolved.name } })}>
                                 🔪 Surgery required
                             </button>
+                            <button className="btn btn--outline" onClick={() => setSurgeryReadinessModalOpen(true)}>
+                                🩺 Surgery Readiness (AI Agent)
+                            </button>
                             <button className="btn btn--outline">📋 Refer</button>
                         </div>
                     </div>
+
+                    {/* Surgery Readiness Modal (AI Agent) */}
+                    {surgeryReadinessModalOpen && (
+                        <div className="surgery-readiness-modal-overlay" onClick={() => setSurgeryReadinessModalOpen(false)}>
+                            <div className="surgery-readiness-modal" onClick={e => e.stopPropagation()}>
+                                <div className="surgery-readiness-modal__header">
+                                    <h3>🩺 Surgery Readiness (AI Agent)</h3>
+                                    <button type="button" className="surgery-readiness-modal__close" onClick={() => setSurgeryReadinessModalOpen(false)}>×</button>
+                                </div>
+                                <div className="surgery-readiness-modal__body">
+                                    <div className="surgery-readiness-modal__row">
+                                        <span>Risk Score & Safety Gauge</span>
+                                        <span>{clinicalRiskScore}/10 — {(clinicalRiskScore <= 3 ? 'Low' : clinicalRiskScore <= 6 ? 'Moderate' : 'High')} risk</span>
+                                    </div>
+                                    <div className="surgery-readiness-modal__row">
+                                        <span>Estimated Procedure Duration</span>
+                                        <span>— (varies by procedure)</span>
+                                    </div>
+                                    <div className="surgery-readiness-modal__row">
+                                        <span>Required Specialists & Instruments</span>
+                                        <span>Per procedure type; see Surgery Planning.</span>
+                                    </div>
+                                    <div className="surgery-readiness-modal__row">
+                                        <span>Pre-Op Checklist Compliance</span>
+                                        <span className={`surgery-readiness-modal__status surgery-readiness-modal__status--${(patientResolved.surgeryReadiness?.preOpStatus || 'pending')}`}>
+                                            {(patientResolved.surgeryReadiness?.preOpStatus || 'Pending').replace(/_/g, ' ')}
+                                        </span>
+                                    </div>
+                                    <div className="surgery-readiness-modal__row">
+                                        <span>Risk Flags</span>
+                                        <ul>
+                                            {(patientResolved.surgeryReadiness?.riskFactors || patientResolved.conditions || []).slice(0, 5).map((r, i) => (
+                                                <li key={i}>{typeof r === 'string' ? r : r}</li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     {consultationStarted && aiSummaryFromStart && (
                         <div className="ai-summary-block animate-in">

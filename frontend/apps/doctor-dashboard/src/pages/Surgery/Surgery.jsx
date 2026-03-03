@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth, roles } from '../../context/AuthContext';
 import { isMockMode } from '../../api/config';
 import { getSurgeries } from '../../api/client';
 import { surgeries } from '../../data/mockData';
@@ -14,6 +15,8 @@ const columns = [
 export default function Surgery() {
     const navigate = useNavigate();
     const location = useLocation();
+    const { hasRole } = useAuth();
+    const isSurgeon = hasRole(roles.SURGEON);
     const fromPatient = location.state?.patientId && location.state?.patientName;
     const [list, setList] = useState(isMockMode() ? surgeries : []);
     const [loading, setLoading] = useState(!isMockMode());
@@ -67,7 +70,72 @@ export default function Surgery() {
 
     return (
         <div className="surgery-page page-enter">
-            <h1 className="surgery-page__title">🔪 Surgery Queue</h1>
+            <h1 className="surgery-page__title">🔪 Surgeries</h1>
+            <p className="surgery-page__desc">
+                {isSurgeon ? 'Surgical schedule, OT assignment, and complication simulation.' : 'View surgical schedule. Pre-op planning and OT assignment are available to surgeons.'}
+            </p>
+
+            {!isSurgeon && (
+                <div className="surgery-page__role-note" style={{ padding: '12px 16px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '10px', marginBottom: '20px', fontSize: '14px', color: '#1e40af' }}>
+                    You are viewing the surgical schedule. For consultation workflow and patient tasks, use <button type="button" className="link-btn" onClick={() => navigate('/patients')} style={{ background: 'none', border: 'none', color: '#2563eb', textDecoration: 'underline', cursor: 'pointer' }}>Patients</button> or <button type="button" className="link-btn" onClick={() => navigate('/')} style={{ background: 'none', border: 'none', color: '#2563eb', textDecoration: 'underline', cursor: 'pointer' }}>Dashboard</button>.
+                </div>
+            )}
+
+            {/* Surgical Schedule Table */}
+            <div className="surgery-schedule-table-wrap">
+                <h2 className="surgery-section-title">Surgical Schedule Table</h2>
+                <table className="surgery-schedule-table">
+                    <thead>
+                        <tr>
+                            <th>Surgery name</th>
+                            <th>Date / Time</th>
+                            <th>Surgeon</th>
+                            <th>OT assignment</th>
+                            <th>Team</th>
+                            <th>Duration</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {list.map((s) => (
+                            <tr key={s.id} onClick={() => isSurgeon && navigate(`/surgery-planning/${s.id}`)}>
+                                <td>{s.type}</td>
+                                <td>{s.date} {s.time}</td>
+                                <td>{s.surgeon || '—'}</td>
+                                <td>{s.ot || '—'}</td>
+                                <td>Team —</td>
+                                <td>{s.estimatedDuration || '—'}</td>
+                                <td><span className={`surgery-status-tag surgery-status-tag--${(s.status || '').replace('-', '_')}`}>{s.status === 'in-prep' ? 'In Progress' : s.status === 'pre-op' ? 'Pre-Op Assessment' : (s.status || 'Scheduled')}</span></td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+
+            {/* Complication Simulator - Surgeon only */}
+            {isSurgeon && (
+            <div className="surgery-complication-simulator">
+                <h2 className="surgery-section-title">Complication Simulator (Edge Case)</h2>
+                <div className="complication-simulator__card">
+                    <div className="complication-simulator__row">
+                        <span className="complication-simulator__label">Complication Type</span>
+                        <span className="complication-simulator__value">Intraoperative findings — unexpected bleeding</span>
+                    </div>
+                    <div className="complication-simulator__row">
+                        <span className="complication-simulator__label">AI Suggested Intervention</span>
+                        <span className="complication-simulator__value">Real-time surgical guidance: Apply pressure, consider vessel ligation; check coagulation panel.</span>
+                    </div>
+                    <div className="complication-simulator__row">
+                        <span className="complication-simulator__label">Immediate Actions</span>
+                        <ol className="complication-simulator__actions">
+                            <li>Maintain hemodynamics; request blood products if needed.</li>
+                            <li>Identify source; consider intra-op imaging.</li>
+                            <li>Follow emergency protocol for hemorrhage control.</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+            )}
 
             {replacementFor && (
                 <div className="surgery-replacement-panel" style={{ marginBottom: 'var(--space-5)', padding: 'var(--space-4)', background: 'var(--surface-card)', border: '1px solid var(--surface-border)', borderRadius: 'var(--radius-lg)' }}>
@@ -99,12 +167,14 @@ export default function Surgery() {
                 <div className="surgery-new-card" style={{ marginBottom: 'var(--space-5)', padding: 'var(--space-4)', background: 'var(--surface-card)', border: '1px solid var(--surface-border)', borderRadius: 'var(--radius-lg)' }}>
                     <strong>New surgery requested for {location.state.patientName}</strong>
                     <p style={{ margin: 'var(--space-2) 0', fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>Create a surgery and open the planning flow to pick an OT slot.</p>
+                    {isSurgeon && (
                     <button
                         className="btn btn--primary"
                         onClick={() => navigate('/surgery-planning/new', { state: { patientId: location.state.patientId, patientName: location.state.patientName }, replace: true })}
                     >
                         Create surgery & plan
                     </button>
+                    )}
                 </div>
             )}
 
@@ -131,7 +201,7 @@ export default function Surgery() {
                                     <div style={{ marginTop: 'var(--space-2)', fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
                                         🩺 {surgery.surgeon || '—'}
                                     </div>
-                                    {(surgery.status === 'scheduled' || surgery.status === 'in-prep') && (
+                                    {(surgery.status === 'scheduled' || surgery.status === 'in-prep') && isSurgeon && (
                                         <>
                                             <button
                                                 className="surgery-card__plan-btn"

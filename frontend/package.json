@@ -9,9 +9,11 @@
   ],
   "scripts": {
     "dev:dashboard": "npm run dev --workspace=apps/doctor-dashboard",
+    "dev:patient": "npm run dev --workspace=apps/patient-dashboard",
+    "dev:nurse": "npm run dev --workspace=apps/nurse-dashboard",
     "dev:surgery": "npm run dev --workspace=apps/surgery-planner",
-    "build:all": "npm run build --workspaces",
-    "lint": "npm run lint --workspaces"
+    "build:all": "npm run build --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present"
   },
   "engines": {
     "node": ">=18.0.0"
