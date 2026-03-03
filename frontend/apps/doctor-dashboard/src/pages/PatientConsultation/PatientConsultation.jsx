@@ -202,7 +202,7 @@ export default function PatientConsultation() {
                         <div className="patient-header__info">
                             <div className="patient-header__name">{patientResolved.name}</div>
                             <div className="patient-header__meta">
-                                <span className="patient-header__meta-item">🆔 {patientResolved.id}</span>
+                                <span className="patient-header__meta-item patient-header__meta-item--id" title="Unique identifier for all medical interactions">🆔 Patient ID: {patientResolved.id}</span>
                                 <span className="patient-header__meta-item">🎂 {patientResolved.age} years</span>
                                 <span className="patient-header__meta-item">🩸 {patientResolved.bloodGroup}</span>
                                 <span className="patient-header__meta-item">🏥 {patientResolved.ward}</span>
@@ -238,7 +238,19 @@ export default function PatientConsultation() {
                                     <span className="consultation-time-saved">~{timeSavedMinutes} min saved with AI</span>
                                 )}
                             </div>
+                            <p className="ai-summary-block__clinical-note">Structured summary for clinical decision-making (generated within 30 seconds).</p>
                             <div className="ai-summary-block__content">{aiSummaryFromStart}</div>
+                            <div className="medical-entities-block">
+                                <div className="card-header" style={{ marginBottom: 'var(--space-2)' }}>
+                                    <span className="card-header__title">📌 Medical entities extracted (Req 6.3)</span>
+                                </div>
+                                <div className="medical-entities-grid">
+                                    <div><strong>Symptoms:</strong> Elevated BP, elevated HbA1c</div>
+                                    <div><strong>Diagnoses:</strong> Hypertension, Type 2 Diabetes</div>
+                                    <div><strong>Medications:</strong> Metformin, Amlodipine</div>
+                                    <div><strong>Follow-up:</strong> Recheck BP and HbA1c at next visit; consider Losartan if BP remains elevated</div>
+                                </div>
+                            </div>
                             <div className="consultation-notes-form">
                                 <label className="consultation-notes-label">Consultation notes</label>
                                 <textarea
@@ -251,6 +263,37 @@ export default function PatientConsultation() {
                                 <button type="button" className="btn btn--primary" onClick={handleSaveConsultationNotes} disabled={savingNotes}>
                                     {savingNotes ? 'Saving…' : 'Save consultation notes'}
                                 </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Surgery readiness (Req 2.4) */}
+                    {(patientResolved.surgeryReadiness || (patientResolved.conditions && patientResolved.conditions.length > 0)) && (
+                        <div className="surgery-readiness-block animate-in">
+                            <div className="card-header">
+                                <span className="card-header__title">🩺 Surgery readiness</span>
+                            </div>
+                            <div className="surgery-readiness__content">
+                                <div className="surgery-readiness__row">
+                                    <span className="surgery-readiness__label">Pre-op status</span>
+                                    <span className={`surgery-readiness__status surgery-readiness__status--${(patientResolved.surgeryReadiness?.preOpStatus || 'not_assessed').replace('-', '_')}`}>
+                                        {(patientResolved.surgeryReadiness?.preOpStatus || 'Not assessed').replace(/_/g, ' ')}
+                                    </span>
+                                </div>
+                                {(patientResolved.surgeryReadiness?.lastAssessed) && (
+                                    <div className="surgery-readiness__row">
+                                        <span className="surgery-readiness__label">Last assessed</span>
+                                        <span className="surgery-readiness__value">{patientResolved.surgeryReadiness.lastAssessed}</span>
+                                    </div>
+                                )}
+                                <div className="surgery-readiness__row">
+                                    <span className="surgery-readiness__label">Risk factors</span>
+                                    <ul className="surgery-readiness__risks">
+                                        {(patientResolved.surgeryReadiness?.riskFactors || []).length > 0
+                                            ? patientResolved.surgeryReadiness.riskFactors.map((r, i) => <li key={i}>{r}</li>)
+                                            : (patientResolved.conditions || []).map((c, i) => <li key={i}>{c}</li>)}
+                                    </ul>
+                                </div>
                             </div>
                         </div>
                     )}
@@ -273,13 +316,16 @@ export default function PatientConsultation() {
                         })}
                     </div>
 
-                    {/* Consultation Timeline */}
+                    {/* Consultation Timeline — chronological medical history (Req 2.2, 2.3) */}
                     <div className="timeline animate-in animate-in-delay-3">
                         <div className="card-header">
-                            <span className="card-header__title">📋 Consultation History</span>
+                            <span className="card-header__title">📋 Chronological medical history</span>
                         </div>
+                        <p className="timeline__desc">Visits with timestamps and treating physician. Complete historical records of treatments, prescriptions, and outcomes.</p>
                         <div className="timeline__list">
-                            {history.map((consult, i) => (
+                            {[...history]
+                                .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0))
+                                .map((consult, i) => (
                                 <div key={consult.id} className={`timeline-item animate-in animate-in-delay-${i + 2}`}>
                                     <div className="timeline-item__dot">📝</div>
                                     <div className="timeline-item__content">

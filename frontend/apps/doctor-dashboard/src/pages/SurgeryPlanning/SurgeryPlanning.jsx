@@ -198,9 +198,33 @@ export default function SurgeryPlanning() {
             </div>
 
             <div className="planning-grid">
-                {/* Left Column: AI Checklist */}
+                {/* Left Column: Surgery blueprint (Req 3) + AI Checklist */}
                 <div className="planning-section animate-in animate-in-delay-1">
-                    <h2 className="section-title">🤖 AI Pre-Op Checklist</h2>
+                    <h2 className="section-title">📋 Surgery requirement blueprint</h2>
+                    <div className="blueprint-card">
+                        <div className="blueprint-row">
+                            <span className="blueprint-label">Type / classification</span>
+                            <span className="blueprint-value">{surgery.type}</span>
+                        </div>
+                        <div className="blueprint-row">
+                            <span className="blueprint-label">Complexity</span>
+                            <span className="blueprint-value">{surgery.complexity || 'Moderate'}</span>
+                        </div>
+                        <div className="blueprint-row">
+                            <span className="blueprint-label">Estimated duration</span>
+                            <span className="blueprint-value">{surgery.estimatedDuration || '90 min'} (with buffer)</span>
+                        </div>
+                        <div className="blueprint-row">
+                            <span className="blueprint-label">Required instruments / tools</span>
+                            <ul className="blueprint-list">
+                                {(surgery.requiredInstruments || ['Standard surgical set', 'Electrocautery', 'Suction', 'Suture kit']).map((inst, i) => (
+                                    <li key={i}>{inst}</li>
+                                ))}
+                            </ul>
+                        </div>
+                    </div>
+
+                    <h2 className="section-title" style={{ marginTop: 'var(--space-4)' }}>🤖 Clinical guardrails & pre-op checklist</h2>
                     {isWsEnabled() && (
                         <span className={`ws-indicator ${wsConnected ? 'ws-indicator--live' : ''}`} title={wsConnected ? 'Live updates on' : 'Connecting…'}>
                             {wsConnected ? '● Live' : '○ Offline'}
@@ -220,7 +244,7 @@ export default function SurgeryPlanning() {
                     </div>
                     {liveEvents.length > 0 && (
                         <div className="live-events">
-                            <h3 className="live-events__title">Live events</h3>
+                            <h3 className="live-events__title">Real-time events</h3>
                             <ul className="live-events__list">
                                 {liveEvents.slice(0, 5).map((ev, i) => (
                                     <li key={i} className="live-events__item">
@@ -271,6 +295,14 @@ export default function SurgeryPlanning() {
                             <strong>Clinical Note:</strong> Patient ID {surgeryId} has Type 2 Diabetes.
                             Ensure blood glucose levels are stabilized below 180 mg/dL prior to incision.
                             Prophylactic antibiotics should be adjusted for renal clearance if necessary.
+                        </div>
+                    </div>
+
+                    <h2 className="section-title" style={{ marginTop: 'var(--space-2)' }}>📌 Procedural support & complication alerts</h2>
+                    <div className="risk-card">
+                        <div className="ai-advice">
+                            Step-by-step guidance and instrument prompts are available during the procedure (live when WebSocket connected).
+                            Potential complications for this case: bleeding risk, infection — ensure sterile technique and haemostasis.
                         </div>
                     </div>
                 </div>

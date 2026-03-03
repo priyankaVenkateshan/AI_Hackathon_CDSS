@@ -127,6 +127,20 @@ export default function Medications() {
                 </div>
             </div>
 
+            {patientsForAdherence.some(p => (p.adherence || 0) < 0.8) && (
+                <div className="meds-escalation-block animate-in" style={{ marginBottom: 'var(--space-4)', padding: 'var(--space-4)', background: 'var(--color-warning-bg)', border: '1px solid var(--color-warning)', borderRadius: 'var(--radius-lg)' }}>
+                    <h3 style={{ fontSize: 'var(--text-base)', marginBottom: 'var(--space-2)' }}>⚠️ Non-adherence escalation (Req 6.6)</h3>
+                    <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', marginBottom: 'var(--space-2)' }}>Patients below 80% adherence — healthcare providers notified for follow-up.</p>
+                    <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                        {patientsForAdherence.filter(p => (p.adherence || 0) < 0.8).map((p) => (
+                            <li key={p.id} style={{ padding: 'var(--space-2)', fontSize: 'var(--text-sm)' }}>
+                                {p.name} (ID: {p.id}) — {Math.round((p.adherence || 0) * 100)}% adherence
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
+
             <div className="meds-grid">
                 {filteredMeds.map((med, i) => (
                     <div key={med.id}

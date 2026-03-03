@@ -31,6 +31,14 @@ resource "aws_iam_role_policy_attachment" "lambda_bedrock" {
   policy_arn = var.bedrock_policy_arn
 }
 
+# Required for Lambda to create ENIs when running in VPC
+resource "aws_iam_role_policy_attachment" "lambda_vpc" {
+  count = length(var.vpc_subnet_ids) > 0 && length(var.vpc_security_group_ids) > 0 ? 1 : 0
+
+  role       = aws_iam_role.lambda.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
+}
+
 resource "aws_lambda_function" "this" {
   for_each = var.handlers
 
@@ -40,6 +48,14 @@ resource "aws_lambda_function" "this" {
   runtime         = var.runtime
   filename        = data.archive_file.lambda_zip.output_path
   source_code_hash = data.archive_file.lambda_zip.output_base64sha256
+
+  dynamic "vpc_config" {
+    for_each = length(var.vpc_subnet_ids) > 0 && length(var.vpc_security_group_ids) > 0 ? [1] : []
+    content {
+      subnet_ids         = var.vpc_subnet_ids
+      security_group_ids = var.vpc_security_group_ids
+    }
+  }
 
   environment {
     variables = merge(var.env, { STAGE = var.stage })

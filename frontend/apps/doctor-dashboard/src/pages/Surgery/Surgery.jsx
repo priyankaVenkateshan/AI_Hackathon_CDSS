@@ -18,6 +18,13 @@ export default function Surgery() {
     const [list, setList] = useState(isMockMode() ? surgeries : []);
     const [loading, setLoading] = useState(!isMockMode());
     const [error, setError] = useState(null);
+    const [replacementFor, setReplacementFor] = useState(null);
+    const [replacementNotified, setReplacementNotified] = useState(false);
+
+    const mockReplacements = [
+        { id: 'DR-ALT-1', name: 'Dr. Suresh Reddy', specialty: 'General Surgery', status: 'available' },
+        { id: 'DR-ALT-2', name: 'Dr. Priya Sharma', specialty: 'General', status: 'available' },
+    ];
 
     useEffect(() => {
         if (isMockMode()) {
@@ -62,6 +69,32 @@ export default function Surgery() {
         <div className="surgery-page page-enter">
             <h1 className="surgery-page__title">🔪 Surgery Queue</h1>
 
+            {replacementFor && (
+                <div className="surgery-replacement-panel" style={{ marginBottom: 'var(--space-5)', padding: 'var(--space-4)', background: 'var(--surface-card)', border: '1px solid var(--surface-border)', borderRadius: 'var(--radius-lg)' }}>
+                    <h3 style={{ marginBottom: 'var(--space-2)' }}>Find replacement — {replacementFor.type} ({replacementFor.id})</h3>
+                    <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', marginBottom: 'var(--space-3)' }}>
+                        Current: {replacementFor.surgeon}. Qualified replacements (Scheduling Agent):
+                    </p>
+                    <ul style={{ listStyle: 'none', padding: 0, marginBottom: 'var(--space-3)' }}>
+                        {mockReplacements.map((r) => (
+                            <li key={r.id} style={{ padding: 'var(--space-2)', background: 'var(--surface-bg)', borderRadius: 'var(--radius-md)', marginBottom: 'var(--space-2)' }}>
+                                {r.name} — {r.specialty} ({r.status})
+                            </li>
+                        ))}
+                    </ul>
+                    <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+                        <button
+                            className="btn btn--primary"
+                            onClick={() => { setReplacementNotified(true); setTimeout(() => { setReplacementFor(null); setReplacementNotified(false); }, 2000); }}
+                            disabled={replacementNotified}
+                        >
+                            {replacementNotified ? 'Notified ✓' : 'Notify replacement & team'}
+                        </button>
+                        <button className="btn btn--outline" onClick={() => setReplacementFor(null)}>Cancel</button>
+                    </div>
+                </div>
+            )}
+
             {fromPatient && (
                 <div className="surgery-new-card" style={{ marginBottom: 'var(--space-5)', padding: 'var(--space-4)', background: 'var(--surface-card)', border: '1px solid var(--surface-border)', borderRadius: 'var(--radius-lg)' }}>
                     <strong>New surgery requested for {location.state.patientName}</strong>
@@ -99,15 +132,27 @@ export default function Surgery() {
                                         🩺 {surgery.surgeon || '—'}
                                     </div>
                                     {(surgery.status === 'scheduled' || surgery.status === 'in-prep') && (
-                                        <button
-                                            className="surgery-card__plan-btn"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                navigate(`/surgery-planning/${surgery.id}`);
-                                            }}
-                                        >
-                                            Plan Procedure
-                                        </button>
+                                        <>
+                                            <button
+                                                className="surgery-card__plan-btn"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    navigate(`/surgery-planning/${surgery.id}`);
+                                                }}
+                                            >
+                                                Plan Procedure
+                                            </button>
+                                            <button
+                                                className="surgery-card__plan-btn"
+                                                style={{ marginTop: 'var(--space-1)', background: 'var(--surface-card)', border: '1px solid var(--surface-border)', color: 'var(--text-primary)' }}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setReplacementFor(surgery);
+                                                }}
+                                            >
+                                                Doctor unavailable? Find replacement
+                                            </button>
+                                        </>
                                     )}
                                 </div>
                             ))}

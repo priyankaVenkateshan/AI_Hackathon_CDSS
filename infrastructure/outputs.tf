@@ -29,8 +29,42 @@ output "bedrock_policy_arn" {
 }
 
 output "api_gateway_url" {
-  description = "API Gateway base URL"
-  value       = "${aws_api_gateway_stage.main.invoke_url}/"
+  description = "Base URL of the REST API Gateway"
+  value       = aws_api_gateway_stage.main.invoke_url
+}
+
+output "cognito_user_pool_id" {
+  description = "ID of the Cognito User Pool"
+  value       = aws_cognito_user_pool.main.id
+}
+
+output "cognito_staff_client_id" {
+  description = "ID of the Staff App Client"
+  value       = aws_cognito_user_pool_client.staff_app.id
+}
+
+output "cognito_patient_client_id" {
+  description = "ID of the Patient Portal Client"
+  value       = aws_cognito_user_pool_client.patient_portal.id
+}
+
+output "websocket_url" {
+  description = "URL of the WebSocket API"
+  value       = var.enable_websocket_api ? aws_apigatewayv2_stage.websocket[0].invoke_url : ""
+}
+
+output "staff_app_cf_url" {
+  description = "URL of the Staff Web App CloudFront Distribution"
+  value       = aws_cloudfront_distribution.staff_app.domain_name
+}
+
+output "patient_portal_cf_url" {
+  description = "URL of the Patient Portal CloudFront Distribution"
+  value       = aws_cloudfront_distribution.patient_portal.domain_name
+}
+
+output "rds_endpoint" {
+  value = aws_rds_cluster.aurora.endpoint
 }
 
 output "bedrock_config_secret_name" {
@@ -43,10 +77,6 @@ output "rds_config_secret_name" {
   value       = aws_secretsmanager_secret.rds_config.name
 }
 
-output "bastion_public_ip" {
-  description = "Bastion public IP for SSH tunnel (when enable_bastion=true)"
-  value       = var.enable_bastion ? aws_instance.bastion[0].public_ip : null
-}
 
 output "api_gateway_health_url" {
   description = "API Gateway health check URL"
@@ -64,10 +94,6 @@ output "cdss_lambda_function_names" {
   value       = module.cdss_lambda.function_names
 }
 
-output "cdss_dynamodb_tables" {
-  description = "CDSS DynamoDB table names"
-  value       = module.cdss_dynamodb.table_names
-}
 
 output "cdss_event_bus_name" {
   description = "CDSS EventBridge event bus name"

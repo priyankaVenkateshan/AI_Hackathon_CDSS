@@ -24,8 +24,112 @@ export const patients = [
     conditions: ['Type 2 Diabetes', 'Hypertension'],
     lastVisit: '2026-02-28',
     nextAppointment: '2026-03-01T10:30:00',
+    nextAppointmentDetails: {
+      doctorName: 'Dr. Vikram Mehta',
+      department: 'Internal Medicine',
+      notes: 'Follow-up for BP and glucose review',
+    },
     status: 'waiting',
     adherence: 0.92,
+    portal: {
+      preferredLanguage: 'en',
+      activePrescriptionsCount: 2,
+      medicationAdherenceStatus: 'Good compliance',
+      weeklyAdherence: 0.86,
+      aiVisitSummary: {
+        available: true,
+        agentName: 'MedAI Summary Agent',
+        lastVisitDate: '2026-02-28',
+        treatingPhysician: 'Dr. Vikram Mehta',
+        sections: {
+          abstract: {
+            en: 'Your blood pressure was slightly high and your sugar control needs improvement. Your doctor adjusted one medicine and advised diet changes.',
+            hi: 'आपका रक्तचाप थोड़ा अधिक था और शुगर नियंत्रण में सुधार की जरूरत है। डॉक्टर ने एक दवा की खुराक बदली और आहार में बदलाव की सलाह दी।',
+            ta: 'உங்கள் இரத்த அழுத்தம் சிறிது அதிகமாக இருந்தது; சர்க்கரை கட்டுப்பாட்டில் மேம்பாடு தேவை. மருத்துவர் ஒரு மருந்தை மாற்றி உணவு முறையைப் பற்றி ஆலோசனை வழங்கினார்.',
+          },
+          reasoning: {
+            en: 'The medication dose was increased to improve blood pressure control while keeping your diabetes medicines unchanged for now.',
+            hi: 'रक्तचाप को बेहतर नियंत्रित करने के लिए दवा की खुराक बढ़ाई गई, जबकि फिलहाल डायबिटीज़ की दवाएँ वही रखी गईं।',
+            ta: 'இரத்த அழுத்தக் கட்டுப்பாட்டை மேம்படுத்த மருந்தளவு உயர்த்தப்பட்டது; நீரிழிவு மருந்துகள் தற்போது மாற்றப்படவில்லை.',
+          },
+          tips: {
+            en: [
+              'Take medicines at the same time daily.',
+              'Limit salt and sugary foods.',
+              'Walk 20–30 minutes most days (if safe for you).',
+            ],
+            hi: [
+              'दवाएँ रोज़ एक ही समय पर लें।',
+              'नमक और मीठे खाद्य पदार्थ सीमित करें।',
+              'अधिकांश दिनों में 20–30 मिनट टहलें (यदि आपके लिए सुरक्षित हो)।',
+            ],
+            ta: [
+              'மருந்துகளை தினமும் ஒரே நேரத்தில் எடுத்துக் கொள்ளுங்கள்.',
+              'உப்பு மற்றும் சர்க்கரை அதிகமான உணவை குறைக்கவும்.',
+              'பல நாட்களில் 20–30 நிமிடம் நடைபயிற்சி செய்யுங்கள் (உங்களுக்கு பாதுகாப்பானால்).',
+            ],
+          },
+          cautions: {
+            en: [
+              'Seek care urgently if you have chest pain, severe breathlessness, or fainting.',
+              'Report dizziness or swelling after the dose change.',
+            ],
+            hi: [
+              'सीने में दर्द, तेज़ सांस फूलना, या बेहोशी हो तो तुरंत चिकित्सा लें।',
+              'खुराक बदलने के बाद चक्कर या सूजन हो तो डॉक्टर को बताएं।',
+            ],
+            ta: [
+              'மார்பு வலி, கடுமையான மூச்சுத்திணறல், அல்லது மயக்கம் இருந்தால் உடனடி மருத்துவ உதவி பெறுங்கள்.',
+              'மருந்தளவு மாற்றத்திற்குப் பிறகு தலைச்சுற்றல் அல்லது வீக்கம் இருந்தால் மருத்துவரிடம் தெரிவிக்கவும்.',
+            ],
+          },
+        },
+      },
+      todayMedications: [
+        { id: 'dose-pt1001-1', medicine: 'Metformin', dosage: '500mg Tab', time: '08:00', status: 'Taken' },
+        { id: 'dose-pt1001-2', medicine: 'Metformin', dosage: '500mg Tab', time: '20:00', status: 'Pending' },
+        { id: 'dose-pt1001-3', medicine: 'Amlodipine', dosage: '10mg Tab', time: '09:00', status: 'Missed' },
+      ],
+      appointments: {
+        upcoming: [
+          {
+            id: 'apt-pt1001-1',
+            doctorName: 'Dr. Vikram Mehta',
+            department: 'Internal Medicine',
+            dateTime: '2026-03-01T10:30:00',
+            clinicalNotes: 'BP + HbA1c review',
+          },
+          {
+            id: 'apt-pt1001-2',
+            doctorName: 'Dr. Priya Sharma',
+            department: 'General Medicine',
+            dateTime: '2026-03-08T09:30:00',
+            clinicalNotes: 'Medication adherence follow-up',
+          },
+        ],
+        past: [
+          {
+            id: 'visit-pt1001-1',
+            doctorName: 'Dr. Priya Sharma',
+            department: 'Internal Medicine',
+            dateTime: '2026-02-28T10:00:00',
+            summaryAvailable: true,
+          },
+          {
+            id: 'visit-pt1001-2',
+            doctorName: 'Dr. Priya Sharma',
+            department: 'Internal Medicine',
+            dateTime: '2026-02-15T10:00:00',
+            summaryAvailable: true,
+          },
+        ],
+      },
+    },
+    surgeryReadiness: {
+      preOpStatus: 'pending',
+      riskFactors: ['Type 2 Diabetes — glycemic control required', 'Hypertension — BP at 130/85'],
+      lastAssessed: '2026-02-28',
+    },
   },
   {
     id: 'PT-1002',
@@ -41,8 +145,44 @@ export const patients = [
     conditions: ['Migraine'],
     lastVisit: '2026-02-25',
     nextAppointment: '2026-03-01T11:00:00',
+    nextAppointmentDetails: {
+      doctorName: 'Dr. Priya Sharma',
+      department: 'General Medicine',
+      notes: 'Migraine follow-up',
+    },
     status: 'in-consultation',
     adherence: 1.0,
+    portal: {
+      preferredLanguage: 'en',
+      activePrescriptionsCount: 1,
+      medicationAdherenceStatus: 'Excellent',
+      weeklyAdherence: 0.95,
+      aiVisitSummary: {
+        available: true,
+        agentName: 'MedAI Summary Agent',
+        lastVisitDate: '2026-02-25',
+        treatingPhysician: 'Dr. Priya Sharma',
+        sections: {
+          abstract: 'Your migraine symptoms were reviewed and a trigger-avoidance plan was discussed.',
+          reasoning: 'The treatment plan focuses on symptom control and identifying triggers.',
+          tips: ['Stay hydrated.', 'Maintain regular sleep.', 'Track triggers in a diary.'],
+          cautions: ['Seek care if headaches are sudden/severe or with weakness/vision changes.'],
+        },
+      },
+      todayMedications: [{ id: 'dose-pt1002-1', medicine: 'Naproxen', dosage: '250mg Tab', time: '10:00', status: 'Pending' }],
+      appointments: {
+        upcoming: [
+          {
+            id: 'apt-pt1002-1',
+            doctorName: 'Dr. Priya Sharma',
+            department: 'General Medicine',
+            dateTime: '2026-03-01T11:00:00',
+            clinicalNotes: 'Migraine check-in',
+          },
+        ],
+        past: [],
+      },
+    },
   },
   {
     id: 'PT-1003',
@@ -60,6 +200,18 @@ export const patients = [
     nextAppointment: null,
     status: 'in-consultation',
     adherence: 0.78,
+    portal: {
+      preferredLanguage: 'en',
+      activePrescriptionsCount: 2,
+      medicationAdherenceStatus: 'Needs attention',
+      weeklyAdherence: 0.7,
+      aiVisitSummary: { available: false, agentName: 'MedAI Summary Agent', lastVisitDate: '2026-03-01', treatingPhysician: '—', sections: {} },
+      todayMedications: [
+        { id: 'dose-pt1003-1', medicine: 'Azithromycin', dosage: '500mg Tab', time: '10:00', status: 'Pending' },
+        { id: 'dose-pt1003-2', medicine: 'Salbutamol', dosage: 'Nebulization', time: '12:00', status: 'Pending' },
+      ],
+      appointments: { upcoming: [], past: [] },
+    },
   },
   {
     id: 'PT-1004',
@@ -75,8 +227,25 @@ export const patients = [
     conditions: ['Atrial Fibrillation', 'Heart Failure (Class II)'],
     lastVisit: '2026-02-27',
     nextAppointment: '2026-03-01T14:00:00',
+    nextAppointmentDetails: {
+      doctorName: 'Dr. Meena Rao',
+      department: 'Cardiology',
+      notes: 'INR + medication review',
+    },
     status: 'waiting',
     adherence: 0.65,
+    portal: {
+      preferredLanguage: 'en',
+      activePrescriptionsCount: 2,
+      medicationAdherenceStatus: 'Low compliance',
+      weeklyAdherence: 0.62,
+      aiVisitSummary: { available: true, agentName: 'MedAI Summary Agent', lastVisitDate: '2026-02-27', treatingPhysician: 'Dr. Meena Rao', sections: {} },
+      todayMedications: [
+        { id: 'dose-pt1004-1', medicine: 'Warfarin', dosage: '5mg Tab', time: '20:00', status: 'Pending' },
+        { id: 'dose-pt1004-2', medicine: 'Digoxin', dosage: '0.25mg Tab', time: '09:00', status: 'Taken' },
+      ],
+      appointments: { upcoming: [], past: [] },
+    },
   },
   {
     id: 'PT-1005',
@@ -92,7 +261,26 @@ export const patients = [
     conditions: ['ACL Tear — Left Knee'],
     lastVisit: '2026-02-20',
     nextAppointment: '2026-03-02T09:00:00',
+    nextAppointmentDetails: {
+      doctorName: 'Dr. Vikram Patel',
+      department: 'Orthopedics',
+      notes: 'Pre-op check',
+    },
     status: 'scheduled',
+    surgeryReadiness: {
+      preOpStatus: 'cleared',
+      riskFactors: ['ACL reconstruction — routine pre-op done'],
+      lastAssessed: '2026-02-25',
+    },
+    portal: {
+      preferredLanguage: 'en',
+      activePrescriptionsCount: 1,
+      medicationAdherenceStatus: 'Good compliance',
+      weeklyAdherence: 0.88,
+      aiVisitSummary: { available: false, agentName: 'MedAI Summary Agent', lastVisitDate: '2026-02-20', treatingPhysician: 'Dr. Vikram Patel', sections: {} },
+      todayMedications: [{ id: 'dose-pt1005-1', medicine: 'Pain reliever', dosage: 'As prescribed', time: '21:00', status: 'Pending' }],
+      appointments: { upcoming: [], past: [] },
+    },
   },
   {
     id: 'PT-1006',
@@ -109,6 +297,15 @@ export const patients = [
     lastVisit: '2026-02-15',
     nextAppointment: '2026-03-01T15:30:00',
     status: 'waiting',
+    portal: {
+      preferredLanguage: 'en',
+      activePrescriptionsCount: 1,
+      medicationAdherenceStatus: 'Good compliance',
+      weeklyAdherence: 0.9,
+      aiVisitSummary: { available: false, agentName: 'MedAI Summary Agent', lastVisitDate: '2026-02-15', treatingPhysician: '—', sections: {} },
+      todayMedications: [{ id: 'dose-pt1006-1', medicine: 'Levothyroxine', dosage: '50mcg Tab', time: '06:00', status: 'Taken' }],
+      appointments: { upcoming: [], past: [] },
+    },
   },
 ];
 
@@ -177,6 +374,7 @@ export const aiAlerts = [
 export const consultationHistory = [
   {
     id: 'consult-1',
+    patientId: 'PT-1001',
     date: '2026-02-28',
     doctor: 'Dr. Priya Sharma',
     notes: 'Patient reports persistent headaches. BP elevated at 130/85. Adjusted Amlodipine from 5mg to 10mg. Advised low-sodium diet.',
@@ -188,6 +386,7 @@ export const consultationHistory = [
   },
   {
     id: 'consult-2',
+    patientId: 'PT-1001',
     date: '2026-02-15',
     doctor: 'Dr. Priya Sharma',
     notes: 'Routine follow-up. Blood sugar fasting: 145mg/dL. HbA1c: 7.2%. Continue current medications.',
@@ -200,9 +399,9 @@ export const consultationHistory = [
 ];
 
 export const surgeries = [
-  { id: 'SRG-001', patient: 'Arjun Nair', type: 'ACL Reconstruction', ot: 'OT-3', date: '2026-03-05', time: '09:00', status: 'scheduled', surgeon: 'Dr. Vikram Patel' },
-  { id: 'SRG-002', patient: 'Lakshmi Devi', type: 'Cardiac Catheterization', ot: 'OT-1', date: '2026-03-06', time: '10:00', status: 'pre-op', surgeon: 'Dr. Meena Rao' },
-  { id: 'SRG-003', patient: 'Unknown', type: 'Appendectomy', ot: 'OT-2', date: '2026-03-04', time: '14:00', status: 'in-prep', surgeon: 'Dr. Priya Sharma' },
+  { id: 'SRG-001', patient: 'Arjun Nair', type: 'ACL Reconstruction', complexity: 'Moderate', estimatedDuration: '90 min', ot: 'OT-3', date: '2026-03-05', time: '09:00', status: 'scheduled', surgeon: 'Dr. Vikram Patel' },
+  { id: 'SRG-002', patient: 'Lakshmi Devi', type: 'Cardiac Catheterization', complexity: 'High', estimatedDuration: '120 min', ot: 'OT-1', date: '2026-03-06', time: '10:00', status: 'pre-op', surgeon: 'Dr. Meena Rao' },
+  { id: 'SRG-003', patient: 'Unknown', type: 'Appendectomy', complexity: 'Low', estimatedDuration: '60 min', ot: 'OT-2', date: '2026-03-04', time: '14:00', status: 'in-prep', surgeon: 'Dr. Priya Sharma' },
 ];
 
 export const medications = [

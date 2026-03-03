@@ -28,6 +28,15 @@ node_modules/
 .DS_Store
 Thumbs.db
 
+# Cursor (AI IDE)
+.cursor/plans/
+.cursor/worktrees.json
+.cursor copy/
+
+# Workspace / installers (do not commit)
+*.code-workspace
+*.msi
+
 # Secrets & env
 .env
 *.pem

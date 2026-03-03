@@ -1,15 +1,11 @@
 # Copy to terraform.tfvars and fill in your values
 
-project_name = "emergency-medical-triage"
+project_name = "Clinical Decision Support System"
 aws_region   = "us-east-1"
 environment  = "dev"
 
 # WARNING: Do not change db_username after first apply - it forces Aurora replacement
 # RDS password: only printable ASCII; no '/', '@', '"', or space
-db_username = "triagemaster"
-db_password = "CHANGE_ME_STRONG_PASSWORD"
+db_username = "gigaros"
+db_password = "gigaros@123"
 
-# Bastion (optional - SSH tunnel to Aurora)
-# enable_bastion        = true
-# bastion_ssh_public_key = "ssh-rsa AAAA... your@email"
-# bastion_allowed_cidr   = "YOUR_IP/32"   # e.g. curl -s ifconfig.me
