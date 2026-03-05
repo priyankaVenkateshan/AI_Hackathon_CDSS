@@ -1,6 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useActivity } from '../../context/ActivityContext';
 import { isMockMode } from '../../api/config';
 import { getPatient, startConsultation, saveConsultation } from '../../api/client';
 import { patients, consultationHistory } from '../../data/mockData';
@@ -49,12 +50,11 @@ export default function PatientConsultation() {
     const [consultationNotes, setConsultationNotes] = useState('');
     const [savingNotes, setSavingNotes] = useState(false);
     const [consultationStartTime, setConsultationStartTime] = useState(null);
-    const [aiValidated, setAiValidated] = useState(false);
-    const [showPreConsultHistory, setShowPreConsultHistory] = useState(true);
-    const [transcriptionLang, setTranscriptionLang] = useState('en');
+    const [surgeryReadinessModalOpen, setSurgeryReadinessModalOpen] = useState(false);
     const { user } = useAuth();
+    const { logActivity } = useActivity();
 
-    const [summaryLang, setSummaryLang] = useState(typeof localStorage !== 'undefined' ? (localStorage.getItem(SUMMARY_LANG_KEY) || 'en') : 'en');
+    const summaryLang = typeof localStorage !== 'undefined' ? (localStorage.getItem(SUMMARY_LANG_KEY) || 'en') : 'en';
 
     useEffect(() => {
         if (isMockMode()) {
@@ -80,6 +80,10 @@ export default function PatientConsultation() {
             });
         return () => { cancelled = true; };
     }, [patientId]);
+
+    useEffect(() => {
+        if (patientId && patient) logActivity('view_patient', { patientId });
+    }, [patientId, patient, logActivity]);
 
     const patientResolved = patient || (isMockMode() ? patients.find(p => p.id === patientId) : null);
 
@@ -129,22 +133,14 @@ export default function PatientConsultation() {
     const handleSend = () => {
         if (!message.trim()) return;
         setMessages(prev => [...prev, { role: 'user', text: message, time: 'Now' }]);
-        const currentMsg = message;
         setMessage('');
         setIsTyping(true);
+        logActivity('ai_chat_patient', { patientId });
         setTimeout(() => {
             setIsTyping(false);
-            let responseText = "I've analyzed your query. Based on the patient's current condition and medical history, I recommend proceeding with the standard protocol.";
-
-            if (transcriptionLang === 'hi') {
-                responseText = "मैंने आपके प्रश्न का विश्लेषण किया है। रोगी की वर्तमान स्थिति और चिकित्सा इतिहास के आधार पर, मैं मानक प्रोटोकॉल के साथ आगे बढ़ने की सलाह देता हूँ।";
-            } else if (transcriptionLang === 'ta') {
-                responseText = "உங்கள் வினவலை நான் பகுப்பாய்வு செய்துள்ளேன். நோயாளியின் தற்போதைய நிலை மற்றும் மருத்துவ வரலாற்றின் அடிப்படையில், நிலையான நெறிமுறையைத் தொடர பரிந்துரைக்கிறேன்.";
-            }
-
             setMessages(prev => [...prev, {
                 role: 'assistant',
-                text: responseText,
+                text: "I've analyzed your query. Based on the patient's current condition and medical history, I recommend proceeding with the standard protocol. Would you like me to generate a detailed treatment plan?",
                 time: 'Now',
             }]);
         }, 2000);
@@ -159,8 +155,10 @@ export default function PatientConsultation() {
                 setConsultationStarted(true);
                 setStartConsultationLoading(false);
             }, 800);
+            logActivity('start_consultation', { patientId });
             return;
         }
+        logActivity('start_consultation', { patientId });
         startConsultation(patientId, user?.id)
             .then((data) => {
                 setConsultationStartTime(new Date());
@@ -174,6 +172,7 @@ export default function PatientConsultation() {
     const handleSaveConsultationNotes = () => {
         setSavingNotes(true);
         const payload = { notes: consultationNotes, ai_summary: aiSummaryFromStart };
+        logActivity('save_consultation', { patientId, detail: 'Consultation notes saved' });
         if (isMockMode()) {
             setTimeout(() => {
                 setHistory(prev => [...prev, {
@@ -198,6 +197,14 @@ export default function PatientConsultation() {
     };
 
     const timeSavedMinutes = consultationStartTime ? 6 : 0;
+    const clinicalRiskScore = (() => {
+        const s = (patientResolved?.severity || '').toLowerCase();
+        if (s === 'critical') return 8;
+        if (s === 'high') return 6;
+        if (s === 'moderate') return 4;
+        if (s === 'low') return 2;
+        return 5;
+    })();
 
     return (
         <div className="page-enter">
@@ -214,10 +221,22 @@ export default function PatientConsultation() {
                         <div className="patient-header__info">
                             <div className="patient-header__name">{patientResolved.name}</div>
                             <div className="patient-header__meta">
-                                <span className="patient-header__meta-item">🆔 {patientResolved.id}</span>
+                                <span className="patient-header__meta-item patient-header__meta-item--id" title="Unique identifier for all medical interactions">🆔 Patient ID: {patientResolved.id}</span>
                                 <span className="patient-header__meta-item">🎂 {patientResolved.age} years</span>
                                 <span className="patient-header__meta-item">🩸 {patientResolved.bloodGroup}</span>
                                 <span className="patient-header__meta-item">🏥 {patientResolved.ward}</span>
+                            </div>
+                            <div className="patient-header__key-indicators">
+                                <span className="patient-header__ki">Allergies: None documented</span>
+                                <span className="patient-header__ki">Conditions: {(patientResolved.conditions || []).length}</span>
+                                <span className="patient-header__ki">Medications: {history.reduce((n, c) => n + (c.prescriptions || []).length, 0)}</span>
+                            </div>
+                            <div className="patient-header__risk-meter">
+                                <span className="patient-header__risk-label">Risk</span>
+                                <div className="patient-header__risk-bar">
+                                    <div className="patient-header__risk-fill" style={{ width: `${clinicalRiskScore * 10}%` }} />
+                                </div>
+                                <span className="patient-header__risk-value">{clinicalRiskScore}/10</span>
                             </div>
                             <div className="patient-header__conditions">
                                 {(patientResolved.conditions || []).map((cond, i) => (
@@ -237,23 +256,48 @@ export default function PatientConsultation() {
                             <button className="btn btn--outline" onClick={() => navigate('/surgery', { state: { patientId, patientName: patientResolved.name } })}>
                                 🔪 Surgery required
                             </button>
+                            <button className="btn btn--outline" onClick={() => setSurgeryReadinessModalOpen(true)}>
+                                🩺 Surgery Readiness (AI Agent)
+                            </button>
+                            <button className="btn btn--outline">📋 Refer</button>
                         </div>
                     </div>
 
-                    {/* Pre-consultation AI History Summary */}
-                    {!consultationStarted && showPreConsultHistory && (
-                        <div className="ai-history-summary animate-in glass">
-                            <div className="card-header">
-                                <span className="card-header__title">🤖 Pre-consultation AI History Recap</span>
-                                <button className="btn-close" onClick={() => setShowPreConsultHistory(false)}>✕</button>
-                            </div>
-                            <div className="ai-history-content">
-                                <p><strong>Last Visit Recap:</strong> Patient was seen on {patientResolved.lastVisit}. BP was {patientResolved.vitals?.bp}, trending slightly high.</p>
-                                <p><strong>Key Risks:</strong> {patientResolved.conditions.includes('Hypertension') ? 'Suboptimal BP control detected over last 3 logs.' : 'Stable condition.'} High adherence to Metformin (92%).</p>
-                                <div className="ai-suggested-goals">
-                                    <span className="goal-tag">Verify BP log</span>
-                                    <span className="goal-tag">Check HbA1c</span>
-                                    <span className="goal-tag">Discuss diet</span>
+                    {/* Surgery Readiness Modal (AI Agent) */}
+                    {surgeryReadinessModalOpen && (
+                        <div className="surgery-readiness-modal-overlay" onClick={() => setSurgeryReadinessModalOpen(false)}>
+                            <div className="surgery-readiness-modal" onClick={e => e.stopPropagation()}>
+                                <div className="surgery-readiness-modal__header">
+                                    <h3>🩺 Surgery Readiness (AI Agent)</h3>
+                                    <button type="button" className="surgery-readiness-modal__close" onClick={() => setSurgeryReadinessModalOpen(false)}>×</button>
+                                </div>
+                                <div className="surgery-readiness-modal__body">
+                                    <div className="surgery-readiness-modal__row">
+                                        <span>Risk Score & Safety Gauge</span>
+                                        <span>{clinicalRiskScore}/10 — {(clinicalRiskScore <= 3 ? 'Low' : clinicalRiskScore <= 6 ? 'Moderate' : 'High')} risk</span>
+                                    </div>
+                                    <div className="surgery-readiness-modal__row">
+                                        <span>Estimated Procedure Duration</span>
+                                        <span>— (varies by procedure)</span>
+                                    </div>
+                                    <div className="surgery-readiness-modal__row">
+                                        <span>Required Specialists & Instruments</span>
+                                        <span>Per procedure type; see Surgery Planning.</span>
+                                    </div>
+                                    <div className="surgery-readiness-modal__row">
+                                        <span>Pre-Op Checklist Compliance</span>
+                                        <span className={`surgery-readiness-modal__status surgery-readiness-modal__status--${(patientResolved.surgeryReadiness?.preOpStatus || 'pending')}`}>
+                                            {(patientResolved.surgeryReadiness?.preOpStatus || 'Pending').replace(/_/g, ' ')}
+                                        </span>
+                                    </div>
+                                    <div className="surgery-readiness-modal__row">
+                                        <span>Risk Flags</span>
+                                        <ul>
+                                            {(patientResolved.surgeryReadiness?.riskFactors || patientResolved.conditions || []).slice(0, 5).map((r, i) => (
+                                                <li key={i}>{typeof r === 'string' ? r : r}</li>
+                                            ))}
+                                        </ul>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -268,21 +312,19 @@ export default function PatientConsultation() {
                                     <span className="consultation-time-saved">~{timeSavedMinutes} min saved with AI</span>
                                 )}
                             </div>
+                            <p className="ai-summary-block__clinical-note">Structured summary for clinical decision-making (generated within 30 seconds).</p>
                             <div className="ai-summary-block__content">{aiSummaryFromStart}</div>
-
-                            <div className="ai-summary-actions">
-                                {!aiValidated ? (
-                                    <button
-                                        className="btn btn--success btn--sm"
-                                        onClick={() => setAiValidated(true)}
-                                    >
-                                        ✅ Approve Clinical Recommendations
-                                    </button>
-                                ) : (
-                                    <span className="validation-badge">✓ Validated by {user?.name || 'Doctor'}</span>
-                                )}
+                            <div className="medical-entities-block">
+                                <div className="card-header" style={{ marginBottom: 'var(--space-2)' }}>
+                                    <span className="card-header__title">📌 Medical entities extracted (Req 6.3)</span>
+                                </div>
+                                <div className="medical-entities-grid">
+                                    <div><strong>Symptoms:</strong> Elevated BP, elevated HbA1c</div>
+                                    <div><strong>Diagnoses:</strong> Hypertension, Type 2 Diabetes</div>
+                                    <div><strong>Medications:</strong> Metformin, Amlodipine</div>
+                                    <div><strong>Follow-up:</strong> Recheck BP and HbA1c at next visit; consider Losartan if BP remains elevated</div>
+                                </div>
                             </div>
-
                             <div className="consultation-notes-form">
                                 <label className="consultation-notes-label">Consultation notes</label>
                                 <textarea
@@ -295,6 +337,37 @@ export default function PatientConsultation() {
                                 <button type="button" className="btn btn--primary" onClick={handleSaveConsultationNotes} disabled={savingNotes}>
                                     {savingNotes ? 'Saving…' : 'Save consultation notes'}
                                 </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Surgery readiness (Req 2.4) */}
+                    {(patientResolved.surgeryReadiness || (patientResolved.conditions && patientResolved.conditions.length > 0)) && (
+                        <div className="surgery-readiness-block animate-in">
+                            <div className="card-header">
+                                <span className="card-header__title">🩺 Surgery readiness</span>
+                            </div>
+                            <div className="surgery-readiness__content">
+                                <div className="surgery-readiness__row">
+                                    <span className="surgery-readiness__label">Pre-op status</span>
+                                    <span className={`surgery-readiness__status surgery-readiness__status--${(patientResolved.surgeryReadiness?.preOpStatus || 'not_assessed').replace('-', '_')}`}>
+                                        {(patientResolved.surgeryReadiness?.preOpStatus || 'Not assessed').replace(/_/g, ' ')}
+                                    </span>
+                                </div>
+                                {(patientResolved.surgeryReadiness?.lastAssessed) && (
+                                    <div className="surgery-readiness__row">
+                                        <span className="surgery-readiness__label">Last assessed</span>
+                                        <span className="surgery-readiness__value">{patientResolved.surgeryReadiness.lastAssessed}</span>
+                                    </div>
+                                )}
+                                <div className="surgery-readiness__row">
+                                    <span className="surgery-readiness__label">Risk factors</span>
+                                    <ul className="surgery-readiness__risks">
+                                        {(patientResolved.surgeryReadiness?.riskFactors || []).length > 0
+                                            ? patientResolved.surgeryReadiness.riskFactors.map((r, i) => <li key={i}>{r}</li>)
+                                            : (patientResolved.conditions || []).map((c, i) => <li key={i}>{c}</li>)}
+                                    </ul>
+                                </div>
                             </div>
                         </div>
                     )}
@@ -317,13 +390,16 @@ export default function PatientConsultation() {
                         })}
                     </div>
 
-                    {/* Consultation Timeline */}
+                    {/* Consultation Timeline — chronological medical history (Req 2.2, 2.3) */}
                     <div className="timeline animate-in animate-in-delay-3">
                         <div className="card-header">
-                            <span className="card-header__title">📋 Consultation History</span>
+                            <span className="card-header__title">📋 Chronological medical history</span>
                         </div>
+                        <p className="timeline__desc">Visits with timestamps and treating physician. Complete historical records of treatments, prescriptions, and outcomes.</p>
                         <div className="timeline__list">
-                            {history.map((consult, i) => (
+                            {[...history]
+                                .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0))
+                                .map((consult, i) => (
                                 <div key={consult.id} className={`timeline-item animate-in animate-in-delay-${i + 2}`}>
                                     <div className="timeline-item__dot">📝</div>
                                     <div className="timeline-item__content">
@@ -356,20 +432,7 @@ export default function PatientConsultation() {
                     <div className="ai-panel__header">
                         <div className="ai-panel__indicator" />
                         <span className="ai-panel__title">AI Assistant</span>
-                        <div className="ai-panel__lang-selector">
-                            <select
-                                value={transcriptionLang}
-                                onChange={(e) => {
-                                    setTranscriptionLang(e.target.value);
-                                    setSummaryLang(e.target.value);
-                                    localStorage.setItem(SUMMARY_LANG_KEY, e.target.value);
-                                }}
-                            >
-                                {Object.entries(summaryLangLabels).map(([code, label]) => (
-                                    <option key={code} value={code}>{label}</option>
-                                ))}
-                            </select>
-                        </div>
+                        <span className="ai-panel__subtitle">Claude 3 Haiku</span>
                     </div>
 
                     <div className="ai-panel__messages">

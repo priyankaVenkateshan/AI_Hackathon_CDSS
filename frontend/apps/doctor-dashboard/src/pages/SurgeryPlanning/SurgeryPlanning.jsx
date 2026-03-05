@@ -29,8 +29,6 @@ export default function SurgeryPlanning() {
     const [selectedSlot, setSelectedSlot] = useState(null);
     const [booked, setBooked] = useState(false);
     const [procedureType, setProcedureType] = useState('General');
-    const [showConflict, setShowConflict] = useState(false);
-    const [replacementDoctor, setReplacementDoctor] = useState(null);
     const { user } = useAuth();
 
     const isNewSurgery = surgeryId === 'new';
@@ -71,7 +69,6 @@ export default function SurgeryPlanning() {
                 setSurgery(data);
                 setPatient(data.patient ? { ...data.patient } : null);
                 if (Array.isArray(data.checklist)) setChecklist(data.checklist);
-                if (surgeryId === 'S-001' || surgeryId === 'S-003') setShowConflict(true);
             })
             .catch((err) => {
                 if (!cancelled) setError(err.message || 'Failed to load surgery');
@@ -181,39 +178,6 @@ export default function SurgeryPlanning() {
                 <button className="back-btn" onClick={() => navigate('/surgery')}>←</button>
                 <h1 className="planning-title">Surgery Planning: {surgery.type}</h1>
             </header>
-
-            {showConflict && (
-                <div className="conflict-alert animate-in">
-                    <div className="conflict-alert__icon">⚠️</div>
-                    <div className="conflict-alert__content">
-                        <h3 className="conflict-alert__title">Specialist Conflict Detected</h3>
-                        <p className="conflict-alert__desc">
-                            Primary Surgeon (Dr. Vikram Patel) is unavailable due to an emergency procedure in OT-1.
-                            An AI-identified replacement is required to maintain the schedule.
-                        </p>
-                        {!replacementDoctor ? (
-                            <div className="replacement-options">
-                                <h4 className="replacement-options__title">AI Proposed Replacements:</h4>
-                                <div className="replacement-list">
-                                    <div className="replacement-item" onClick={() => setReplacementDoctor('Dr. Rajesh Verma')}>
-                                        <span>Dr. Rajesh Verma (General Surgery)</span>
-                                        <button className="btn btn--xs btn--primary">Select</button>
-                                    </div>
-                                    <div className="replacement-item" onClick={() => setReplacementDoctor('Dr. Priya Sharma')}>
-                                        <span>Dr. Priya Sharma (Cardiology)</span>
-                                        <button className="btn btn--xs btn--primary">Select</button>
-                                    </div>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="replacement-confirmed">
-                                ✅ Replacement Confirmed: <strong>{replacementDoctor}</strong>
-                                <button className="btn btn--link" onClick={() => setReplacementDoctor(null)} style={{ marginLeft: '12px' }}>Change</button>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            )}
 
             {/* Patient Summary Banner */}
             <div className="patient-summary-card animate-in">
@@ -345,7 +309,7 @@ export default function SurgeryPlanning() {
             </div>
 
             <button className="submit-btn animate-in animate-in-delay-3" onClick={() => navigate('/surgery')}>
-                {replacementDoctor ? `Finalize with ${replacementDoctor}` : 'Finalize Surgical Plan'}
+                Finalize Surgical Plan
             </button>
         </div>
     );

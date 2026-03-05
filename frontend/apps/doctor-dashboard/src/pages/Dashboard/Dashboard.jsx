@@ -1,385 +1,158 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { isMockMode } from '../../api/config';
-import { getDashboard, getSchedule } from '../../api/client';
-import { patients, todaySchedule, aiAlerts, surgeries } from '../../data/mockData';
-import { useAuth, roles } from '../../context/AuthContext';
+import { patients, todaySchedule, clinicalUpdates } from '../../data/mockData';
+import { useActivity } from '../../context/ActivityContext';
+import { useAuth } from '../../context/AuthContext';
 import './Dashboard.css';
 
-const getInitials = (name) => name.split(' ').map(n => n[0]).join('');
+const ICON_SIZE = 20;
 
-const alertIcons = { critical: '🚨', warning: '⚠️', info: 'ℹ️', success: '✅' };
-
-function mapApiAlertToUi(alert) {
-    const typeMap = { drug_interaction: 'critical', vital_abnormality: 'critical', high: 'warning', critical: 'critical', info: 'info', success: 'success' };
-    return {
-        id: alert.id,
-        type: typeMap[alert.type] || alert.type || 'info',
-        title: (alert.type || 'Alert').replace(/_/g, ' '),
-        message: alert.message,
-        time: alert.time || '',
-    };
+function ClinicalUpdateIcon({ type, className }) {
+  const props = { width: ICON_SIZE, height: ICON_SIZE, className, 'aria-hidden': true };
+  switch (type) {
+    case 'discharge_pending':
+      return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <path d="M14 2v6h6M9 15l2 2 4-4" />
+        </svg>
+      );
+    case 'upcoming_surgery':
+      return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+          <path d="M5 4v16M9 4v16M15 4v16M19 4v16M3 8h18M3 16h18" />
+        </svg>
+      );
+    case 'follow_up_reminder':
+      return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+          <path d="M16 2v4M8 2v4M3 10h18" />
+        </svg>
+      );
+    default:
+      return null;
+  }
 }
 
-function mapApiQueueToUi(q) {
+function Dashboard() {
+  const navigate = useNavigate();
+  const { logActivity } = useActivity();
+  useAuth();
+
+  useEffect(() => {
+    logActivity('view_dashboard');
+  }, [logActivity]);
+
+  const scheduleWithLocation = todaySchedule.map((s) => {
+    const type = s.type || 'Consultation';
+    let consultationType = 'OP';
+    if (type === 'Follow-up' || type === 'Lab Review') consultationType = 'Follow-up';
+    if (type === 'Pre-op Check' || type === 'Emergency') consultationType = 'Surgery';
+    if (type === 'Consultation') consultationType = 'Consultation';
     return {
-        id: q.id,
-        name: q.name,
-        gender: 'Male',
-        ward: '—',
-        conditions: [q.status || '—'],
-        vitals: q.vitals || { hr: 0, bp: '—', spo2: 0 },
-        severity: (q.severity || '').toLowerCase(),
-        status: q.status === 'Stable' || q.status === 'Ready for Discharge' ? 'waiting' : 'in-consultation',
+      ...s,
+      consultationType,
+      location: type === 'Pre-op Check' ? 'OT-3' : type === 'Emergency' ? 'ICU' : 'Room 4',
     };
-}
+  });
 
-export default function Dashboard() {
-    const navigate = useNavigate();
-    const { user } = useAuth();
+  const myPatients = patients.filter((p) => p.status !== 'scheduled').slice(0, 6);
 
-    const getInstruments = (type) => {
-        const lists = {
-            'ACL Reconstruction': ['Arthrotome', 'Graft passer', 'Drill bits (4.5mm, 6mm)', 'Interference screws', 'Sutures (Vicryl 2-0)'],
-            'Cardiac Catheterization': ['Introducer sheath', 'Diagnostic catheters', 'Guidewires', 'Contrast media', 'Pressure manifold'],
-            'Appendectomy': ['Scalpel #10', 'Babcock forceps', 'Ligation clips', 'Suction irrigator', 'Trocar set (10mm, 5mm)']
-        };
-        return lists[type] || ['Standard surgical kit', 'Sterile drapes', 'Suction tip'];
-    };
-    const [loading, setLoading] = useState(!isMockMode());
-    const [error, setError] = useState(null);
-    const [stats, setStats] = useState([]);
-    const [queue, setQueue] = useState([]);
-    const [alerts, setAlerts] = useState([]);
-    const [schedule, setSchedule] = useState([]);
-    const [surgeryList, setSurgeryList] = useState(isMockMode() ? surgeries : []);
-    const [selectedSurgery, setSelectedSurgery] = useState(null);
-    const [wardFilter, setWardFilter] = useState('all');
-    const [searchQuery, setSearchQuery] = useState('');
-    const [showEmergencyOverlay, setShowEmergencyOverlay] = useState(false);
+  const scheduleTypeClass = (type) => {
+    if (type === 'Consultation') return 'consultation';
+    if (type === 'Follow-up') return 'followup';
+    if (type === 'Surgery') return 'surgery';
+    return 'consultation';
+  };
 
-    useEffect(() => {
-        if (isMockMode()) {
-            const waitingCount = patients.filter(p => p.status === 'waiting').length;
-            const criticalCount = patients.filter(p => p.severity === 'critical').length;
-            const todayAppointments = todaySchedule.length;
-            const completedToday = todaySchedule.filter(s => s.status === 'completed').length;
-            const pendingConsults = patients.filter(p => p.status === 'waiting').length;
-            const surgeryCount = 2; // Mock surgery count
+  return (
+    <div className="dash page-enter">
+      <p style={{ margin: '0 0 16px', fontSize: '14px', color: '#059669', fontWeight: 600 }}>✓ Dashboard updated — Recent Alerts replaced with Clinical Updates</p>
+      <div className="dash__grid">
+        {/* ─── Top Section: Today's Schedule (full width) ─── */}
+        <section className="dash__top dash__top--full">
+          <div className="dash-card">
+            <h2 className="dash-card__title">Today&apos;s Schedule</h2>
+            <ul className="dash-schedule">
+              {scheduleWithLocation.map((item, i) => (
+                <li
+                  key={i}
+                  className={`dash-schedule__item dash-schedule__item--${scheduleTypeClass(item.consultationType)}`}
+                >
+                  <span className="dash-schedule__time">{item.time}</span>
+                  <span className="dash-schedule__patient">{item.patient}</span>
+                  <span className="dash-schedule__type">
+                    {item.consultationType === 'Consultation' ? 'OP' : item.consultationType === 'Follow-up' ? 'Follow-up' : 'Surgery'}
+                  </span>
+                  <span className="dash-schedule__location">{item.location}</span>
+                  <button
+                    type="button"
+                    className="dash-schedule__btn"
+                    onClick={() => item.patient && item.patient !== 'Walk-in slot' && navigate('/patients')}
+                  >
+                    View Patient
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
 
-            setStats([
-                { icon: '👥', label: 'Patients Attended', value: 12, trend: '+3 from avg', trendDir: 'up', variant: 'primary' },
-                { icon: '📅', label: 'Appointments', value: todayAppointments, trend: `${completedToday} completed`, trendDir: 'up', variant: 'secondary' },
-                { icon: '⏳', label: 'Pending Consults', value: pendingConsults, trend: 'Due today', trendDir: 'down', variant: 'info' },
-                { icon: '🔪', label: 'Surgeries', value: surgeryCount, trend: 'OT-3 Booked', trendDir: 'up', variant: 'accent' },
-                { icon: '🚨', label: 'Critical Alerts', value: criticalCount, trend: 'Needs action', trendDir: 'down', variant: 'warning' },
-            ]);
-            setQueue(patients.filter(p => p.status !== 'scheduled'));
-            setAlerts(aiAlerts);
-            setSchedule(todaySchedule);
-            return;
-        }
-        let cancelled = false;
-        setLoading(true);
-        setError(null);
-        Promise.all([
-            getDashboard(user?.id || 'DR-DEFAULT'),
-            getSchedule().catch(() => ({ schedule: [] })),
-        ])
-            .then(([data, scheduleData]) => {
-                if (cancelled) return;
-                const d = data;
-                const statMap = { warning: 'warning', critical: 'warning', info: 'secondary', ai: 'accent' };
-                setStats((d.stats || []).map((s, i) => ({
-                    icon: ['👥', '🚨', '📅', '🤖'][i] || 'ℹ️',
-                    label: s.label,
-                    value: s.value,
-                    trend: s.trend || '',
-                    trendDir: s.type === 'critical' ? 'down' : 'up',
-                    variant: statMap[s.type] || 'primary',
-                })));
-                setQueue((d.patient_queue || []).map(mapApiQueueToUi));
-                setAlerts((d.ai_alerts || []).map(mapApiAlertToUi));
-                setSchedule(scheduleData?.schedule || scheduleData || []);
-            })
-            .catch((err) => {
-                if (!cancelled) setError(err.message || 'Failed to load dashboard');
-            })
-            .finally(() => {
-                if (!cancelled) setLoading(false);
-            });
-        return () => { cancelled = true; };
-    }, [user?.id]);
-
-    if (loading && !isMockMode()) {
-        return (
-            <div className="dashboard page-enter" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 200 }}>
-                <p className="dashboard__loading">Loading dashboard…</p>
-            </div>
-        );
-    }
-
-    if (error) {
-        return (
-            <div className="dashboard page-enter" style={{ padding: '2rem', textAlign: 'center' }}>
-                <p className="dashboard__error" style={{ color: 'var(--color-error, #c00)' }}>{error}</p>
-                <button className="btn btn--primary" onClick={() => window.location.reload()}>Retry</button>
-            </div>
-        );
-    }
-
-    const statRows = stats.length > 0 ? stats : (isMockMode() ? [
-        { icon: '👥', label: 'Patients Attended', value: 12, trend: '+3 from avg', trendDir: 'up', variant: 'primary' },
-        { icon: '📅', label: 'Appointments', value: todaySchedule.length, trend: `${todaySchedule.filter(s => s.status === 'completed').length} completed`, trendDir: 'up', variant: 'secondary' },
-        { icon: '⏳', label: 'Pending Consults', value: patients.filter(p => p.status === 'waiting').length, trend: 'Due today', trendDir: 'down', variant: 'info' },
-        { icon: '🔪', label: 'Surgeries', value: 2, trend: 'OT-3 Booked', trendDir: 'up', variant: 'accent' },
-        { icon: '🚨', label: 'Critical Alerts', value: patients.filter(p => p.severity === 'critical').length, trend: 'Needs action', trendDir: 'down', variant: 'warning' },
-    ] : []);
-
-    const queueList = queue.length ? queue : (isMockMode() ? patients.filter(p => p.status !== 'scheduled') : []);
-    const isNurse = user?.role === roles.NURSE;
-    const wards = ['All', 'General', 'OPD', 'ICU', 'Cardiology'];
-    const queueFilteredByWard = isNurse && wardFilter !== 'all'
-        ? queueList.filter(p => (p.ward || '').toLowerCase() === wardFilter.toLowerCase())
-        : queueList;
-    const alertList = alerts.length ? alerts : (isMockMode() ? aiAlerts : []);
-    const scheduleList = schedule.length ? schedule : (isMockMode() ? todaySchedule : []);
-
-    return (
-        <div className="dashboard page-enter">
-            {/* Search Bar */}
-            <div className="dashboard__header">
-                <div className="search-container">
-                    <span className="search-icon">🔍</span>
-                    <input
-                        type="text"
-                        placeholder="Search patient by ID, name, or phone (⌘K)..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                </div>
-            </div>
-
-            {/* Surgery & Resource Coordination */}
-            <div className="dashboard__coordination animate-in animate-in-delay-4">
-                <div className="card-header">
-                    <span className="card-header__title">🔪 Surgery & Resource Coordination</span>
-                </div>
-                <div className="ot-status-grid">
-                    {['OT-1', 'OT-2', 'OT-3', 'ICU-Beds'].map((res) => {
-                        const isOT = res.startsWith('OT');
-                        const busy = surgeryList.some(s => s.ot === res && s.status === 'in-prep');
-                        return (
-                            <div key={res} className={`resource-card ${busy ? 'resource-card--busy' : 'resource-card--available'}`}>
-                                <div className="resource-card__header">
-                                    <span className="resource-name">{res}</span>
-                                    <span className={`status-dot ${busy ? 'status-dot--busy' : 'status-dot--available'}`} />
-                                </div>
-                                <div className="resource-card__content">
-                                    {busy ? (
-                                        <span className="resource-status-text">In Use • Appendectomy</span>
-                                    ) : (
-                                        <span className="resource-status-text">Ready • All cleared</span>
-                                    )}
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
-                <div className="surgery-mini-list">
-                    {surgeryList.slice(0, 3).map((s, i) => (
-                        <div
-                            key={s.id}
-                            className={`surgery-mini-item ${selectedSurgery?.id === s.id ? 'active' : ''}`}
-                            onClick={() => setSelectedSurgery(selectedSurgery?.id === s.id ? null : s)}
-                        >
-                            <div className="surgery-mini-info">
-                                <span className="surgery-mini-patient">{s.patient}</span>
-                                <span className="surgery-mini-type">{s.type}</span>
-                            </div>
-                            <div className="surgery-mini-meta">
-                                <span className="surgery-mini-ot">{s.ot}</span>
-                                <span className={`surgery-mini-status status--${s.status}`}>{s.status}</span>
-                            </div>
-                            {selectedSurgery?.id === s.id && (
-                                <div className="surgery-checklist animate-in">
-                                    <div className="checklist-title">📋 Instrument Checklist</div>
-                                    <ul className="checklist-items">
-                                        {getInstruments(s.type).map((item, idx) => (
-                                            <li key={idx} className="checklist-item">
-                                                <input type="checkbox" readOnly checked={idx < 2} />
-                                                <span>{item}</span>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            )}
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-            {/* Stats Row */}
-            <div className="dashboard__stats">
-                {statRows.map((stat, i) => (
-                    <div key={i} className={`stat-card stat-card--narrow animate-in animate-in-delay-${i + 1}`}>
-                        <div className={`stat-card__icon stat-card__icon--${stat.variant}`}>{stat.icon}</div>
-                        <div className="stat-card__info">
-                            <span className="stat-card__value">{stat.value}</span>
-                            <span className="stat-card__label">{stat.label}</span>
-                        </div>
-                    </div>
+        {/* ─── Row 2: Patient Overview Summary + Clinical Updates ─── */}
+        <section className="dash__row2 dash__summary">
+          <div className="dash-card dash-card--summary">
+            <h2 className="dash-card__title">Patient Overview Summary</h2>
+            <div className="dash-summary__content">
+              <div className="dash-summary__actions">
+                {myPatients.slice(0, 4).map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    className="dash-summary__btn"
+                    onClick={() => navigate(`/patient/${p.id}`)}
+                  >
+                    <span className="dash-summary__btn-name">{p.name}</span>
+                    <span className="dash-summary__btn-meta">{p.ward || '—'} · {(p.severity || '—')}</span>
+                  </button>
                 ))}
+              </div>
             </div>
+          </div>
+        </section>
 
-            {/* Patient Queue */}
-            <div className="dashboard__queue animate-in animate-in-delay-3">
-                <div className="card-header">
-                    <span className="card-header__title">👥 Patient Queue</span>
-                    {isNurse && (
-                        <select
-                            className="dashboard-ward-filter"
-                            value={wardFilter}
-                            onChange={(e) => setWardFilter(e.target.value)}
-                            style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid var(--surface-border)', background: 'var(--surface-card)', fontSize: 'var(--text-sm)' }}
-                        >
-                            {wards.map((w) => (
-                                <option key={w} value={w === 'All' ? 'all' : w}>{w}</option>
-                            ))}
-                        </select>
-                    )}
-                    <span className="card-header__action" onClick={() => navigate('/patients')}>View all →</span>
-                </div>
-                <div className="queue-list">
-                    {queueFilteredByWard.map((patient, i) => (
-                        <div
-                            key={patient.id}
-                            className={`queue-item animate-in animate-in-delay-${i + 1}`}
-                            onClick={() => navigate(`/patient/${patient.id}`)}
-                        >
-                            <div className={`queue-item__avatar queue-item__avatar--${(patient.gender || 'male').toLowerCase()}`}>
-                                {getInitials(patient.name)}
-                            </div>
-                            <div className="queue-item__info">
-                                <div className="queue-item__name">{patient.name}</div>
-                                <div className="queue-item__details">
-                                    <span>{patient.age ? `${patient.age}y` : '—'} / {(patient.gender || 'M')[0]}</span>
-                                    <span>·</span>
-                                    <span>{patient.ward || '—'}</span>
-                                    <span>·</span>
-                                    <span>{Array.isArray(patient.conditions) ? patient.conditions[0] : patient.conditions || '—'}</span>
-                                </div>
-                            </div>
-                            <div className="queue-item__vitals">
-                                <span className={`vital-mini ${patient.vitals?.spo2 < 92 ? 'vital-mini--critical' : ''}`}>
-                                    💓 {patient.vitals?.hr ?? '—'}
-                                </span>
-                                <span className="vital-mini">🩸 {patient.vitals?.bp ?? '—'}</span>
-                                <span className={`vital-mini ${patient.vitals?.spo2 < 92 ? 'vital-mini--critical' : ''}`}>
-                                    O₂ {patient.vitals?.spo2 ?? '—'}%
-                                </span>
-                            </div>
-                            <span className={`queue-item__severity severity--${patient.severity || 'moderate'}`}>
-                                {patient.severity || '—'}
-                            </span>
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-            {/* AI Alerts */}
-            <div className="dashboard__alerts animate-in animate-in-delay-4">
-                <div className="card-header">
-                    <span className="card-header__title">🤖 AI Alerts</span>
-                    <span className="card-header__action">Mark all read</span>
-                </div>
-                <div className="alert-list">
-                    {alertList.map((alert, i) => (
-                        <div key={alert.id || i} className={`alert-item alert-item--${alert.type} animate-in animate-in-delay-${i + 1}`}>
-                            <div className="alert-item__header">
-                                <span className="alert-item__icon">{alertIcons[alert.type] || 'ℹ️'}</span>
-                                <span className="alert-item__title">{alert.title}</span>
-                                <span className="alert-item__time">{alert.time}</span>
-                            </div>
-                            <div className="alert-item__message">{alert.message}</div>
-                            {alert.type === 'critical' && (
-                                <button
-                                    className="alert-item__action-btn"
-                                    onClick={() => setShowEmergencyOverlay(true)}
-                                >
-                                    🔴 Trigger Emergency Protocol
-                                </button>
-                            )}
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-            {/* Schedule */}
-            <div className="dashboard__schedule animate-in animate-in-delay-5">
-                <div className="card-header">
-                    <span className="card-header__title">📅 Today's Schedule</span>
-                    <span className="card-header__action">Full calendar →</span>
-                </div>
-                <div className="schedule-list">
-                    {scheduleList.map((slot, i) => (
-                        <div key={i} className="schedule-item">
-                            <span className="schedule-item__time">{slot.time}</span>
-                            <div className="schedule-item__line">
-                                <div className={`schedule-item__dot schedule-item__dot--${slot.status}`} />
-                            </div>
-                            <div className="schedule-item__info">
-                                <div className="schedule-item__patient">{slot.patient}</div>
-                                <div className="schedule-item__type">{slot.type}</div>
-                            </div>
-                            <span className={`schedule-item__status status--${(slot.status || 'upcoming').replace('-', ' ')}`}>
-                                {(slot.status || 'upcoming').replace('-', ' ')}
-                            </span>
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-            {/* Emergency Overlay */}
-            {showEmergencyOverlay && (
-                <div className="emergency-overlay">
-                    <div className="emergency-overlay__content glass animate-in">
-                        <div className="emergency-overlay__header">
-                            <h2 className="emergency-overlay__title">🚨 EMERGENCY: Code Blue Simulation</h2>
-                            <span className="emergency-overlay__timer">00:45s Elapsed</span>
-                        </div>
-                        <div className="emergency-overlay__grid">
-                            <div className="emergency-overlay__section">
-                                <h3 className="section-title">📍 Asset Tracking</h3>
-                                <div className="asset-stat">
-                                    <span className="asset-label">Crash Cart #4:</span>
-                                    <span className="asset-value">In Transit (ICU Corridor)</span>
-                                </div>
-                                <div className="asset-stat">
-                                    <span className="asset-label">Defibrillator:</span>
-                                    <span className="asset-value">Ready at ICU Station B</span>
-                                </div>
-                            </div>
-                            <div className="emergency-overlay__section">
-                                <h3 className="section-title">👨‍⚕️ Rapid Response Team</h3>
-                                <ul className="team-list">
-                                    <li>Dr. Sharma (Lead) — <span className="status--waiting">Confirmed</span></li>
-                                    <li>Nurse Anjali (ICU) — <span className="status--waiting">Confirmed</span></li>
-                                    <li>Respiratory Therapist — <span className="status--upcoming">En Route</span></li>
-                                </ul>
-                            </div>
-                        </div>
-                        <div className="emergency-overlay__actions">
-                            <button className="btn btn--primary btn--emergency" onClick={() => setShowEmergencyOverlay(false)}>
-                                Acknowledge & Monitor
-                            </button>
-                            <button className="btn btn--outline" onClick={() => setShowEmergencyOverlay(false)}>
-                                Dismiss (False Alarm)
-                            </button>
-                        </div>
+        <section className="dash__row2 dash__updates">
+          <div className="dash-card dash-card--updates">
+            <h2 className="dash-card__title">Clinical Updates</h2>
+            <ul className="dash-updates-list">
+              {clinicalUpdates.map((u) => (
+                <li key={u.id} className={`dash-update dash-update--${u.priority}`}>
+                  <span className="dash-update__icon" aria-hidden>
+                    <ClinicalUpdateIcon type={u.type} className="dash-update__icon-svg" />
+                  </span>
+                  <div className="dash-update__body">
+                    <span className="dash-update__title">{u.title}</span>
+                    <span className="dash-update__patient">{u.patientName}</span>
+                    <p className="dash-update__desc">{u.description}</p>
+                    <div className="dash-update__meta">
+                      <span className="dash-update__time">{u.time}</span>
+                      <button
+                        type="button"
+                        className="dash-update__btn"
+                        onClick={() => navigate('/patients')}
+                      >
+                        Review
+                      </button>
                     </div>
-                </div>
-            )}
-        </div>
-    );
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+      </div>
+    </div>
+  );
 }
+
+export default Dashboard;
