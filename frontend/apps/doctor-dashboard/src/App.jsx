@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider } from './context/AuthContext';
 import AuthApiBridge from './components/Auth/AuthApiBridge';
@@ -14,6 +14,7 @@ import Surgery from './pages/Surgery/Surgery';
 import SurgeryPlanning from './pages/SurgeryPlanning/SurgeryPlanning';
 import Medications from './pages/Medications/Medications';
 import AdminUsers from './pages/Admin/AdminUsers';
+import AdminDashboard from './pages/Admin/AdminDashboard';
 import AdminAudit from './pages/Admin/AdminAudit';
 import AdminConfig from './pages/Admin/AdminConfig';
 import AdminAnalytics from './pages/Admin/AdminAnalytics';
@@ -61,6 +62,7 @@ function AppLayout() {
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             <Route path="/resources" element={<ProtectedRoute><Resources /></ProtectedRoute>} />
             <Route path="/admin/users" element={<ProtectedRoute requiredRoles={['admin']}><AdminUsers /></ProtectedRoute>} />
+            <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
             <Route path="/admin/audit" element={<ProtectedRoute requiredRoles={['admin']}><AdminAudit /></ProtectedRoute>} />
             <Route path="/admin/config" element={<ProtectedRoute requiredRoles={['admin']}><AdminConfig /></ProtectedRoute>} />
             <Route path="/admin/analytics" element={<ProtectedRoute requiredRoles={['admin']}><AdminAnalytics /></ProtectedRoute>} />
@@ -84,29 +86,37 @@ function App() {
         <ThemeProvider>
           <AuthApiBridge>
             <BrowserRouter>
-            <Routes>
-              <Route path="/login" element={<Login />} />
-              <Route path="/patient-portal" element={
-                <PatientPortalGuard>
-                  <PatientPortalLayout />
-                </PatientPortalGuard>
-              }>
-                <Route index element={<PatientPortalHome />} />
-                <Route path="summary" element={<PatientPortalSummary />} />
-                <Route path="medication-tracker" element={<PatientPortalMedications />} />
-                <Route path="appointments" element={<PatientPortalAppointments />} />
-                <Route path="history" element={<PatientPortalAppointments />} />
-                <Route path="medications" element={<PatientPortalMedications />} />
-              </Route>
-              <Route path="/*" element={
-                <DoctorModuleGuard>
-                  <ActivityProvider>
-                    <AppLayout />
-                  </ActivityProvider>
-                </DoctorModuleGuard>
-              } />
-            </Routes>
-          </BrowserRouter>
+              <Routes>
+                <Route path="/login" element={<Login />} />
+                {/* Admin Dashboard — standalone full-viewport layout (no sidebar/header) */}
+                <Route path="/admin/dashboard" element={
+                  <DoctorModuleGuard>
+                    <ProtectedRoute requiredRoles={['admin']}>
+                      <AdminDashboard />
+                    </ProtectedRoute>
+                  </DoctorModuleGuard>
+                } />
+                <Route path="/patient-portal" element={
+                  <PatientPortalGuard>
+                    <PatientPortalLayout />
+                  </PatientPortalGuard>
+                }>
+                  <Route index element={<PatientPortalHome />} />
+                  <Route path="summary" element={<PatientPortalSummary />} />
+                  <Route path="medication-tracker" element={<PatientPortalMedications />} />
+                  <Route path="appointments" element={<PatientPortalAppointments />} />
+                  <Route path="history" element={<PatientPortalAppointments />} />
+                  <Route path="medications" element={<PatientPortalMedications />} />
+                </Route>
+                <Route path="/*" element={
+                  <DoctorModuleGuard>
+                    <ActivityProvider>
+                      <AppLayout />
+                    </ActivityProvider>
+                  </DoctorModuleGuard>
+                } />
+              </Routes>
+            </BrowserRouter>
           </AuthApiBridge>
         </ThemeProvider>
       </AuthProvider>
