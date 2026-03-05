@@ -5,25 +5,25 @@ import '../Settings/AdminShared.css';
 
 const mockResources = {
   ots: [
-    { id: 'OT-1', name: 'OT Room 1 (Main)', status: 'in-use', nextFree: '2026-03-05 14:00', lastUpdated: '2026-03-02T10:15:00Z' },
-    { id: 'OT-2', name: 'OT Room 2 (Minor)', status: 'available', nextFree: null, lastUpdated: '2026-03-02T10:10:00Z' },
-    { id: 'OT-3', name: 'Cardiac OT', status: 'maintenance', nextFree: '2026-03-06 08:00', lastUpdated: '2026-03-02T09:00:00Z' },
+    { id: 'OT-1', name: 'OT Room 1 (Main)', status: 'in-use', nextFree: '2026-03-05 14:00' },
+    { id: 'OT-2', name: 'OT Room 2 (Minor)', status: 'available', nextFree: null },
+    { id: 'OT-3', name: 'Cardiac OT', status: 'maintenance', nextFree: '2026-03-06 08:00' },
   ],
   equipment: [
-    { id: 'EQ-1', name: 'C-Arm Fluoroscopy', status: 'in-use', location: 'OT-1', lastUpdated: '2026-03-02T10:00:00Z' },
-    { id: 'EQ-2', name: 'Surgical Robot (Da Vinci)', status: 'available', location: 'OT-2', lastUpdated: '2026-03-02T09:45:00Z' },
-    { id: 'EQ-3', name: 'Laser Lithotripsy', status: 'available', location: '—', lastUpdated: '2026-03-02T08:30:00Z' },
+    { id: 'EQ-1', name: 'C-Arm Fluoroscopy', status: 'in-use', location: 'OT-1' },
+    { id: 'EQ-2', name: 'Surgical Robot (Da Vinci)', status: 'available', location: 'OT-2' },
+    { id: 'EQ-3', name: 'Laser Lithotripsy', status: 'available', location: '—' },
   ],
-  specialists: [
-    { id: 'DR-1', name: 'Dr. Vikram Patel', specialty: 'Orthopedics', status: 'available', lastUpdated: '2026-03-02T10:00:00Z' },
-    { id: 'DR-2', name: 'Dr. Meena Rao', specialty: 'Cardiology', status: 'busy', lastUpdated: '2026-03-02T09:55:00Z' },
-    { id: 'DR-3', name: 'Dr. Priya Sharma', specialty: 'General', status: 'available', lastUpdated: '2026-03-02T10:05:00Z' },
-    { id: 'DR-4', name: 'Dr. Suresh Reddy', specialty: 'General Surgery', status: 'on-call', lastUpdated: '2026-03-02T08:00:00Z' },
-  ],
+  staff: [
+    { id: 'D101', name: 'Dr. Priya Sharma', specialty: 'Cardiology', status: 'available' },
+    { id: 'D102', name: 'Dr. Vikram Patel', specialty: 'Orthopedics', status: 'busy' },
+    { id: 'D103', name: 'Dr. Rajesh Verma', specialty: 'General Surgery', status: 'on-call' },
+    { id: 'D104', name: 'Dr. Anjali Rao', specialty: 'Neurology', status: 'available' },
+  ]
 };
 
 export default function AdminResources() {
-  const [data, setData] = useState(isMockMode() ? mockResources : { ots: [], equipment: [], specialists: [] });
+  const [data, setData] = useState(isMockMode() ? mockResources : { ots: [], equipment: [], staff: [] });
   const [loading, setLoading] = useState(!isMockMode());
   const [error, setError] = useState(null);
 
@@ -37,7 +37,7 @@ export default function AdminResources() {
         setData({
           ots: d?.ots ?? d?.operation_theaters ?? [],
           equipment: d?.equipment ?? d?.equipments ?? [],
-          specialists: d?.specialists ?? d?.doctors ?? [],
+          staff: d?.staff ?? d?.doctors ?? [],
         });
       })
       .catch((err) => {
@@ -56,20 +56,12 @@ export default function AdminResources() {
 
   const ots = data?.ots || [];
   const equipment = data?.equipment || [];
-  const specialists = data?.specialists || [];
-
-  const formatTimestamp = (ts) => {
-    if (!ts) return '—';
-    try {
-      const d = new Date(ts);
-      return d.toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' });
-    } catch { return ts; }
-  };
+  const staff = data?.staff || [];
 
   return (
     <div className="admin-page page-enter">
       <h1 className="admin-page__title">🛠️ Resources</h1>
-      <p className="admin-page__desc">Real-time OT and equipment availability (status with timestamps). Resolve conflicts from Analytics.</p>
+      <p className="admin-page__desc">OT and equipment availability. Resolve conflicts from Analytics.</p>
       <div className="admin-cards">
         <div className="admin-card">
           <h2 className="admin-card__title">Operation Theaters</h2>
@@ -79,33 +71,20 @@ export default function AdminResources() {
                 <span>{r.name || r.id}</span>
                 <span className={`admin-badge admin-badge--${(r.status || 'available').replace('-', '')}`}>{r.status || 'available'}</span>
                 {r.nextFree && <span className="admin-muted" style={{ fontSize: 'var(--text-xs)' }}>Free: {r.nextFree}</span>}
-                {r.lastUpdated && <span className="admin-muted" style={{ fontSize: 'var(--text-xs)', display: 'block' }}>Updated: {formatTimestamp(r.lastUpdated)}</span>}
               </li>
             ))}
           </ul>
         </div>
         <div className="admin-card">
-          <h2 className="admin-card__title">Equipment</h2>
+          <h2 className="admin-card__title">Specialist Staff</h2>
           <ul className="admin-list">
-            {equipment.map((r) => (
-              <li key={r.id} className="admin-list__row">
-                <span>{r.name || r.id}</span>
-                <span className={`admin-badge admin-badge--${(r.status || 'available').replace('-', '')}`}>{r.status || 'available'}</span>
-                {r.location && <span className="admin-muted">@{r.location}</span>}
-                {r.lastUpdated && <span className="admin-muted" style={{ fontSize: 'var(--text-xs)', display: 'block' }}>Updated: {formatTimestamp(r.lastUpdated)}</span>}
-              </li>
-            ))}
-          </ul>
-        </div>
-        <div className="admin-card">
-          <h2 className="admin-card__title">Available doctors & specialists</h2>
-          <ul className="admin-list">
-            {specialists.map((r) => (
-              <li key={r.id} className="admin-list__row">
-                <span>{r.name || r.id}</span>
-                <span className="admin-muted">{r.specialty || '—'}</span>
-                <span className={`admin-badge admin-badge--${(r.status || 'available').replace('-', '')}`}>{r.status || 'available'}</span>
-                {r.lastUpdated && <span className="admin-muted" style={{ fontSize: 'var(--text-xs)' }}>{formatTimestamp(r.lastUpdated)}</span>}
+            {staff.map((s) => (
+              <li key={s.id} className="admin-list__row">
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <span>{s.name}</span>
+                  <span className="admin-muted" style={{ fontSize: 'var(--text-xs)' }}>{s.specialty}</span>
+                </div>
+                <span className={`admin-badge admin-badge--${(s.status || 'available').replace('-', '')}`}>{s.status || 'available'}</span>
               </li>
             ))}
           </ul>

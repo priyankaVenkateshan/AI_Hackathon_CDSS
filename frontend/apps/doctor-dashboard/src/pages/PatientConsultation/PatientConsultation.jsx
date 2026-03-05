@@ -215,33 +215,35 @@ export default function PatientConsultation() {
                 <div className="patient-details">
                     {/* Patient Header */}
                     <div className="patient-header animate-in">
-                        <div className={`patient-header__avatar patient-header__avatar--${patientResolved.gender.toLowerCase()}`}>
-                            {getInitials(patientResolved.name)}
-                        </div>
-                        <div className="patient-header__info">
-                            <div className="patient-header__name">{patientResolved.name}</div>
-                            <div className="patient-header__meta">
-                                <span className="patient-header__meta-item patient-header__meta-item--id" title="Unique identifier for all medical interactions">🆔 Patient ID: {patientResolved.id}</span>
-                                <span className="patient-header__meta-item">🎂 {patientResolved.age} years</span>
-                                <span className="patient-header__meta-item">🩸 {patientResolved.bloodGroup}</span>
-                                <span className="patient-header__meta-item">🏥 {patientResolved.ward}</span>
+                        <div className="patient-header__row">
+                            <div className={`patient-header__avatar patient-header__avatar--${patientResolved.gender.toLowerCase()}`}>
+                                {getInitials(patientResolved.name)}
                             </div>
-                            <div className="patient-header__key-indicators">
-                                <span className="patient-header__ki">Allergies: None documented</span>
-                                <span className="patient-header__ki">Conditions: {(patientResolved.conditions || []).length}</span>
-                                <span className="patient-header__ki">Medications: {history.reduce((n, c) => n + (c.prescriptions || []).length, 0)}</span>
-                            </div>
-                            <div className="patient-header__risk-meter">
-                                <span className="patient-header__risk-label">Risk</span>
-                                <div className="patient-header__risk-bar">
-                                    <div className="patient-header__risk-fill" style={{ width: `${clinicalRiskScore * 10}%` }} />
+                            <div className="patient-header__info">
+                                <div className="patient-header__name">{patientResolved.name}</div>
+                                <div className="patient-header__meta">
+                                    <span className="patient-header__meta-item patient-header__meta-item--id" title="Unique identifier for all medical interactions">🆔 Patient ID: {patientResolved.id}</span>
+                                    <span className="patient-header__meta-item">🎂 {patientResolved.age} years</span>
+                                    <span className="patient-header__meta-item">🩸 {patientResolved.bloodGroup}</span>
+                                    <span className="patient-header__meta-item">🏥 {patientResolved.ward}</span>
                                 </div>
-                                <span className="patient-header__risk-value">{clinicalRiskScore}/10</span>
-                            </div>
-                            <div className="patient-header__conditions">
-                                {(patientResolved.conditions || []).map((cond, i) => (
-                                    <span key={i} className="condition-tag">{cond}</span>
-                                ))}
+                                <div className="patient-header__key-indicators">
+                                    <span className="patient-header__ki">Allergies: None documented</span>
+                                    <span className="patient-header__ki">Conditions: {(patientResolved.conditions || []).length}</span>
+                                    <span className="patient-header__ki">Medications: {history.reduce((n, c) => n + (c.prescriptions || []).length, 0)}</span>
+                                </div>
+                                <div className="patient-header__risk-meter">
+                                    <span className="patient-header__risk-label">Risk</span>
+                                    <div className="patient-header__risk-bar">
+                                        <div className="patient-header__risk-fill" style={{ width: `${clinicalRiskScore * 10}%` }} />
+                                    </div>
+                                    <span className="patient-header__risk-value">{clinicalRiskScore}/10</span>
+                                </div>
+                                <div className="patient-header__conditions">
+                                    {(patientResolved.conditions || []).map((cond, i) => (
+                                        <span key={i} className="condition-tag">{cond}</span>
+                                    ))}
+                                </div>
                             </div>
                         </div>
                         <div className="patient-header__actions">
