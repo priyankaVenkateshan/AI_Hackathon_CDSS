@@ -14,6 +14,7 @@ const pathLabels = {
   '/reports': 'Reports',
   '/profile': 'Profile',
   '/admin/users': 'Users',
+  '/admin/dashboard': 'Admin Dashboard',
   '/admin/audit': 'Audit Log',
   '/admin/config': 'System Config',
   '/admin/analytics': 'Analytics',
