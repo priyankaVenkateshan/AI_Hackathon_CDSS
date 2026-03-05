@@ -26,28 +26,19 @@ export default function Login() {
         setError('');
         setIsSubmitting(true);
 
-<<<<<<< HEAD
-        const result = await login(email, password);
-        if (result.success) {
-            const role = result.user?.role;
-            const isPatient = role === 'patient';
-            const targetPath = isPatient ? '/patient-portal' : (from || '/');
-            navigate(targetPath, { replace: true });
-        } else {
-            setError(result.message || 'Login failed');
-=======
         try {
             const result = await login(email, password);
             if (result.success) {
-                navigate(from, { replace: true });
+                const role = result.user?.role;
+                const targetPath = role === 'patient' ? '/patient-portal' : (from || '/');
+                navigate(targetPath, { replace: true });
             } else {
                 setError(result.message || 'Login failed. Please check your credentials.');
             }
-        } catch (err) {
+        } catch (_) {
             setError('Connection error. Please try again.');
         } finally {
             setIsSubmitting(false);
->>>>>>> 69dbc2b (feat: Phase 3 - Specialist Replacement, Multilingual Support, Emergency Response, Patient Portal)
         }
     };
 
@@ -147,18 +138,10 @@ export default function Login() {
                     </button>
                 </form>
 
-<<<<<<< HEAD
-                <div className="login-footer">
-                    <p>Secured by Hospital KMS & Biometric Auth</p>
-                    <div className="demo-hint">
-                        <small>Demo: Staff priya@cdss.ai / Admin admin@cdss.ai — Patient rajesh@patient.demo (pwd: ***REDACTED***)</small>
-                    </div>
-=======
                 {/* Footer Section */}
                 <div className="login-footer-exact">
                     <p className="assistance-text">Need assistance? <a href="#">Contact IT Support</a></p>
                     <p className="copyright-text">© 2024 CDSS Platform. All rights reserved.</p>
->>>>>>> 69dbc2b (feat: Phase 3 - Specialist Replacement, Multilingual Support, Emergency Response, Patient Portal)
                 </div>
             </div>
         </div>
