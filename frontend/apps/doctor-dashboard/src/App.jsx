@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider } from './context/AuthContext';
 import AuthApiBridge from './components/Auth/AuthApiBridge';
@@ -13,12 +13,12 @@ import Surgery from './pages/Surgery/Surgery';
 import SurgeryPlanning from './pages/SurgeryPlanning/SurgeryPlanning';
 import Medications from './pages/Medications/Medications';
 import AdminUsers from './pages/Admin/AdminUsers';
+import AdminDashboard from './pages/Admin/AdminDashboard';
 import AdminAudit from './pages/Admin/AdminAudit';
 import AdminConfig from './pages/Admin/AdminConfig';
 import AdminAnalytics from './pages/Admin/AdminAnalytics';
 import AdminResources from './pages/Admin/AdminResources';
 import PatientPortal from './pages/PatientModule/PatientPortal';
-import { useAuth, roles } from './context/AuthContext';
 import Settings from './pages/Settings/Settings';
 import Login from './pages/Login/Login';
 import './App.css';
@@ -47,6 +47,8 @@ function AppLayout() {
             } />
             <Route path="/patient-home" element={<ProtectedRoute requiredRoles={['patient']}><PatientPortal /></ProtectedRoute>} />
             <Route path="/medications" element={<ProtectedRoute><Medications /></ProtectedRoute>} />
+            <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+            <Route path="/admin/dashboard" element={<ProtectedRoute requiredRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
             <Route path="/admin/users" element={<ProtectedRoute requiredRoles={['admin']}><AdminUsers /></ProtectedRoute>} />
             <Route path="/admin/audit" element={<ProtectedRoute requiredRoles={['admin']}><AdminAudit /></ProtectedRoute>} />
             <Route path="/admin/config" element={<ProtectedRoute requiredRoles={['admin']}><AdminConfig /></ProtectedRoute>} />
