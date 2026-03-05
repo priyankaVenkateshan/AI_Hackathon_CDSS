@@ -13,6 +13,7 @@ const navItems = [
     { path: '/reports', icon: '📊', label: 'Reports', tooltip: 'Reports' },
     { path: '/profile', icon: '👤', label: 'Profile', tooltip: 'Profile' },
     { section: 'System', roles: [roles.ADMIN] },
+    { path: '/admin/dashboard', icon: '📊', label: 'Admin Dashboard', tooltip: 'Admin overview', roles: [roles.ADMIN] },
     { path: '/admin/users', icon: '👥', label: 'Users', tooltip: 'Users & roles', roles: [roles.ADMIN] },
     { path: '/admin/audit', icon: '📋', label: 'Audit Log', tooltip: 'Audit log', roles: [roles.ADMIN] },
     { path: '/admin/config', icon: '🔧', label: 'System Config', tooltip: 'Config', roles: [roles.ADMIN] },
