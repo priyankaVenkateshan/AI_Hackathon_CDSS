@@ -19,6 +19,7 @@ const navItems = [
     { path: '/admin/analytics', icon: '📊', label: 'Analytics', tooltip: 'Analytics', roles: [roles.ADMIN] },
     { path: '/admin/resources', icon: '🛠️', label: 'Admin Resources', tooltip: 'OT & equipment', roles: [roles.ADMIN] },
     { path: '/settings', icon: '⚙️', label: 'Settings', tooltip: 'Settings', roles: [roles.ADMIN] },
+    ...(import.meta.env.DEV ? [{ path: '/debug', icon: '🔧', label: 'Debug', tooltip: 'Dev debug panel', section: null }] : []),
 ];
 
 export default function Sidebar() {

@@ -39,6 +39,20 @@ resource "aws_cognito_user_pool_client" "staff_app" {
     "ALLOW_USER_SRP_AUTH"
   ]
 
+  callback_urls = compact([
+    "http://localhost:3000/",
+    "http://localhost:3001/",
+    var.staff_app_domain != "" ? "https://${var.staff_app_domain}/" : "",
+    var.patient_portal_domain != "" ? "https://${var.patient_portal_domain}/" : "",
+  ])
+
+  logout_urls = compact([
+    "http://localhost:3000/",
+    "http://localhost:3001/",
+    var.staff_app_domain != "" ? "https://${var.staff_app_domain}/" : "",
+    var.patient_portal_domain != "" ? "https://${var.patient_portal_domain}/" : "",
+  ])
+
   prevent_user_existence_errors = "ENABLED"
 }
 
@@ -52,13 +66,27 @@ resource "aws_cognito_user_pool_client" "patient_portal" {
     "ALLOW_USER_SRP_AUTH"
   ]
 
+  callback_urls = compact([
+    "http://localhost:3000/",
+    "http://localhost:3001/",
+    var.staff_app_domain != "" ? "https://${var.staff_app_domain}/" : "",
+    var.patient_portal_domain != "" ? "https://${var.patient_portal_domain}/" : "",
+  ])
+
+  logout_urls = compact([
+    "http://localhost:3000/",
+    "http://localhost:3001/",
+    var.staff_app_domain != "" ? "https://${var.staff_app_domain}/" : "",
+    var.patient_portal_domain != "" ? "https://${var.patient_portal_domain}/" : "",
+  ])
+
   prevent_user_existence_errors = "ENABLED"
 }
 
 # API Gateway Authorizer
 resource "aws_api_gateway_authorizer" "cognito" {
-  name            = "${local.name_prefix}-cognito-authorizer"
-  rest_api_id     = aws_api_gateway_rest_api.main.id
-  type            = "COGNITO_USER_POOLS"
-  provider_arns   = [aws_cognito_user_pool.main.arn]
+  name          = "${local.name_prefix}-cognito-authorizer"
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  type          = "COGNITO_USER_POOLS"
+  provider_arns = [aws_cognito_user_pool.main.arn]
 }

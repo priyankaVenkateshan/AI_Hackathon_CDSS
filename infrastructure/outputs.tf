@@ -109,3 +109,9 @@ output "s3_bucket_corpus" {
   description = "S3 bucket for knowledge corpus"
   value       = aws_s3_bucket.corpus.id
 }
+
+# AgentCore Gateway – Lambda ARN for setup_agentcore_gateway.py (docs/agentcore-gateway-manual-steps.md)
+output "gateway_get_hospitals_lambda_arn" {
+  description = "ARN of the Gateway tool Lambda (get_hospitals, get_ot_status, get_abdm_record stub)"
+  value       = aws_lambda_function.gateway_tools.arn
+}

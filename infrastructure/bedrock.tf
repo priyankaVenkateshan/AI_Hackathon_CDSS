@@ -49,3 +49,22 @@ resource "aws_iam_policy" "bedrock_invoke" {
     ]
   })
 }
+
+# AgentCore Runtime – per docs/agentcore-implementation-plan.md and docs/agentcore-next-steps-implementation.md
+resource "aws_iam_policy" "bedrock_agentcore_invoke" {
+  count = var.use_agentcore ? 1 : 0
+
+  name        = "${local.name_prefix}-bedrock-agentcore-invoke"
+  description = "Allow CDSS Lambda to invoke Bedrock AgentCore Runtime"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = ["bedrock-agentcore:InvokeAgentRuntime"]
+        Resource = var.agent_runtime_arn != "" ? ["${var.agent_runtime_arn}*"] : ["*"]
+      }
+    ]
+  })
+}

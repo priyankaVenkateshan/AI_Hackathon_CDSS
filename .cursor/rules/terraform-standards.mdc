@@ -25,4 +25,4 @@ alwaysApply: false
 
 ## Observability
 - Always enable detailed logs for API Gateway, ALB, and Lambda where they are part of clinical flows.
-- Route logs to centralized, encrypted destinations (CloudWatch Logs, S3) with lifecycle rules that satisfy hospital and regulatory retention requirements.*** End Patch```}"/>
+- Route logs to centralized, encrypted destinations (CloudWatch Logs, S3) with lifecycle rules that satisfy hospital and regulatory retention requirements.

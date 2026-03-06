@@ -8,5 +8,3 @@ tfplan
 !terraform.tfvars.example
 secrets.env
 lambda_health.zip
-triage_lambda.zip
-triage_lambda_src/

@@ -59,6 +59,9 @@ htmlcov/
 *.tfplan
 terraform.tfvars
 **/lambda.zip
+gateway_config.json
+**/gateway_tools.zip
+infrastructure/websocket_authorizer_lambda.zip
 
 # Old folder merged into infrastructure/
 infrastructure_/

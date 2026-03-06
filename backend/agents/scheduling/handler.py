@@ -15,6 +15,7 @@ from shared import (
     BedrockClient,
     SessionManager,
     EventPublisher,
+    AuditLogger,
     success_response,
     error_response,
     agent_response,
@@ -30,8 +31,9 @@ logger.setLevel(logging.INFO)
 bedrock = BedrockClient()
 session_manager = SessionManager()
 event_publisher = EventPublisher()
+audit_logger = AuditLogger(session_manager)
 
-# Define tools for the Scheduling Agent
+# Define tools for the Scheduling Agent (Phase 6: find_replacement + SNS notify)
 SCHEDULING_TOOLS = [
     {
         "name": "book_slot",
@@ -59,12 +61,54 @@ SCHEDULING_TOOLS = [
             },
             "required": ["doctor_id"]
         }
+    },
+    {
+        "name": "find_replacement",
+        "description": "Find replacement doctors for a surgery when the primary doctor is unavailable; optionally notify via escalation topic.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "doctor_id": {"type": "string", "description": "Unavailable doctor ID."},
+                "surgery_id": {"type": "string", "description": "Surgery requiring replacement."},
+                "date": {"type": "string", "description": "ISO date (YYYY-MM-DD)."},
+                "notify": {"type": "boolean", "description": "If true, publish replacement request to doctor escalations SNS."}
+            },
+            "required": ["doctor_id", "surgery_id"]
+        }
     }
 ]
+
+def _intent_to_scheduling_tool(action):
+    """Map Supervisor intent to Scheduling Agent tool name (Phase 6)."""
+    if not action:
+        return "get_doctor_schedule"
+    a = (action or "").strip().lower()
+    if a in ("find_replacement", "findreplacement"):
+        return "find_replacement"
+    if a in ("book_slot", "book_appointment"):
+        return "book_slot"
+    if a in ("get_doctor_schedule", "get_schedule"):
+        return "get_doctor_schedule"
+    if "replacement" in a:
+        return "find_replacement"
+    if "book" in a:
+        return "book_slot"
+    return "get_doctor_schedule"
+
 
 def handle_tool_call(tool_name, tool_input, session_id):
     """Execute scheduling-specific logic."""
     logger.info(f"Executing scheduling tool: {tool_name} with input: {tool_input}")
+    
+    # Log the action for DISHA compliance
+    audit_logger.log_action(
+        user_id="SYSTEM",
+        action=f"SCHEDULING_AGENT_{tool_name.upper()}",
+        resource_type="SCHEDULE",
+        resource_id=tool_input.get("doctor_id"),
+        details=tool_input,
+        session_id=session_id
+    )
     
     doctor_id = tool_input.get("doctor_id")
     
@@ -89,7 +133,38 @@ def handle_tool_call(tool_name, tool_input, session_id):
             {"time": "14:00", "patient": "Mohammed Farhan", "type": "Surgery Prep", "status": "In Progress"}
         ]
         return json.dumps(schedule)
-    
+
+    elif tool_name == "find_replacement":
+        doctor_id = tool_input.get("doctor_id", "UNKNOWN")
+        surgery_id = tool_input.get("surgery_id", "UNKNOWN")
+        slot_date = tool_input.get("date", "")
+        notify = tool_input.get("notify", True)
+        # Simulate replacement list (real implementation would query RDS staff by specialty)
+        replacements = [
+            {"id": "ST-1", "name": "Dr. Meera Singh", "specialty": "Cardiology", "status": "available"},
+            {"id": "ST-2", "name": "Dr. Arjun Nair", "specialty": "General Surgery", "status": "available"},
+        ]
+        if notify:
+            try:
+                import os
+                import boto3
+                topic_arn = os.environ.get("SNS_TOPIC_DOCTOR_ESCALATIONS_ARN")
+                if topic_arn:
+                    sns = boto3.client("sns")
+                    sns.publish(
+                        TopicArn=topic_arn,
+                        Subject="CDSS: Replacement requested",
+                        Message=f"Replacement requested for surgery {surgery_id}. Original doctor: {doctor_id}. Date: {slot_date}. Please assign from available staff."
+                    )
+            except Exception as e:
+                logger.warning("SNS publish for replacement failed: %s", e)
+        return json.dumps({
+            "replacements": replacements,
+            "surgery_id": surgery_id,
+            "notified": notify,
+            "message": "Replacement request sent to doctor escalations topic." if notify else "Replacement options listed."
+        })
+
     return f"Unknown scheduling action: {tool_name}"
 
 def lambda_handler(event, context):
@@ -100,11 +175,12 @@ def lambda_handler(event, context):
     session_id = detail.get("session_id", "SESS-INTERNAL")
     user_message = detail.get("message")
     
-    # Internal routing flow
+    # Internal routing flow: map Supervisor intent to tool name
     if detail.get("event_type") == "AgentActionRequested":
         action = detail.get("action")
         params = detail.get("params", {})
-        result = handle_tool_call(action if action.startswith("book") or action.startswith("get") else f"get_doctor_schedule", params, session_id)
+        tool_name = _intent_to_scheduling_tool(action)
+        result = handle_tool_call(tool_name, params, session_id)
         session_manager.add_message(session_id, "assistant", f"[Scheduling Agent Output]: {result}", agent=AGENT_NAMES["scheduling"])
         return success_response({"status": "processed", "result": result})
 

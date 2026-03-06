@@ -1,6 +1,8 @@
 """
 CDSS Resource Agent — Lambda Handler
 Manages hospital resources: OT rooms, equipment, and beds.
+Real availability and allocation are served by GET/POST /api/v1/resources (Aurora + MCP).
+This agent provides tool responses for Supervisor routing; for persistence use the API.
 """
 
 import json
@@ -15,6 +17,7 @@ from shared import (
     BedrockClient,
     SessionManager,
     EventPublisher,
+    AuditLogger,
     success_response,
     error_response,
     agent_response,
@@ -30,6 +33,7 @@ logger.setLevel(logging.INFO)
 bedrock = BedrockClient()
 session_manager = SessionManager()
 event_publisher = EventPublisher()
+audit_logger = AuditLogger(session_manager)
 
 # Define tools for the Resource Agent
 RESOURCE_TOOLS = [
@@ -61,9 +65,35 @@ RESOURCE_TOOLS = [
     }
 ]
 
+def _intent_to_resource_tool(action):
+    """Map Supervisor/API intents to Resource Agent tool names (Phase 5)."""
+    if not action:
+        return "check_resource_availability"
+    a = (action or "").strip().lower()
+    if a in ("check_availability", "check_resource_availability"):
+        return "check_resource_availability"
+    if a in ("allocate", "allocate_resource"):
+        return "allocate_resource"
+    if a.startswith("check"):
+        return "check_resource_availability"
+    if a.startswith("allocate"):
+        return "allocate_resource"
+    return "check_resource_availability"
+
+
 def handle_tool_call(tool_name, tool_input, session_id):
     """Execute resource-specific logic."""
     logger.info(f"Executing resource tool: {tool_name} with input: {tool_input}")
+    
+    # Log the action for DISHA compliance
+    audit_logger.log_action(
+        user_id="SYSTEM",
+        action=f"RESOURCE_AGENT_{tool_name.upper()}",
+        resource_type="RESOURCE",
+        resource_id=tool_input.get("resource_id", tool_input.get("resource_type")),
+        details=tool_input,
+        session_id=session_id
+    )
     
     resource_type = tool_input.get("resource_type")
     
@@ -101,11 +131,12 @@ def lambda_handler(event, context):
     session_id = detail.get("session_id", "SESS-INTERNAL")
     user_message = detail.get("message")
     
-    # Internal routing flow
+    # Internal routing flow: map Supervisor intent to tool name
     if detail.get("event_type") == "AgentActionRequested":
         action = detail.get("action")
         params = detail.get("params", {})
-        result = handle_tool_call(action if action.startswith("check") or action.startswith("allocate") else f"check_resource_availability", params, session_id)
+        tool_name = _intent_to_resource_tool(action)
+        result = handle_tool_call(tool_name, params, session_id)
         session_manager.add_message(session_id, "assistant", f"[Resource Agent Output]: {result}", agent=AGENT_NAMES["resource"])
         return success_response({"status": "processed", "result": result})
 

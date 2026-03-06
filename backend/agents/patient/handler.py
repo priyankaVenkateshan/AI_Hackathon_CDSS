@@ -15,6 +15,7 @@ from shared import (
     BedrockClient,
     SessionManager,
     EventPublisher,
+    AuditLogger,
     AIService,
     success_response,
     error_response,
@@ -31,6 +32,7 @@ logger.setLevel(logging.INFO)
 bedrock = BedrockClient()
 session_manager = SessionManager()
 event_publisher = EventPublisher()
+audit_logger = AuditLogger(session_manager)
 ai_service = AIService()
 
 # Define tools for the Patient Agent
@@ -85,7 +87,17 @@ def handle_tool_call(tool_name, tool_input, session_id):
     """Execute patient-specific logic by interacting with data stores."""
     logger.info(f"Executing patient tool: {tool_name} with input: {tool_input}")
     
-    patient_id = tool_input.get("patient_id")
+    patient_id = tool_input.get("patient_id", "P-UNKNOWN")
+    
+    # Log the action for DISHA compliance
+    audit_logger.log_action(
+        user_id="SYSTEM", # In worker mode, we might not have the doctor_id easily without passing it through
+        action=f"PATIENT_AGENT_{tool_name.upper()}",
+        resource_type="PATIENT",
+        resource_id=patient_id,
+        details=tool_input,
+        session_id=session_id
+    )
     
     if tool_name == "get_patient_summary":
         # Extract clinical entities from the history first
@@ -134,7 +146,8 @@ def lambda_handler(event, context):
     if detail.get("event_type") == "AgentActionRequested":
         action = detail.get("action")
         params = detail.get("params", {})
-        result = handle_tool_call(action if action.startswith("get") else f"get_{agent_name}_summary", params, session_id)
+        tool_name = action if (action and action.startswith("get")) else "get_patient_summary"
+        result = handle_tool_call(tool_name, params, session_id)
         
         # Update session history with the result
         session_manager.add_message(session_id, "assistant", f"[Patient Agent Output]: {result}", agent=AGENT_NAMES["patient"])

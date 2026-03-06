@@ -69,6 +69,10 @@ output "invoke_arn" {
   value = aws_lambda_function.this["api"].invoke_arn
 }
 
+output "worker_function_arn" {
+  value = aws_lambda_function.this["agent_worker"].arn
+}
+
 output "api_function_name" {
   value = aws_lambda_function.this["api"].function_name
 }
@@ -77,6 +81,18 @@ output "function_names" {
   value = [for f in aws_lambda_function.this : f.function_name]
 }
 
+output "function_names_map" {
+  value = { for k, f in aws_lambda_function.this : k => f.function_name }
+}
+
+output "function_arns_map" {
+  value = { for k, f in aws_lambda_function.this : k => f.arn }
+}
+
 output "role_arn" {
   value = aws_iam_role.lambda.arn
+}
+
+output "role_name" {
+  value = aws_iam_role.lambda.name
 }

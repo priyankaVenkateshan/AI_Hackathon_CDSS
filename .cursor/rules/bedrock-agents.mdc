@@ -25,7 +25,7 @@ Primary model: **Claude Sonnet** (or successor) with tool use and JSON output.
 ## Patterns for Clinical Safety
 
 - Encode safety policies in tools, not only in prompts:
-  - If model output confidence < 0.85 → escalate flags / require senior review (see `medical-triage.mdc` for schema patterns).
+  - If model output confidence < 0.85 → escalate flags or require senior review.
   - Never let model free‑text directly update EMR or hospital systems; always go through validated tools.
 - Use KB/RAG for:
   - National/international guidelines (surgery checklists, drug interactions)

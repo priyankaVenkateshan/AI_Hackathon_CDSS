@@ -104,20 +104,20 @@ The plan uses **two storage services** (RDS + S3). No DynamoDB in MVP.
 
 ### 1.5 Infrastructure Base (Terraform)
 
-CDSS infrastructure is based on the [emergency-medical-triage Terraform](https://github.com/Rvk18/emergency-medical-triage/tree/main/infrastructure) repo. Use it as the starting point and apply the adaptations below.
+The CDSS repository includes a self-contained Terraform stack under `infrastructure/`. Use this as the single source of truth for provisioning VPC, Aurora, S3, Bedrock IAM, API Gateway, Lambda, and Secrets Manager in `ap-south-1`.
 
-**What the triage repo provides (reuse as-is or with small edits):**
+**Key components:**
 
-| Component | In triage repo | Use for CDSS |
-|-----------|----------------|---------------|
-| **Terraform** | versions.tf (AWS ~5.x, archive, null), provider.tf | Same; set region to `ap-south-1` |
-| **VPC** | vpc.tf – VPC 10.0.0.0/16, 2 private subnets (a, b), Aurora subnet group, SG (5432 from VPC) | Keep; ensures RDS in private subnets |
-| **RDS** | rds.tf – Aurora PostgreSQL 15.10, Serverless v2 (0.5–1 ACU), encrypted, IAM auth, `triagedb` | Reuse; change `database_name` to `cdssdb` (or keep and add CDSS schema). Enable **pgvector** in DB after first apply |
-| **S3** | s3.tf – bucket with versioning, AES256, public access block | Keep; use for documents, transcripts, media, and frontend static assets |
-| **Bedrock** | bedrock.tf – IAM policy for InvokeModel, InvokeModelWithResponseStream, InvokeAgent | **Add** `ap-south-1` ARNs (CDSS is Mumbai); keep us-east-1 etc. if you use cross-region inference |
-| **API Gateway** | api_gateway.tf – REST API, /health, /triage, Lambda proxy | Extend: add routes for CDSS (e.g. /api/v1/* proxy to Supervisor Lambda); add **WebSocket API** for real-time surgical |
-| **Lambda** | lambda.tf (health), triage.tf (Python 3.12, Bedrock, 120s) | Replace triage with **Supervisor** Lambda; add Lambdas (or single router) for Patient, Surgery, Resource, Scheduling, Engagement agents. Attach **VPC config** (same subnets as RDS) so Lambda can reach Aurora |
-| **Secrets** | secrets.tf (referenced in outputs) | Reuse pattern for DB and Bedrock config; add Cognito app client secrets if needed |
+| Component | Purpose in CDSS |
+|-----------|-----------------|
+| **Terraform** | `versions.tf`, providers, and shared locals/variables for consistent naming and region (`ap-south-1`). |
+| **VPC** | `vpc.tf` – VPC 10.0.0.0/16, 2 private subnets (a, b), Aurora subnet group, security group for PostgreSQL. |
+| **RDS** | Aurora PostgreSQL 15.x, Serverless v2 (or provisioned), encrypted, IAM auth, `cdssdb` (or equivalent) with pgvector enabled. |
+| **S3** | Bucket with versioning, AES256, public access block; used for documents, transcripts, media, and frontend static assets. |
+| **Bedrock** | `bedrock.tf` – IAM policy for `InvokeModel`, `InvokeModelWithResponseStream`, and `InvokeAgent` including `ap-south-1` ARNs. |
+| **API Gateway** | `api_gateway.tf` – REST API (`/api/v1/*`, `/dashboard`, `/agent`) plus WebSocket API for real-time surgical features. |
+| **Lambda** | Router/Supervisor Lambda and helper Lambdas running in the VPC, wired to Aurora and Bedrock per CDSS design. |
+| **Secrets** | Secrets Manager entries for DB and Bedrock config; Cognito app client secrets where needed. |
 
 **Required adaptations for CDSS:**
 
@@ -125,9 +125,9 @@ CDSS infrastructure is based on the [emergency-medical-triage Terraform](https:/
 
 2. **Bedrock** – In `bedrock.tf`, add `ap-south-1` to the policy Resource ARNs (e.g. `arn:aws:bedrock:ap-south-1::foundation-model/*`, `arn:aws:bedrock:ap-south-1:*:inference-profile/*`) so Lambdas in ap-south-1 can invoke Claude.
 
-3. **Database** – Change Aurora `database_name` to `cdssdb` (or create a `cdss` schema in `triagedb`). After first apply, connect (bastion/IDE) and run `CREATE EXTENSION IF NOT EXISTS vector;` for pgvector.
+3. **Database** – Change Aurora `database_name` to `cdssdb`. After first apply, connect (bastion/IDE) and run `CREATE EXTENSION IF NOT EXISTS vector;` for pgvector.
 
-4. **Cognito** – Add **Cognito** User Pool and App Client(s) (Terraform); no equivalent in triage repo. Use for Staff and Patient app login and JWT (role, doctorId/patientId).
+4. **Cognito** – Add **Cognito** User Pool and App Client(s) (Terraform). Use for Staff and Patient app login and JWT (role, doctorId/patientId).
 
 5. **API Gateway** – Add REST resources for CDSS (e.g. `/api/v1`, proxy to Supervisor or router Lambda). Add **WebSocket API** (connect, disconnect, default route) and Lambda for connection management and surgical events.
 
@@ -137,7 +137,7 @@ CDSS infrastructure is based on the [emergency-medical-triage Terraform](https:/
 
 8. **Budget note** – Aurora Serverless v2 (min 0.5 ACU) has a higher baseline cost than a single db.t3.micro. If under $100/month is strict, add a variable (e.g. `db_engine_mode = "provisioned"` with `db.t3.micro` instance) and use a single RDS instance instead of Aurora Serverless v2; otherwise keep Aurora for scalability.
 
-**Suggested repo layout:** Clone or copy the triage `infrastructure/` folder into your CDSS repo (e.g. `infrastructure/` at repo root). Apply the changes above and add new files (e.g. `cognito.tf`, `api_gateway_websocket.tf`, `lambda_supervisor.tf`) so the plan's Phase 1 aligns with this Terraform.
+**Suggested repo layout:** Use the CDSS `infrastructure/` folder at repo root. Apply the changes above and add new files (e.g. `cognito.tf`, `api_gateway_websocket.tf`, `lambda_supervisor.tf`) so the plan's Phase 1 aligns with this Terraform.
 
 ---
 

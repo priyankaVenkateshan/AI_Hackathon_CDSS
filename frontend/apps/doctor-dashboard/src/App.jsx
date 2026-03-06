@@ -21,7 +21,19 @@ import AdminResources from './pages/Admin/AdminResources';
 import PatientPortal from './pages/PatientModule/PatientPortal';
 import Settings from './pages/Settings/Settings';
 import Login from './pages/Login/Login';
+import PatientPortalGuard from './components/Auth/PatientPortalGuard';
+import PatientPortalLayout from './components/PatientPortal/PatientPortalLayout';
+import PatientPortalHome from './pages/PatientPortal/PatientPortalHome';
+import PatientPortalSummary from './pages/PatientPortal/PatientPortalSummary';
+import PatientPortalMedications from './pages/PatientPortal/PatientPortalMedications';
+import PatientPortalAppointments from './pages/PatientPortal/PatientPortalAppointments';
+import PatientPortalHistory from './pages/PatientPortal/PatientPortalHistory';
+import Reports from './pages/Reports/Reports';
+import Profile from './pages/Profile/Profile';
+import Debug from './pages/Debug/Debug';
 import './App.css';
+
+const isDev = import.meta.env.DEV;
 
 function AppLayout() {
   return (
@@ -47,6 +59,8 @@ function AppLayout() {
             } />
             <Route path="/patient-home" element={<ProtectedRoute requiredRoles={['patient']}><PatientPortal /></ProtectedRoute>} />
             <Route path="/medications" element={<ProtectedRoute><Medications /></ProtectedRoute>} />
+            <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+            <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
             <Route path="/admin/dashboard" element={<ProtectedRoute requiredRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
             <Route path="/admin/users" element={<ProtectedRoute requiredRoles={['admin']}><AdminUsers /></ProtectedRoute>} />
@@ -59,6 +73,9 @@ function AppLayout() {
                 <Settings />
               </ProtectedRoute>
             } />
+            {isDev && (
+              <Route path="/debug" element={<ProtectedRoute><Debug /></ProtectedRoute>} />
+            )}
           </Routes>
         </main>
       </div>
@@ -67,6 +84,9 @@ function AppLayout() {
 }
 
 function App() {
+  // #region agent log
+  fetch('http://127.0.0.1:7803/ingest/454ee95e-546b-4257-becf-08e4fe56dd25',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'4da93a'},body:JSON.stringify({sessionId:'4da93a',location:'App:render',message:'App component rendering',data:{},timestamp:Date.now(),hypothesisId:'H5'})}).catch(()=>{});
+  // #endregion
   return (
     <AuthProvider>
       <ThemeProvider>
@@ -74,6 +94,13 @@ function App() {
           <BrowserRouter>
             <Routes>
               <Route path="/login" element={<Login />} />
+              <Route path="/patient-portal" element={<PatientPortalGuard><PatientPortalLayout /></PatientPortalGuard>}>
+                <Route index element={<PatientPortalHome />} />
+                <Route path="summary" element={<PatientPortalSummary />} />
+                <Route path="medication-tracker" element={<PatientPortalMedications />} />
+                <Route path="appointments" element={<PatientPortalAppointments />} />
+                <Route path="history" element={<PatientPortalHistory />} />
+              </Route>
               <Route path="/*" element={<AppLayout />} />
             </Routes>
           </BrowserRouter>

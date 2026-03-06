@@ -1,5 +1,6 @@
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
+import ConnectionStatus from '../ConnectionStatus/ConnectionStatus';
 import './Header.css';
 
 export default function Header() {
@@ -16,6 +17,7 @@ export default function Header() {
         </div>
       </div>
       <div className="header__right">
+        <ConnectionStatus />
         <button className="header__theme-btn" onClick={toggleTheme} title="Toggle theme">
           {theme === 'light' ? '🌙' : '☀️'}
         </button>

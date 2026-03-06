@@ -29,10 +29,22 @@ resource "aws_ssm_parameter" "abdm_integration_enabled" {
   }
 }
 
+# Admin config (mcpHospitalEndpoint, featureFlags, etc.). Lambda reads/writes via GET/PUT /api/v1/admin/config.
+resource "aws_ssm_parameter" "admin_config" {
+  name  = "/cdss/admin/config"
+  type  = "String"
+  value = "{\"mcpHospitalEndpoint\":\"\",\"mcpAbdmEndpoint\":\"\",\"featureFlags\":{\"aiAssist\":true,\"voiceInput\":false}}"
+
+  tags = {
+    Project = var.project_name
+  }
+}
+
 output "ssm_parameters" {
   value = {
-    transcriptions_enabled   = aws_ssm_parameter.transcriptions_enabled.name
+    transcriptions_enabled    = aws_ssm_parameter.transcriptions_enabled.name
     translation_enabled      = aws_ssm_parameter.translation_enabled.name
     abdm_integration_enabled = aws_ssm_parameter.abdm_integration_enabled.name
+    admin_config             = aws_ssm_parameter.admin_config.name
   }
 }
