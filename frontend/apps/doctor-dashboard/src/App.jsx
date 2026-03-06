@@ -1,8 +1,9 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider } from './context/AuthContext';
 import AuthApiBridge from './components/Auth/AuthApiBridge';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
+import ErrorBoundary from './components/ErrorBoundary/ErrorBoundary';
 import Sidebar from './components/Sidebar/Sidebar';
 import Header from './components/Header/Header';
 import Dashboard from './pages/Dashboard/Dashboard';
@@ -12,24 +13,29 @@ import AIChat from './pages/AIChat/AIChat';
 import Surgery from './pages/Surgery/Surgery';
 import SurgeryPlanning from './pages/SurgeryPlanning/SurgeryPlanning';
 import Medications from './pages/Medications/Medications';
+import Doctors from './pages/Doctors/Doctors';
+import Appointments from './pages/Appointments/Appointments';
 import AdminUsers from './pages/Admin/AdminUsers';
-import AdminDashboard from './pages/Admin/AdminDashboard';
 import AdminAudit from './pages/Admin/AdminAudit';
 import AdminConfig from './pages/Admin/AdminConfig';
 import AdminAnalytics from './pages/Admin/AdminAnalytics';
 import AdminResources from './pages/Admin/AdminResources';
-import PatientPortal from './pages/PatientModule/PatientPortal';
 import Settings from './pages/Settings/Settings';
-import Login from './pages/Login/Login';
-import PatientPortalGuard from './components/Auth/PatientPortalGuard';
-import PatientPortalLayout from './components/PatientPortal/PatientPortalLayout';
-import PatientPortalHome from './pages/PatientPortal/PatientPortalHome';
-import PatientPortalSummary from './pages/PatientPortal/PatientPortalSummary';
-import PatientPortalMedications from './pages/PatientPortal/PatientPortalMedications';
-import PatientPortalAppointments from './pages/PatientPortal/PatientPortalAppointments';
-import PatientPortalHistory from './pages/PatientPortal/PatientPortalHistory';
+import Resources from './pages/Resources/Resources';
 import Reports from './pages/Reports/Reports';
 import Profile from './pages/Profile/Profile';
+import Login from './pages/Login/Login';
+import DoctorModuleGuard from './components/Auth/DoctorModuleGuard';
+import PatientPortalGuard from './components/Auth/PatientPortalGuard';
+import { ActivityProvider } from './context/ActivityContext';
+import PatientPortalLayout from './components/PatientPortal/PatientPortalLayout';
+import PatientPortalHome from './pages/PatientPortal/PatientPortalHome';
+import PatientPortalHistory from './pages/PatientPortal/PatientPortalHistory';
+import PatientPortalMedications from './pages/PatientPortal/PatientPortalMedications';
+import PatientPortalSummary from './pages/PatientPortal/PatientPortalSummary';
+import PatientPortalAppointments from './pages/PatientPortal/PatientPortalAppointments';
+import Notifications from './pages/Notifications/Notifications';
+import MyActivity from './pages/MyActivity/MyActivity';
 import Debug from './pages/Debug/Debug';
 import './App.css';
 
@@ -44,25 +50,23 @@ function AppLayout() {
         <main className="app-main">
           <Routes>
             <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/activity" element={<ProtectedRoute><MyActivity /></ProtectedRoute>} />
+            <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
             <Route path="/patients" element={<ProtectedRoute><Patients /></ProtectedRoute>} />
+            <Route path="/doctors" element={<ProtectedRoute requiredRoles={['admin']}><Doctors /></ProtectedRoute>} />
+            <Route path="/appointments" element={<ProtectedRoute><Appointments /></ProtectedRoute>} />
             <Route path="/patient/:patientId" element={<ProtectedRoute><PatientConsultation /></ProtectedRoute>} />
             <Route path="/ai" element={<ProtectedRoute><AIChat /></ProtectedRoute>} />
-            <Route path="/surgery" element={
-              <ProtectedRoute requiredRoles={['surgeon', 'admin']}>
-                <Surgery />
-              </ProtectedRoute>
-            } />
+            <Route path="/surgery" element={<ProtectedRoute><Surgery /></ProtectedRoute>} />
             <Route path="/surgery-planning/:surgeryId" element={
               <ProtectedRoute requiredRoles={['surgeon', 'admin']}>
                 <SurgeryPlanning />
               </ProtectedRoute>
             } />
-            <Route path="/patient-home" element={<ProtectedRoute requiredRoles={['patient']}><PatientPortal /></ProtectedRoute>} />
             <Route path="/medications" element={<ProtectedRoute><Medications /></ProtectedRoute>} />
             <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-            <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
-            <Route path="/admin/dashboard" element={<ProtectedRoute requiredRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
+            <Route path="/resources" element={<ProtectedRoute><Resources /></ProtectedRoute>} />
             <Route path="/admin/users" element={<ProtectedRoute requiredRoles={['admin']}><AdminUsers /></ProtectedRoute>} />
             <Route path="/admin/audit" element={<ProtectedRoute requiredRoles={['admin']}><AdminAudit /></ProtectedRoute>} />
             <Route path="/admin/config" element={<ProtectedRoute requiredRoles={['admin']}><AdminConfig /></ProtectedRoute>} />
@@ -73,9 +77,7 @@ function AppLayout() {
                 <Settings />
               </ProtectedRoute>
             } />
-            {isDev && (
-              <Route path="/debug" element={<ProtectedRoute><Debug /></ProtectedRoute>} />
-            )}
+            {isDev && <Route path="/debug" element={<ProtectedRoute><Debug /></ProtectedRoute>} />}
           </Routes>
         </main>
       </div>
@@ -84,29 +86,39 @@ function AppLayout() {
 }
 
 function App() {
-  // #region agent log
-  fetch('http://127.0.0.1:7803/ingest/454ee95e-546b-4257-becf-08e4fe56dd25',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'4da93a'},body:JSON.stringify({sessionId:'4da93a',location:'App:render',message:'App component rendering',data:{},timestamp:Date.now(),hypothesisId:'H5'})}).catch(()=>{});
-  // #endregion
   return (
-    <AuthProvider>
-      <ThemeProvider>
-        <AuthApiBridge>
-          <BrowserRouter>
+    <ErrorBoundary>
+      <AuthProvider>
+        <ThemeProvider>
+          <AuthApiBridge>
+            <BrowserRouter>
             <Routes>
               <Route path="/login" element={<Login />} />
-              <Route path="/patient-portal" element={<PatientPortalGuard><PatientPortalLayout /></PatientPortalGuard>}>
+              <Route path="/patient-portal" element={
+                <PatientPortalGuard>
+                  <PatientPortalLayout />
+                </PatientPortalGuard>
+              }>
                 <Route index element={<PatientPortalHome />} />
                 <Route path="summary" element={<PatientPortalSummary />} />
                 <Route path="medication-tracker" element={<PatientPortalMedications />} />
                 <Route path="appointments" element={<PatientPortalAppointments />} />
-                <Route path="history" element={<PatientPortalHistory />} />
+                <Route path="history" element={<PatientPortalAppointments />} />
+                <Route path="medications" element={<PatientPortalMedications />} />
               </Route>
-              <Route path="/*" element={<AppLayout />} />
+              <Route path="/*" element={
+                <DoctorModuleGuard>
+                  <ActivityProvider>
+                    <AppLayout />
+                  </ActivityProvider>
+                </DoctorModuleGuard>
+              } />
             </Routes>
           </BrowserRouter>
-        </AuthApiBridge>
-      </ThemeProvider>
-    </AuthProvider>
+          </AuthApiBridge>
+        </ThemeProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
 
