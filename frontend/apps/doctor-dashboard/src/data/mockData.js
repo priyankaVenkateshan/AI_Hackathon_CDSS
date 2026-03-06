@@ -320,15 +320,7 @@ export const todaySchedule = [
   { time: '15:30', patient: 'Arjun Nair', type: 'Pre-op Check', status: 'upcoming' },
 ];
 
-/** For dashboard: task type, patient, priority, used for surgeons (pre-op clearance) and doctors */
-export const pendingClinicalTasks = [
-  { id: 't1', patientName: 'Rajesh Kumar', taskType: 'Lab review pending', priority: 'High' },
-  { id: 't2', patientName: 'Lakshmi Devi', taskType: 'Prescription approval pending', priority: 'High' },
-  { id: 't3', patientName: 'Mohammed Farhan', taskType: 'Discharge summary pending', priority: 'Medium' },
-  { id: 't4', patientName: 'Ananya Singh', taskType: 'Consultation follow-ups', priority: 'Low' },
-  { id: 't5', patientName: 'Arjun Nair', taskType: 'Pre-op clearance', priority: 'Medium', surgeonOnly: true },
-];
-
+/** For dashboard / AI: clinical alerts */
 export const aiAlerts = [
   {
     id: 'alert-1',
@@ -378,6 +370,13 @@ export const aiAlerts = [
     patient: '—',
     time: '2 hr ago',
   },
+];
+
+/** Clinical updates for dashboard: type, title, patient, description, time, priority */
+export const clinicalUpdates = [
+  { id: 'cu3', type: 'discharge_pending', title: 'Discharge Pending', patientName: 'Lakshmi Devi', description: 'Discharge summary and prescriptions pending sign-off.', time: '1 hr ago', priority: 'moderate' },
+  { id: 'cu4', type: 'upcoming_surgery', title: 'Upcoming Surgery', patientName: 'Arjun Nair', description: 'ACL reconstruction — Pre-op cleared. OT-3, March 5.', time: '30 min ago', priority: 'info' },
+  { id: 'cu5', type: 'follow_up_reminder', title: 'Follow-up Reminder', patientName: 'Ananya Singh', description: 'Routine follow-up due in 2 days. Diabetic care review.', time: '2 hr ago', priority: 'normal' },
 ];
 
 /** Clinical alerts only (no AI marketing / Global Risk Pulse) for dashboard */
