@@ -1,414 +1,279 @@
-/* ============================================
-   Task-first Doctor/Surgeon Dashboard
-   12-column grid, hospital-grade UI
-   ============================================ */
-
-.dash {
-  padding: 24px;
-  background: #ffffff;
-  min-height: calc(100vh - var(--header-height));
+/* Dashboard Redesign - Premium White Theme */
+.dashboard-redesign {
+  padding: 32px;
+  background: #fdfdfd;
+  min-height: calc(100vh - 64px);
+  font-family: 'Outfit', 'Inter', sans-serif;
 }
 
-.dash__grid {
-  display: grid;
-  grid-template-columns: repeat(12, 1fr);
-  gap: 24px;
+.dashboard__container {
   max-width: 1400px;
   margin: 0 auto;
 }
 
-/* ─── Cards ─── */
-.dash-card {
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-  padding: 24px;
-  height: 100%;
-  min-width: 0;
-}
-
-.dash-card__title {
-  font-size: 14px;
-  font-weight: 600;
-  color: #111827;
-  margin: 0 0 16px;
-  letter-spacing: 0.01em;
-}
-
-/* ─── Top section: 2-column responsive ─── */
-.dash__top {
-  grid-column: span 6;
-}
-
-.dash__top--left .dash-card {
-  min-height: 280px;
-}
-
-.dash__top--right .dash-card {
-  min-height: 280px;
-}
-
-/* Pending Clinical Tasks */
-.dash-tasks {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.dash-tasks__item {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 12px 0;
-  border-bottom: 1px solid #f3f4f6;
-}
-
-.dash-tasks__item:last-child {
-  border-bottom: none;
-}
-
-.dash-tasks__main {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-  min-width: 0;
-  flex: 1 1 200px;
-}
-
-.dash-tasks__patient {
-  font-weight: 600;
-  color: #111827;
-  font-size: 14px;
-}
-
-.dash-tasks__type {
-  font-size: 13px;
-  color: #6b7280;
-}
-
-.dash-tasks__priority {
-  font-size: 11px;
-  font-weight: 600;
-  padding: 4px 10px;
-  border-radius: 12px;
-  text-transform: uppercase;
-}
-
-.dash-tasks__priority--high {
-  background: #fef2f2;
-  color: #b91c1c;
-}
-
-.dash-tasks__priority--medium {
-  background: #fffbeb;
-  color: #b45309;
-}
-
-.dash-tasks__priority--low {
-  background: #ecfdf5;
-  color: #047857;
-}
-
-.dash-tasks__action {
-  flex-shrink: 0;
-  padding: 6px 14px;
-  border-radius: 8px;
-  font-size: 12px;
-  font-weight: 500;
-  background: #eff6ff;
-  color: #2563eb;
-  border: 1px solid #2563eb;
-  cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease;
-}
-
-.dash-tasks__action:hover {
-  background: #dbeafe;
-  border-color: #1d4ed8;
-}
-
-/* Today's Schedule */
-.dash-schedule {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.dash-schedule__item {
+/* Stat Cards Grid */
+.dashboard__stats-grid {
   display: grid;
-  grid-template-columns: 56px 1fr auto auto auto;
-  gap: 12px;
-  align-items: center;
-  padding: 10px 0;
-  border-bottom: 1px solid #f3f4f6;
-  font-size: 14px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+  margin-bottom: 32px;
 }
 
-.dash-schedule__item:last-child {
-  border-bottom: none;
-}
-
-.dash-schedule__item--consultation {
-  border-left: 3px solid #2563eb;
-  padding-left: 8px;
-  margin-left: -8px;
-}
-
-.dash-schedule__item--followup {
-  border-left: 3px solid #059669;
-  padding-left: 8px;
-  margin-left: -8px;
-}
-
-.dash-schedule__item--surgery {
-  border-left: 3px solid #dc2626;
-  padding-left: 8px;
-  margin-left: -8px;
-}
-
-.dash-schedule__time {
-  font-weight: 600;
-  color: #374151;
-  font-size: 13px;
-}
-
-.dash-schedule__patient {
-  color: #111827;
-}
-
-.dash-schedule__type,
-.dash-schedule__location {
-  color: #6b7280;
-  font-size: 12px;
-}
-
-.dash-schedule__btn {
-  flex-shrink: 0;
-  padding: 6px 12px;
-  border-radius: 8px;
-  font-size: 12px;
-  font-weight: 500;
-  background: #eff6ff;
-  color: #2563eb;
-  border: 1px solid #2563eb;
-  cursor: pointer;
-  transition: background 0.15s ease;
-}
-
-.dash-schedule__btn:hover {
-  background: #dbeafe;
-}
-
-/* ─── Row 2: Patient Overview Summary + Recent Alerts ─── */
-.dash__row2 {
-  grid-column: span 6;
-}
-
-.dash-card--summary {
-  min-width: 0;
-}
-
-.dash-summary__content {
-  min-width: 0;
-}
-
-.dash-summary__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  align-items: center;
-}
-
-.dash-summary__btn {
+.stat-card {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.02);
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  padding: 12px 16px;
-  border-radius: 10px;
-  border: 1px solid #e5e7eb;
-  background: #f9fafb;
-  cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease;
-  min-width: 0;
-  max-width: 100%;
-}
-
-.dash-summary__btn:hover {
-  background: #eff6ff;
-  border-color: #93c5fd;
-}
-
-.dash-summary__btn-name {
-  font-weight: 600;
-  color: #111827;
-  font-size: 14px;
-}
-
-.dash-summary__btn-meta {
-  font-size: 12px;
-  color: #6b7280;
-  margin-top: 4px;
-}
-
-/* Recent Alerts (clinical only) */
-.dash-alerts__note {
-  font-size: 11px;
-  color: #9ca3af;
-  margin: -8px 0 12px;
-}
-
-.dash-alerts-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.dash-alert {
-  padding: 12px 14px;
-  border-radius: 10px;
-  border: 1px solid;
-  font-size: 13px;
-}
-
-.dash-alert--critical {
-  background: #fef2f2;
-  border-color: #fecaca;
-  color: #991b1b;
-}
-
-.dash-alert--warning {
-  background: #fffbeb;
-  border-color: #fde68a;
-  color: #92400e;
-}
-
-.dash-alert--info {
-  background: #eff6ff;
-  border-color: #bfdbfe;
-  color: #1e40af;
-}
-
-.dash-alert--success {
-  background: #ecfdf5;
-  border-color: #a7f3d0;
-  color: #065f46;
-}
-
-.dash-alert__head {
-  display: flex;
   align-items: center;
+  /* Center horizontally */
+  text-align: center;
+  /* Center text */
   justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 4px;
+  min-height: 180px;
+  border: 1px solid #f0f0f0;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.dash-alert__title {
+.stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.05);
+}
+
+.stat-card__label {
+  font-size: 14px;
   font-weight: 600;
+  color: #718096;
+  margin-bottom: 8px;
+  display: block;
 }
 
-.dash-alert__time {
-  font-size: 11px;
-  opacity: 0.9;
+.stat-card__value {
+  font-size: 32px;
+  font-weight: 700;
+  color: #2d3748;
+  margin: 0;
 }
 
-.dash-alert__message {
-  margin: 0 0 8px;
+.stat-card__meta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* Center contents */
+  gap: 12px;
+  margin-top: 16px;
+  width: 100%;
+}
+
+.stat-card__trend {
   font-size: 12px;
-  line-height: 1.4;
-  opacity: 0.95;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.dash-alert__action {
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 500;
-  background: rgba(0, 0, 0, 0.06);
+.stat-card__trend.positive {
+  color: #667eea;
+}
+
+.stat-card__trend.negative {
+  color: #f56565;
+}
+
+.sparkline {
+  width: 100%;
+  max-width: 200px;
+  /* Keep sparklines readable */
+  height: 60px;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+/* Appointment Activity Card */
+.dashboard__activity {
+  margin-top: 40px;
+}
+
+.activity-card {
+  background: #ffffff;
+  border-radius: 24px;
+  padding: 32px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.02);
+  border: 1px solid #f0f0f0;
+}
+
+.activity-card__header {
+  display: flex;
+  flex-direction: column;
+  /* Stack to center easily */
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.activity-card__title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #2d3748;
+  margin: 0;
+  text-align: center;
+}
+
+.activity-card__controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: #f8f9fc;
+  padding: 8px 16px;
+  border-radius: 12px;
+}
+
+.date-nav-btn {
+  background: none;
   border: none;
   cursor: pointer;
+  color: #718096;
+  font-weight: bold;
 }
 
-.dash-alert__action:hover {
-  background: rgba(0, 0, 0, 0.1);
+.current-date {
+  font-size: 14px;
+  font-weight: 700;
+  color: #2d3748;
 }
 
-/* ─── Responsive: tablet and small ─── */
+/* Tasks List */
+.tasks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.task-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 24px;
+  background: #f8f9fc;
+  border-radius: 16px;
+  border: 1px solid transparent;
+  transition: all 0.2s;
+}
+
+.task-item:hover {
+  background: #ffffff;
+  border-color: #667eea;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.08);
+  transform: translateX(4px);
+}
+
+.task-item__main {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.task-badge {
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  min-width: 70px;
+  text-align: center;
+}
+
+.task-badge.high {
+  background: #fee2e2;
+  color: #ef4444;
+}
+
+.task-badge.medium {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.task-badge.low {
+  background: #dcfce7;
+  color: #10b981;
+}
+
+.task-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.task-type {
+  font-size: 15px;
+  font-weight: 600;
+  color: #2d3748;
+}
+
+.task-patient {
+  font-size: 13px;
+  color: #718096;
+}
+
+.task-action-btn {
+  padding: 8px 16px;
+  border-radius: 10px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  color: #667eea;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.task-action-btn:hover {
+  background: #667eea;
+  color: #ffffff;
+  border-color: #667eea;
+}
+
+/* Footer & Pagination */
+.activity-footer {
+  display: flex;
+  justify-content: center;
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #f4f7fe;
+}
+
+.footer-info {
+  font-size: 14px;
+  color: #a0aec0;
+}
+
+/* Responsive */
 @media (max-width: 1200px) {
-  .dash__top,
-  .dash__row2 {
-    grid-column: 1 / -1;
-  }
-
-  .dash-schedule__item {
-    grid-template-columns: 56px 1fr auto auto;
-  }
-
-  .dash-schedule__btn {
-    grid-column: 2 / -1;
-    justify-self: start;
+  .dashboard__stats-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
 @media (max-width: 768px) {
-  .dash {
+  .dashboard-redesign {
     padding: 16px;
   }
 
-  .dash__grid {
+  .dashboard__stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .task-item {
+    flex-direction: column;
+    align-items: flex-start;
     gap: 16px;
   }
 
-  .dash-card {
-    padding: 16px;
-  }
-
-  .dash-tasks__item {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .dash-tasks__action {
-    align-self: flex-start;
-  }
-
-  .dash-schedule__item {
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-  }
-
-  .dash-schedule__time {
-    grid-column: 1;
-  }
-
-  .dash-schedule__patient {
-    grid-column: 2;
-  }
-
-  .dash-schedule__type,
-  .dash-schedule__location {
-    grid-column: 1;
-    font-size: 11px;
-  }
-
-  .dash-schedule__btn {
-    grid-column: 2;
-    grid-row: 2;
-    justify-self: end;
-  }
-
-  .dash-summary__actions {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .dash-summary__btn {
-    max-width: none;
+  .task-action-btn {
+    width: 100%;
   }
 }

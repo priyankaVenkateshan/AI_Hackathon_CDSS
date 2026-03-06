@@ -46,6 +46,22 @@ function SummaryCard({ label, value, updated }) {
   );
 }
 
+function OperationalAlert({ title, detail, type, time, action }) {
+  return (
+    <div className={`cw-alert cw-alert--${type.toLowerCase()}`}>
+      <div className="cw-alert__head">
+        <span className="cw-alert__title">{title}</span>
+        <span className="cw-alert__type">{type}</span>
+      </div>
+      <p className="cw-alert__detail">{detail}</p>
+      <div className="cw-alert__foot">
+        <span className="cw-alert__time">{time}</span>
+        <button type="button" className="cw-btn cw-btn--sm">{action}</button>
+      </div>
+    </div>
+  );
+}
+
 export default function Medications() {
   const navigate = useNavigate();
   const [sortBy, setSortBy] = useState('priority'); // priority | name
@@ -144,17 +160,14 @@ export default function Medications() {
             <h2 className="cw-card__title">Operational Alert Center</h2>
             <div className="cw-alerts-list">
               {OPERATIONAL_ALERTS.map((a) => (
-                <div key={a.id} className={`cw-alert cw-alert--${a.type.toLowerCase()}`}>
-                  <div className="cw-alert__head">
-                    <span className="cw-alert__title">{a.title}</span>
-                    <span className="cw-alert__type">{a.type}</span>
-                  </div>
-                  <p className="cw-alert__detail">{a.detail}</p>
-                  <div className="cw-alert__foot">
-                    <span className="cw-alert__time">{a.time}</span>
-                    <button type="button" className="cw-btn cw-btn--sm">{a.action}</button>
-                  </div>
-                </div>
+                <OperationalAlert
+                  key={a.id}
+                  title={a.title}
+                  detail={a.detail}
+                  type={a.type}
+                  time={a.time}
+                  action={a.action}
+                />
               ))}
             </div>
           </div>

@@ -29,7 +29,11 @@ function Breadcrumbs() {
   if (pathnames.length === 0) {
     return (
       <nav className="header__breadcrumbs" aria-label="Breadcrumb">
+        <span className="header__breadcrumb-item">Doctor Portal</span>
+        <span className="header__breadcrumb-sep"> / </span>
         <span className="header__breadcrumb-item">Dashboard</span>
+        <span className="header__breadcrumb-sep"> / </span>
+        <span className="header__breadcrumb-item">My Activity</span>
       </nav>
     );
   }
@@ -44,6 +48,8 @@ function Breadcrumbs() {
   }
   return (
     <nav className="header__breadcrumbs" aria-label="Breadcrumb">
+      <span className="header__breadcrumb-item">Doctor Portal</span>
+      <span className="header__breadcrumb-sep"> / </span>
       <span className="header__breadcrumb-item">Dashboard</span>
       {segments.map((s) => (
         <span key={s.path}>
@@ -66,9 +72,9 @@ export default function Header() {
   return (
     <header className="header header--ops">
       <div className="header__inner">
-        {/* Left: Doctor Portal + Breadcrumb */}
+        {/* Left: CDSS title + breadcrumb */}
         <div className="header__left">
-          <span className="header__portal-label">Doctor Portal</span>
+          <h1 className="header__title">CDSS — Clinical Decision Support</h1>
           <Breadcrumbs />
         </div>
 

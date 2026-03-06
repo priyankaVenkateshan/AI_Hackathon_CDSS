@@ -33,44 +33,53 @@ export default function Login() {
 
     return (
         <div className="login-container">
-            <div className="login-card animate-in">
-                <div className="login-logo">
-                    <div className="logo-icon">C</div>
-                    <h1>CDSS Platform</h1>
-                    <p>Clinical Decision Support System</p>
+            <div className="login-card-section animate-in">
+                <div className="login-header">
+                    <h1>Clinical Decision Support System</h1>
+                    <p>Secure Medical Dashboard Access</p>
                 </div>
 
-                <form onSubmit={handleSubmit} className="login-form">
-                    <div className="form-group">
-                        <label>Clinical Email</label>
-                        <input
-                            type="email"
-                            placeholder="name@hospital.ai"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            required
-                        />
-                    </div>
-                    <div className="form-group">
-                        <label>Credential Key</label>
-                        <input
-                            type="password"
-                            placeholder="••••••••"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            required
-                        />
-                    </div>
+                <div className="login-card">
+                    <form onSubmit={handleSubmit} className="login-form">
+                        <div className="form-group">
+                            <label htmlFor="email">User ID</label>
+                            <input
+                                id="email"
+                                type="email"
+                                placeholder="Enter your user ID"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                required
+                            />
+                        </div>
+                        <div className="form-group">
+                            <label htmlFor="password">Password</label>
+                            <input
+                                id="password"
+                                type="password"
+                                placeholder="Enter password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                required
+                            />
+                        </div>
 
-                    {error && <div className="login-error">⚠️ {error}</div>}
+                        <a href="/forgot-password" className="forgot-password">
+                            Forgot Password?
+                        </a>
 
-                    <button type="submit" className="login-btn" disabled={isSubmitting}>
-                        {isSubmitting ? 'Verifying...' : 'Access Dashboard'}
-                    </button>
-                </form>
+                        {error && <div className="login-error">⚠️ {error}</div>}
+
+                        <button type="submit" className="login-btn" disabled={isSubmitting}>
+                            {isSubmitting ? 'Authenticating...' : 'Login to Dashboard'}
+                        </button>
+                    </form>
+                </div>
 
                 <div className="login-footer">
-                    <p>Secured by Hospital KMS & Biometric Auth</p>
+                    <h3>CDSS Platform © 2026</h3>
+                    <p>AI Assisted Clinical Decision Support System</p>
+
                     <div className="demo-hint">
                         <small>Demo: Staff priya@cdss.ai / Admin admin@cdss.ai — Patient rajesh@patient.demo (pwd: password123)</small>
                     </div>
