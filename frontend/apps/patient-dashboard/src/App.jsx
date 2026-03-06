@@ -28,9 +28,7 @@ function AppLayout() {
             <Route path="/medications" element={<ProtectedRoute requiredRoles={[roles.PATIENT]}><MyMedications /></ProtectedRoute>} />
             <Route path="/records" element={<ProtectedRoute requiredRoles={[roles.PATIENT]}><MyRecords /></ProtectedRoute>} />
             <Route path="/contact" element={<ProtectedRoute requiredRoles={[roles.PATIENT]}><Contact /></ProtectedRoute>} />
-            {isDev && (
-              <Route path="/debug" element={<ProtectedRoute requiredRoles={[roles.PATIENT]}><Debug /></ProtectedRoute>} />
-            )}
+            {isDev && <Route path="/debug" element={<ProtectedRoute requiredRoles={[roles.PATIENT]}><Debug /></ProtectedRoute>} />}
           </Routes>
         </main>
       </div>
