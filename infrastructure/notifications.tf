@@ -69,6 +69,27 @@ output "sqs_queue_url" {
   value = aws_sqs_queue.agent_events.id
 }
 
+output "sqs_dlq_url" {
+  description = "Dead-letter queue URL for agent_events (failed messages)"
+  value       = aws_sqs_queue.agent_events_dlq.id
+}
+
+# SQS consumer: agent_events -> agent_worker Lambda (async MCP consume; DLQ on failure)
+resource "aws_lambda_event_source_mapping" "agent_events_to_worker" {
+  event_source_arn = aws_sqs_queue.agent_events.arn
+  function_name   = module.cdss_lambda.worker_function_arn
+  batch_size      = 10
+}
+
+# Allow SQS to invoke the agent_worker Lambda
+resource "aws_lambda_permission" "sqs_invoke_agent_worker" {
+  statement_id  = "AllowExecutionFromSQS"
+  action        = "lambda:InvokeFunction"
+  function_name = module.cdss_lambda.worker_function_arn
+  principal     = "sqs.amazonaws.com"
+  source_arn    = aws_sqs_queue.agent_events.arn
+}
+
 output "sns_patient_reminders_arn" {
   value = aws_sns_topic.patient_reminders.arn
 }

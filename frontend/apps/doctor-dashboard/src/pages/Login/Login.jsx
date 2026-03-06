@@ -31,6 +31,9 @@ export default function Login() {
             if (result.success) {
                 const role = result.user?.role;
                 const targetPath = role === 'patient' ? '/patient-portal' : (from || '/');
+                // #region agent log
+                fetch('http://127.0.0.1:7803/ingest/454ee95e-546b-4257-becf-08e4fe56dd25',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'11cc47'},body:JSON.stringify({sessionId:'11cc47',location:'Login:afterSuccess',message:'doctor-dashboard login success',data:{hasUser:!!result.user,role:role,targetPath,email},timestamp:Date.now(),hypothesisId:'H2'})}).catch(()=>{});
+                // #endregion
                 navigate(targetPath, { replace: true });
             } else {
                 setError(result.message || 'Login failed. Please check your credentials.');
@@ -102,7 +105,6 @@ export default function Login() {
                             <select
                                 value={department}
                                 onChange={(e) => setDepartment(e.target.value)}
-                                required
                             >
                                 <option value="" disabled>Select Department</option>
                                 <option value="Cardiology">Cardiology</option>

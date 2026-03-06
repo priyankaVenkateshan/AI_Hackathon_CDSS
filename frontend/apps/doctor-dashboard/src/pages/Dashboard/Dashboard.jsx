@@ -35,6 +35,9 @@ function mapApiQueueToUi(q) {
 }
 
 export default function Dashboard() {
+    // #region agent log
+    fetch('http://127.0.0.1:7803/ingest/454ee95e-546b-4257-becf-08e4fe56dd25',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'4da93a'},body:JSON.stringify({sessionId:'4da93a',location:'Dashboard:mount',message:'Dashboard mounted',data:{},timestamp:Date.now(),hypothesisId:'H4'})}).catch(()=>{});
+    // #endregion
     const navigate = useNavigate();
     const { user } = useAuth();
 
@@ -88,9 +91,28 @@ export default function Dashboard() {
         ])
             .then(([data, scheduleData]) => {
                 if (cancelled) return;
-                const d = data;
+                const d = data || {};
                 const statMap = { warning: 'warning', critical: 'warning', info: 'secondary', ai: 'accent' };
-                setStats((d.stats || []).map((s, i) => ({
+
+                // Backend contract: docs/api_reference.md – stats is an object with aggregate counts.
+                // Also support an array of stat objects if backend evolves.
+                let statsSource = [];
+                if (Array.isArray(d.stats)) {
+                    statsSource = d.stats;
+                } else if (d.stats && typeof d.stats === 'object') {
+                    const {
+                        totalPatients = 0,
+                        activeSurgeries = 0,
+                        alertsCount = 0,
+                    } = d.stats;
+                    statsSource = [
+                        { label: 'Patients', value: totalPatients, type: 'info' },
+                        { label: 'Active Surgeries', value: activeSurgeries, type: 'info' },
+                        { label: 'Critical Alerts', value: alertsCount, type: alertsCount > 0 ? 'warning' : 'info' },
+                    ];
+                }
+
+                setStats(statsSource.map((s, i) => ({
                     icon: ['👥', '🚨', '📅', '🤖'][i] || 'ℹ️',
                     label: s.label,
                     value: s.value,
@@ -98,8 +120,12 @@ export default function Dashboard() {
                     trendDir: s.type === 'critical' ? 'down' : 'up',
                     variant: statMap[s.type] || 'primary',
                 })));
-                setQueue((d.patient_queue || []).map(mapApiQueueToUi));
-                setAlerts((d.ai_alerts || []).map(mapApiAlertToUi));
+
+                const patientQueue = d.patient_queue || d.patientQueue || [];
+                const aiAlertsApi = d.ai_alerts || d.aiAlerts || [];
+
+                setQueue(patientQueue.map(mapApiQueueToUi));
+                setAlerts(aiAlertsApi.map(mapApiAlertToUi));
                 setSchedule(scheduleData?.schedule || scheduleData || []);
             })
             .catch((err) => {

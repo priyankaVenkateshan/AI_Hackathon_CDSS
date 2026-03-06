@@ -19,7 +19,7 @@ resource "aws_secretsmanager_secret_version" "bedrock_config" {
 }
 
 # RDS connection config for IAM auth - no password stored. Use boto3 generate_db_auth_token.
-# One-time: connect with password and run: GRANT rds_iam TO triagemaster;
+# One-time: connect with password and run: GRANT rds_iam TO <db_username>;
 resource "aws_secretsmanager_secret" "rds_config" {
   name        = "${local.name_prefix}/rds-config"
   description = "RDS connection config (host, port, database, username) for IAM auth"

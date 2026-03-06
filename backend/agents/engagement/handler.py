@@ -15,6 +15,7 @@ from shared import (
     BedrockClient,
     SessionManager,
     EventPublisher,
+    AuditLogger,
     success_response,
     error_response,
     agent_response,
@@ -30,6 +31,7 @@ logger.setLevel(logging.INFO)
 bedrock = BedrockClient()
 session_manager = SessionManager()
 event_publisher = EventPublisher()
+audit_logger = AuditLogger(session_manager)
 
 # Define tools for the Engagement Agent
 ENGAGEMENT_TOOLS = [
@@ -59,12 +61,37 @@ ENGAGEMENT_TOOLS = [
             },
             "required": ["patient_id", "severity", "message"]
         }
+    },
+    {
+        "name": "generate_patient_summary",
+        "description": "Request consultation summary for a visit (API POST /consultations/:visitId/generate-summary).",
+        "input_schema": {"type": "object", "properties": {"visit_id": {"type": "string"}, "patient_id": {"type": "string"}}, "required": ["visit_id"]}
+    },
+    {
+        "name": "track_adherence",
+        "description": "Get adherence stats (API GET /reminders/adherence?patient_id=).",
+        "input_schema": {"type": "object", "properties": {"patient_id": {"type": "string"}}, "required": ["patient_id"]}
+    },
+    {
+        "name": "create_medication_reminders",
+        "description": "Create medication reminders (API POST /reminders).",
+        "input_schema": {"type": "object", "properties": {"patient_id": {"type": "string"}, "reminders": {"type": "array"}}, "required": ["patient_id", "reminders"]}
     }
 ]
 
 def handle_tool_call(tool_name, tool_input, session_id):
     """Execute engagement-specific logic."""
     logger.info(f"Executing engagement tool: {tool_name} with input: {tool_input}")
+    
+    # Log the action for DISHA compliance
+    audit_logger.log_action(
+        user_id="SYSTEM",
+        action=f"ENGAGEMENT_AGENT_{tool_name.upper()}",
+        resource_type="PATIENT",
+        resource_id=tool_input.get("patient_id"),
+        details=tool_input,
+        session_id=session_id
+    )
     
     patient_id = tool_input.get("patient_id")
     
@@ -99,8 +126,36 @@ def handle_tool_call(tool_name, tool_input, session_id):
             patient_id=patient_id
         )
         return f"Clinical {severity} alert triggered and routed to duty clinicians."
-    
+
+    elif tool_name == "generate_patient_summary":
+        visit_id = tool_input.get("visit_id", "")
+        return f"Call API POST /api/v1/consultations/{visit_id}/generate-summary to generate summary and entities."
+
+    elif tool_name == "track_adherence":
+        pid = tool_input.get("patient_id", "")
+        return f"Call API GET /api/v1/reminders/adherence?patient_id={pid} for adherence stats."
+
+    elif tool_name == "create_medication_reminders":
+        pid = tool_input.get("patient_id", "")
+        return f"Create reminders via API POST /api/v1/reminders with patient_id={pid}, scheduled_at, optional medication_id."
+
     return f"Unknown engagement action: {tool_name}"
+
+
+def _intent_to_engagement_tool(action):
+    """Map Supervisor intent to Engagement Agent tool (Phase 7)."""
+    if not action:
+        return "send_medication_reminder"
+    a = (action or "").strip().lower()
+    if "summary" in a:
+        return "generate_patient_summary"
+    if "adherence" in a:
+        return "track_adherence"
+    if "reminder" in a:
+        return "send_medication_reminder"
+    if "alert" in a or "escalat" in a:
+        return "trigger_clinical_alert"
+    return "send_medication_reminder"
 
 def lambda_handler(event, context):
     """Main entry point for Engagement Agent."""
@@ -114,7 +169,8 @@ def lambda_handler(event, context):
     if detail.get("event_type") == "AgentActionRequested":
         action = detail.get("action")
         params = detail.get("params", {})
-        result = handle_tool_call(action if action.startswith("send") or action.startswith("trigger") else f"trigger_clinical_alert", params, session_id)
+        tool_name = _intent_to_engagement_tool(action)
+        result = handle_tool_call(tool_name, params, session_id)
         session_manager.add_message(session_id, "assistant", f"[Engagement Agent Output]: {result}", agent=AGENT_NAMES["engagement"])
         return success_response({"status": "processed", "result": result})
 

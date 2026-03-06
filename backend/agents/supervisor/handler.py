@@ -15,6 +15,7 @@ from shared import (
     BedrockClient,
     SessionManager,
     EventPublisher,
+    AuditLogger,
     success_response,
     error_response,
     agent_response,
@@ -30,6 +31,7 @@ logger.setLevel(logging.INFO)
 bedrock = BedrockClient()
 session_manager = SessionManager()
 event_publisher = EventPublisher()
+audit_logger = AuditLogger(session_manager)
 
 # Define tools for the Supervisor Agent to route requests
 ROUTING_TOOLS = [
@@ -54,7 +56,7 @@ ROUTING_TOOLS = [
             "properties": {
                 "surgery_id": {"type": "string", "description": "The unique ID of the surgery (if available)."},
                 "patient_id": {"type": "string", "description": "The unique ID of the patient."},
-                "intent": {"type": "string", "description": "The specific intent (e.g., 'generate_checklist', 'analyse_requirements')."},
+                "intent": {"type": "string", "description": "The specific intent (e.g., 'generate_checklist', 'analyse_requirements', 'getChecklist', 'analyseSurgery', 'getProcedureGuidance')."},
                 "context": {"type": "string", "description": "Brief context for the target agent."}
             },
             "required": ["intent"]
@@ -88,13 +90,14 @@ ROUTING_TOOLS = [
     },
     {
         "name": "route_to_engagement_agent",
-        "description": "Route requests related to sending patient reminders, multilingual alerts, or critical escalations.",
+        "description": "Route requests related to reminders, consultation summaries, adherence, or escalations.",
         "input_schema": {
             "type": "object",
             "properties": {
                 "patient_id": {"type": "string"},
+                "visit_id": {"type": "string"},
                 "language": {"type": "string", "enum": ["English", "Hindi", "Tamil", "Telugu", "Bengali"]},
-                "intent": {"type": "string", "description": "The specific intent (e.g., 'send_medication_reminder', 'escalate_alert')."}
+                "intent": {"type": "string", "description": "e.g. send_medication_reminder, generateSummary, trackAdherence, createReminders, escalate_alert."}
             },
             "required": ["intent"]
         }
@@ -117,11 +120,16 @@ def handle_tool_call(tool_name, tool_input, session_id):
     if not target_agent:
         return f"Error: Unknown tool {tool_name}"
     
-    # Record the routing decision in the session audit trail
-    session_manager.record_routing(
+    # Record the routing decision in the session audit trail (DynamoDB + RDS)
+    doctor_id = tool_input.get("doctor_id", "DR-UNKNOWN")
+    patient_id = tool_input.get("patient_id")
+    
+    audit_logger.log_routing(
         session_id=session_id,
         intent=tool_input.get("intent", "unknown"),
-        target_agent=AGENT_NAMES[target_agent]
+        target_agent=target_agent,
+        doctor_id=doctor_id,
+        patient_id=patient_id
     )
     
     # Publish the event to EventBridge

@@ -7,7 +7,7 @@ alwaysApply: false
 # CDSS API and AWS Patterns
 
 ## Regions, Networking, and Compliance
-- Use India regions (e.g., `ap-south-1`) for all **patient data** to meet data‑localization requirements.
+- Use India regions (e.g., `us-east-1`) for all **patient data** to meet data‑localization requirements.
 - Keep CDSS services inside private subnets with controlled egress; expose only API Gateway / ALB to the internet.
 - Enforce TLS everywhere; no plaintext patient data over the wire.
 

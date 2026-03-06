@@ -1,8 +1,20 @@
 # AgentCore Implementation Plan
 
-**Purpose:** Migrate Emergency Medical Triage AI layer from classic Bedrock Converse API / Agents to **Amazon Bedrock AgentCore** for better MCP integration, observability, memory, and production readiness.
+**Purpose:** Migrate the CDSS AI layer to **Amazon Bedrock AgentCore** for MCP integration, observability, memory, and production readiness — aligning with [requirements.md](./requirements.md) (Req 8 MCP, Req 10 audit/Bedrock) and [.cursor/rules/CDSS.mdc](../.cursor/rules/CDSS.mdc) (clinical schemas, trace review, safety).
 
-> **References:** [Implementation Plan](./implementation-plan.md) | [Implementation History](./implementation-history.md) | [AgentCore Docs](https://docs.aws.amazon.com/bedrock-agentcore/?region=us-east-1)
+> **References:** [Implementation Plan](./implementation-plan.md) | [Requirements](./requirements.md) | [CDSS.mdc](../.cursor/rules/CDSS.mdc) | [AgentCore Docs](https://docs.aws.amazon.com/bedrock-agentcore/?region=us-east-1)
+
+---
+
+## Alignment with CDSS and Requirements
+
+| Source | Alignment |
+|--------|-----------|
+| **requirements.md** | Req 8: MCP for agent-to-agent communication; event logs and audit. Req 10: AWS Bedrock, MCP servers, audit trails, RBAC, data localization (India). Req 2–7: Patient_Agent, Surgery_Agent, Resource_Agent, Scheduling_Agent, Patient_Engagement_Agent. |
+| **CDSS.mdc** | Clinical assessment schemas (priority, confidence, risk_factors); surgery readiness (pre_op_status, checklist_flags, requires_senior_review); trace review and medical audit; safety disclaimers and senior review flags. |
+| **CDSS product** | Staff app (Doctor_Module) + Patient portal (Patient_Module); `/api/v1/*` REST API; multi-agent Lambda router. AgentCore will host or back the same agents (Patient, Surgery, Resource, Scheduling, Engagement) with Gateway-exposed MCP tools. |
+
+**Region:** Data residency per requirements is India (ap-south-1). Use AgentCore in regions where available; keep persistence and PII in ap-south-1 where required.
 
 ---
 
@@ -11,12 +23,12 @@
 | Topic | Decision |
 |-------|----------|
 | **Experience** | No prior AgentCore use; Console access available |
-| **AC-1 scope** | Hospital Matcher only; migrate Triage, Routing once stable |
-| **Gateway data** | Try MCP for hospital knowledge if available; otherwise synthetic data only |
+| **AC-1 scope** | Single CDSS AgentCore runtime + Gateway PoC; migrate severity assessment, routing, and other CDSS agents (Patient, Surgery, Resource, Scheduling, Engagement) once the pattern is proven. |
+| **Gateway data** | Try MCP for hospital knowledge if available; otherwise synthetic/stub data (aligned with CDSS MCP adapter in implementation-plan). |
 | **IaC** | Terraform if not too time-consuming; otherwise Console |
-| **Cutover** | Converse fallback during migration; switch fully once AgentCore path is stable |
+| **Cutover** | Converse/current Lambda fallback during migration; switch fully once AgentCore path is stable |
 | **Hospital data** | No MCP server for hackathon; synthetic/stub data is acceptable |
-| **AC-1 observability** | Include basic tracing/metrics in AC-1 |
+| **AC-1 observability** | Include basic tracing/metrics; satisfy CDSS.mdc trace review and medical audit (Req 10 audit trails) |
 
 ---
 
@@ -24,11 +36,35 @@
 
 | Need | Current (Converse/Classic Agents) | AgentCore |
 |------|----------------------------------|-----------|
-| Hospital Data MCP | Manual integration, stubs | **Gateway** – expose MCP tools natively |
-| Trace review / medical audit | Custom logging | **Observability** – tracing, OpenTelemetry, CloudWatch |
-| Patient context across sessions | Aurora only | **Memory** – short-term + long-term |
+| Hospital / resource data (MCP) | Manual integration, stubs (cdss.mcp.adapter) | **Gateway** – expose MCP tools natively (Req 8) |
+| Trace review / medical audit | Custom logging | **Observability** – tracing, OpenTelemetry, CloudWatch (CDSS.mdc; Req 10) |
+| Patient context across sessions | Aurora only | **Memory** – short-term + long-term (Patient_Agent continuity, Req 2) |
 | Safe agent boundaries | Prompts | **Policy** (preview) – explicit action control |
-| RMP / Admin auth | Custom | **Identity** – Cognito/IdP integration |
+| Staff / Patient auth | Cognito (custom) | **Identity** – Cognito/IdP integration (Req 1 RBAC) |
+
+---
+
+## Using AgentCore to let the agent access Aurora
+
+**Question:** If Bedrock (Converse) can’t access the Aurora database directly, can I use **Bedrock AgentCore** to access it?
+
+**Answer: Yes.** Bedrock models do not open database connections themselves. Access to Aurora is always through **your** code. AgentCore lets the agent use that code by exposing it as **tools** the model can call.
+
+| Layer | Who accesses Aurora | How |
+|-------|----------------------|-----|
+| **Converse (current)** | Your Lambda (CDSS router) | Lambda has `get_session()` / Aurora; you fetch data, then pass it to Bedrock for summarization. |
+| **AgentCore** | Your **Gateway tools** (Lambda or MCP) | You expose tools like `get_patient`, `list_patients`, `get_surgeries`. The **agent** (Runtime) decides when to call them; the Gateway invokes your Lambda (or MCP server); that Lambda queries Aurora and returns the result to the agent; the agent then generates the reply. |
+
+**Flow with AgentCore:**
+
+1. User asks: *“Give me a summary of patient Harish Menon.”*
+2. **AgentCore Runtime** (your agent) has a tool list that includes e.g. `get_patient` or `list_patients`.
+3. The agent calls the tool (e.g. `get_patient(name="Harish Menon")` or `get_patient(patient_id="PT-1015")`).
+4. **AgentCore Gateway** invokes your **Lambda** (or MCP server) that implements that tool.
+5. The Lambda uses **Aurora** (via `DATABASE_URL` / `RDS_CONFIG_SECRET_NAME`, and VPC if needed) to run the query and return the patient record.
+6. The agent receives the tool result and generates a natural-language summary for the user.
+
+So the agent “accesses” Aurora only **through tools** you implement and register on the Gateway. The repo already has a **Gateway Lambda** (`gateway_tools_src/lambda_handler.py`) that can talk to Aurora for `get_hospitals` and `get_ot_status` when `RDS_CONFIG_SECRET_NAME` or `DATABASE_URL` is set. To give the agent access to **patients**, **surgeries**, etc., add more tool handlers in that Lambda (e.g. `get_patient`, `list_patients`) that query the CDSS Aurora schema, then register those tools in the AgentCore Gateway and in your agent’s tool list. The Lambda must run in a VPC that can reach Aurora (or use IAM auth and a reachable RDS endpoint), same as the CDSS router Lambda.
 
 ---
 
@@ -36,8 +72,8 @@
 
 | Capability | Priority | Use Case |
 |------------|----------|----------|
-| **Runtime** | P0 | Host Triage, Hospital Matcher, Routing agents |
-| **Gateway** | P0 | Expose Hospital Data MCP, triage tools |
+| **Runtime** | P0 | Host CDSS agents (e.g. severity assessment and routing) |
+| **Gateway** | P0 | Expose Hospital Data MCP, CDSS severity-assessment tools |
 | **Observability** | P0 | Trace review, medical audit, debugging |
 | **Memory** | P1 | Patient context, repeat visits, follow-up |
 | **Identity** | P1 | RMP auth when frontend ready |
@@ -50,24 +86,27 @@
 
 ## Architecture (Target)
 
+CDSS aligns with requirements: API Gateway exposes Staff/Patient-facing routes; AgentCore hosts or backs CDSS agents (Patient, Surgery, Resource, Scheduling, Engagement) with Gateway-exposed MCP tools. Traces link to Patient_ID, Doctor_ID for audit (CDSS.mdc).
+
 ```
                     ┌─────────────────────────────────────────┐
-                    │           API Gateway                    │
-                    │  /triage  /hospitals  /route  /health   │
+                    │     API Gateway (CDSS)                   │
+                    │  /api/v1/*  /hospitals  /health           │
+                    │  + /api/v1/triage (CDSS severity assessment) │
                     └─────────────────────────────────────────┘
                                        │
                     ┌──────────────────┼──────────────────┐
                     │                  │                  │
                     ▼                  ▼                  ▼
              ┌──────────┐      ┌──────────────┐   ┌──────────┐
-             │  Triage  │      │Hospital Match│   │ Routing  │
-             │  Lambda  │      │   Lambda     │   │  Lambda  │
+             │ Severity │      │Hospital Match│   │ Routing  │
+             │ (CDSS)   │      │   Lambda     │   │  Lambda  │
              └────┬─────┘      └──────┬───────┘   └────┬─────┘
                   │                   │                 │
                   └───────────────────┼─────────────────┘
                                       │
                     ┌─────────────────┴─────────────────┐
-                    │      Bedrock AgentCore            │
+                    │      Bedrock AgentCore             │
                     │  ┌─────────┐  ┌──────────────┐   │
                     │  │Runtime  │  │   Gateway    │   │
                     │  │(agents) │  │(MCP tools)   │   │
@@ -79,8 +118,8 @@
                     └─────────────────────────────────┘
                                       │
                     ┌─────────────────┴─────────────────┐
-                    │  Aurora (triage_assessments,      │
-                    │  hospital_matches)                │
+                    │  Aurora (CDSS: patients, audits,  │
+                    │  severity_assessments, hospital_*)   │
                     └──────────────────────────────────┘
 ```
 
@@ -90,19 +129,15 @@
 
 ### Phase AC-1: Foundation (AgentCore Runtime + Gateway + Observability)
 
-**Goal:** Stand up AgentCore Runtime and Gateway; connect Hospital Matcher as proof of concept; add basic tracing/metrics.
+**Goal:** Stand up AgentCore Runtime and Gateway; connect a simple CDSS PoC agent (e.g. hospital/OT status or CDSS severity-assessment stub) and add basic tracing/metrics.
 
 **Deliverables:**
-- [ ] AgentCore Runtime workspace/deployment — **In progress** (agentcore/agent/)
-- [ ] AgentCore Gateway configured (Lambda or synthetic data; MCP if available) — **Deferred to AC-3** (using in-agent synthetic tool)
-- [x] Hospital Matcher agent deployed to Runtime (or Lambda calling AgentCore API)
-- [x] POST /hospitals invokes AgentCore when `use_agentcore=true` (Converse fallback)
-- [x] Basic tracing/metrics (CloudWatch Logs: `HospitalMatcher source= duration_ms=`)
-- [x] Terraform: `use_agentcore`, `agent_runtime_arn`, IAM for `InvokeAgentRuntime`
+- [ ] AgentCore Runtime workspace/deployment — **Create agent in AWS** via toolkit (`agentcore create` → `agentcore launch`) or Console; see [agentcore-create-agents-in-aws.md](./agentcore-create-agents-in-aws.md). Repo includes minimal `agentcore/agent/main.py` + `requirements.txt`.
+- [x] AgentCore Gateway created (script + Console for Lambda target) — **Lambda target added manually** per [agentcore-gateway-manual-steps.md](./agentcore-gateway-manual-steps.md); API supports only MCP targets.
+- [x] A CDSS PoC agent deployed to Runtime (or Lambda calling AgentCore API).
+- [x] Terraform: `use_agentcore`, `agent_runtime_arn`, IAM for `InvokeAgentRuntime`.
 
-**Dependencies:** AgentCore API/SDK availability in us-east-1.
-
-**Manual step:** Deploy the agent with `agentcore deploy` from `agentcore/agent/`, then set `agent_runtime_arn` in tfvars.
+**After gateway is created:** Add Lambda as target in Console (Bedrock → AgentCore → Gateways → [gateway] → Targets). Then proceed to AC-2 (Triage + Observability) per below.
 
 ---
 
@@ -112,33 +147,33 @@
 
 **Deliverables:**
 - [ ] Triage agent on AgentCore Runtime
-- [ ] AgentCore Observability: tracing, CloudWatch dashboards
-- [ ] Trace review workflow for Admin/Dev (medical audit)
-- [ ] POST /triage invokes AgentCore
-- [ ] Persist triage to Aurora (unchanged)
+- [ ] AgentCore Observability: tracing, CloudWatch dashboards (links to Patient_ID, Doctor_ID per CDSS.mdc)
+- [ ] Trace review workflow for Admin/Dev (medical audit; Req 10 audit trails)
+- [x] POST /api/v1/triage (CDSS severity assessment) invokes AgentCore or stub; tracing with patient_id/doctor_id in log metadata (CDSS.mdc)
+- [ ] Persist severity assessments to Aurora (when severity_assessments table ready)
 
 ---
 
 ### Phase AC-3: Memory + Hospital MCP
 
-**Goal:** Add Memory for patient context; integrate Hospital Data MCP via Gateway.
+**Goal:** Add Memory for patient context; integrate Hospital Data MCP via Gateway (Req 8 MCP; CDSS MCP adapter pattern).
 
 **Deliverables:**
-- [ ] AgentCore Memory: short-term (session) + long-term (patient)
-- [ ] Gateway: Hospital Data MCP as tool source
-- [ ] Hospital Matcher uses real hospital data (replace stubs)
-- [ ] Patient context available across triage → hospital → routing flow
+- [ ] AgentCore Memory: short-term (session) + long-term (patient) — supports Patient_Agent continuity (Req 2)
+- [ ] Gateway: Hospital Data MCP as tool source (and optionally ABDM, OT/resources for CDSS)
+- [ ] CDSS agents use real hospital and OT data via MCP/DB (replace stubs)
+- [ ] Patient context available across severity assessment → hospital → routing flow
 
 ---
 
 ### Phase AC-4: Routing + Identity
 
-**Goal:** Add Routing agent; enable Identity for RMP auth.
+**Goal:** Add Routing agent; enable Identity for Staff/Patient auth (Req 1 RBAC).
 
 **Deliverables:**
 - [ ] Routing agent on AgentCore Runtime
 - [ ] POST /route endpoint
-- [ ] AgentCore Identity: Cognito/IdP integration for RMP
+- [ ] AgentCore Identity: Cognito/IdP integration for Doctor_Module and Patient_Module (Req 1)
 - [ ] Policy (if GA): stricter agent action boundaries
 
 ---
@@ -156,7 +191,7 @@
 
 | Phase | Focus | Status | Dependency |
 |-------|-------|--------|------------|
-| AC-1 | Runtime + Gateway + Hospital Matcher PoC | Next | None |
+| AC-1 | Runtime + Gateway + CDSS PoC agent | Next | None |
 | AC-2 | Triage + Observability | Pending | AC-1 |
 | AC-3 | Memory + Hospital MCP | Pending | AC-1, AC-2 |
 | AC-4 | Routing + Identity | Pending | AC-1 |
@@ -166,9 +201,10 @@
 ## Technical Notes
 
 - **AgentCore SDK:** Python SDK on [GitHub](https://github.com/aws/amazon-bedrock-agentcore-sdk-python)
-- **Gateway:** Transforms APIs/Lambda/MCP into tools; MCP support via [Gateway tutorials](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/gateway-tutorials.html)
+- **Gateway:** Transforms APIs/Lambda/MCP into tools; MCP support via [Gateway tutorials](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/gateway-tutorials.html). For CDSS, Gateway can expose Hospital Data, ABDM, OT/resources tools (see [agentcore-gateway-manual-steps.md](./agentcore-gateway-manual-steps.md)).
 - **Runtime:** Serverless; supports extended sessions; any framework (LangGraph, CrewAI, etc.)
-- **Region:** AgentCore available in us-east-1; verify other regions as needed
+- **Region:** AgentCore availability per AWS docs; CDSS data residency and PII in ap-south-1 per [requirements.md](./requirements.md) (Req 10).
+- **CDSS.mdc:** All assessment-producing agents must use strict schemas (priority, confidence, risk_factors, surgery readiness), trace review, and safety disclaimers; apply when migrating Patient/Surgery/Engagement agents to AgentCore.
 
 ---
 
@@ -193,10 +229,11 @@
    - Provision AgentCore Runtime workspace
    - Configure Gateway with `submit_hospital_matches` (Lambda or synthetic data as tool source)
 
-3. **Wire Hospital Matcher Lambda to AgentCore**
+3. **Wire CDSS Lambda(s) to AgentCore**
    - Add `USE_AGENTCORE` env var; when true, call AgentCore API instead of Converse
    - Preserve request/response contract
    - Converse fallback when `USE_AGENTCORE=false`; hard cutover once stable
 
 4. **Basic tracing/metrics** ✓
    - CloudWatch Logs: `HospitalMatcher source=agentcore|converse|bedrock_agent duration_ms=...`
+   - When migrating CDSS agents: include Patient_ID, Doctor_ID, surgery IDs in trace metadata for audit (CDSS.mdc).

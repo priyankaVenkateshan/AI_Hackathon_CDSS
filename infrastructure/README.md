@@ -1,6 +1,6 @@
 # Infrastructure
 
-Unified Terraform configuration for **CDSS (Clinical Decision Support System)** and **Emergency Medical Triage** on AWS (ap-south-1, DISHA-aligned).
+Terraform for **CDSS (Clinical Decision Support System)** on AWS (ap-south-1, DISHA-aligned). Architecture: Supervisor + Patient, Surgery, Resource, Scheduling, Engagement agents; MCP Adapter (Hospital, ABDM, Protocols, Telemedicine); no separate Triage agent.
 
 ## Resources
 
@@ -10,9 +10,8 @@ Unified Terraform configuration for **CDSS (Clinical Decision Support System)** 
 | **RDS Aurora** | PostgreSQL 15.10, Serverless v2, `cdssdb`, encrypted, IAM auth, private subnets |
 | **S3** | Main bucket (backups, audit, media) + `documents` + `corpus` buckets; versioning and AES256 |
 | **Bedrock** | IAM policy for invoking models (ap-south-1 + us-east-1/2, us-west-2); enable in Console |
-| **API Gateway** | Single REST API: `/health`, `/triage`, `/api/{proxy+}` → CDSS router Lambda |
-| **Lambda** | Health (Node), Triage (Python, optional build from `src/triage`), CDSS agents (Python, from `src/cdss`) |
-| **DynamoDB** | Sessions, medication_schedules, patients, consultations, ot_slots, equipment, protocols (pay-per-request) |
+| **API Gateway** | Single REST API: `/health`, `/api/v1/{proxy+}` → CDSS router Lambda (includes `/api/v1/triage` for severity assessment) |
+| **Lambda** | Health (Node), CDSS router (Python, from `src/cdss`: patients, surgeries, resources, schedule, engagement, hospitals, severity assessment) |
 | **EventBridge** | Event bus for async inter-agent messaging |
 | **Secrets Manager** | Bedrock config, RDS config (no password in secret; use IAM auth) |
 
@@ -46,7 +45,7 @@ Unified Terraform configuration for **CDSS (Clinical Decision Support System)** 
 
 5. **Aurora**: Cluster is in private subnets. To connect, use bastion (`enable_bastion=true`), VPN, or run Lambdas in VPC. IAM DB auth is enabled. One-time: connect with password and run `GRANT rds_iam TO <db_username>;`. Then enable **pgvector**: `CREATE EXTENSION IF NOT EXISTS vector;`
 
-6. **Triage** (optional): Set `enable_triage = true` in tfvars only when you have real triage source under `src/triage` and `scripts/build_triage_lambda.sh`. Stub files exist so Terraform validates when `enable_triage = false` (default).
+6. **CDSS only**: All routes are served by the single CDSS router Lambda. `/api/v1/triage` is the CDSS severity-assessment endpoint (no separate Triage Lambda or agent).
 
 ## Layout
 

@@ -178,8 +178,8 @@ If your admin prefers a single custom policy instead of 10 managed ones, create 
 
 | Service | Used for |
 |---------|----------|
-| API Gateway | REST API with `/health`, `/triage`, `/api/*` |
-| Lambda | Health Lambda, CDSS router + agent Lambdas, (optional) Triage Lambda |
+| API Gateway | REST API with `/health`, `/api/v1/*` (CDSS; includes `/api/v1/triage` for severity assessment) |
+| Lambda | Health Lambda, CDSS router + agent Lambdas |
 | IAM | Execution roles for Lambdas, Bedrock invoke policy |
 | S3 | Main bucket, documents bucket, corpus bucket |
 | DynamoDB | Sessions, medication_schedules, patients, consultations, ot_slots, equipment, protocols |

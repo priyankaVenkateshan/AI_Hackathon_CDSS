@@ -1,76 +1,147 @@
 """
 CDSS WebSocket Handler — Lambda
 Manages real-time clinical data streams for the doctor dashboard.
+
+Constraint: no DynamoDB; Aurora is the only database. This handler is therefore
+stateless with respect to connection storage and only sends updates back to the
+current connection. When multi-client broadcasting is needed, a small Aurora
+table can be added later via cdss.db.
 """
+
+from __future__ import annotations
 
 import json
 import logging
-import time
-from typing import Optional
+from typing import Any, Optional
 
 import boto3
 from botocore.exceptions import ClientError
 
-# Configuration
 AWS_REGION = "ap-south-1"
-CONNECTIONS_TABLE = "cdss-websocket-connections"
 
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-dynamodb = boto3.resource("dynamodb", region_name=AWS_REGION)
-table = dynamodb.Table(CONNECTIONS_TABLE)
 
-def handle_connect(connection_id, doctor_id):
-    """Register a new connection."""
+def _get_management_client(event: dict):
+    """Build ApiGatewayManagementApi client for this WebSocket API (post_to_connection)."""
+    ctx = event.get("requestContext", {})
+    domain = ctx.get("domainName")
+    stage = ctx.get("stage")
+    if not domain or not stage:
+        return None
+    endpoint = f"https://{domain}/{stage}"
+    return boto3.client("apigatewaymanagementapi", endpoint_url=endpoint, region_name=AWS_REGION)
+
+
+def _post_to_connection(management_client, connection_id: str, data: dict) -> bool:
+    """Send data to one connection. Returns False if connection gone (stale)."""
     try:
-        table.put_item(
-            Item={
-                "connection_id": connection_id,
-                "doctor_id": doctor_id or "DR-DEFAULT",
-                "connected_at": int(time.time()),
-                "ttl": int(time.time()) + 7200 # 2-hour session
-            }
-        )
-        return {"statusCode": 200, "body": "Connected"}
+        management_client.post_to_connection(ConnectionId=connection_id, Data=json.dumps(data).encode("utf-8"))
+        return True
     except ClientError as e:
-        logger.error(f"Connect failed: {e}")
-        return {"statusCode": 500, "body": "Failed to connect"}
+        if e.response.get("Error", {}).get("Code") == "Gone":
+            return False
+        logger.warning("PostToConnection failed for %s: %s", connection_id, e)
+        return False
 
-def handle_disconnect(connection_id):
-    """Remove a connection."""
+
+def handle_connect(connection_id: str, doctor_id: Optional[str]) -> dict:
+    """Acknowledge a new connection. No state persisted (Aurora-only constraint)."""
+    logger.info("WebSocket connected: %s doctor=%s", connection_id, doctor_id or "UNKNOWN")
+    return {"statusCode": 200, "body": "Connected"}
+
+
+def handle_disconnect(connection_id: str) -> dict:
+    """Acknowledge disconnect. No state persisted."""
+    logger.info("WebSocket disconnected: %s", connection_id)
+    return {"statusCode": 200, "body": "Disconnected"}
+
+
+def handle_default(event: dict, connection_id: str) -> dict:
+    """
+    Handle $default route: body must be JSON with 'action'.
+
+    Actions:
+    - subscribe_surgery / subscribe_patient: acknowledged but not stored server-side.
+    - checklist_update: echoed back to the same connection so the UI updates.
+    """
     try:
-        table.delete_item(Key={"connection_id": connection_id})
-        return {"statusCode": 200, "body": "Disconnected"}
-    except ClientError as e:
-        logger.error(f"Disconnect failed: {e}")
-        return {"statusCode": 500, "body": "Failed to disconnect"}
+        body = json.loads(event.get("body") or "{}")
+    except json.JSONDecodeError:
+        return {"statusCode": 400, "body": "Invalid JSON"}
 
-def lambda_handler(event, context):
-    """Main entry point for WebSocket events."""
+    action = (body.get("action") or "").strip().lower()
+
+    if action in {"subscribe_surgery", "subscribe_patient"}:
+        # Acknowledge subscription; no DB storage (Aurora-only constraint).
+        payload = {
+            "type": action,
+            "message": "Subscription acknowledged",
+            **{k: v for k, v in body.items() if k.endswith("_id")},
+        }
+        management = _get_management_client(event)
+        if management:
+            _post_to_connection(management, connection_id, payload)
+        return {"statusCode": 200, "body": json.dumps(payload)}
+
+    if action == "checklist_update":
+        surgery_id = (body.get("surgery_id") or "").strip()
+        checklist_item_id = body.get("checklist_item_id")
+        completed = body.get("completed")
+        if not surgery_id:
+            return {"statusCode": 400, "body": "surgery_id required"}
+        management = _get_management_client(event)
+        if not management:
+            return {"statusCode": 500, "body": "Management client unavailable"}
+        payload = {
+            "type": "checklist_update",
+            "surgery_id": surgery_id,
+            "checklist_item_id": checklist_item_id,
+            "completed": completed,
+            "message": "Checklist item updated",
+        }
+        _post_to_connection(management, connection_id, payload)
+        return {"statusCode": 200, "body": json.dumps({"broadcast": 1, "surgery_id": surgery_id})}
+
+    return {"statusCode": 400, "body": json.dumps({"error": "Unknown action", "action": action})}
+
+
+def lambda_handler(event: dict, context: Any) -> dict:
+    """Main entry point for WebSocket events ($connect, $disconnect, $default)."""
     route_key = event.get("requestContext", {}).get("routeKey")
     connection_id = event.get("requestContext", {}).get("connectionId")
-    
-    logger.info(f"WebSocket request: {route_key} ({connection_id})")
-    
+
+    logger.info("WebSocket request: %s (%s)", route_key, connection_id)
+
     if route_key == "$connect":
-        # In a real app, doctor_id would be extracted from a JWT token in the query params
-        doctor_id = event.get("queryStringParameters", {}).get("doctor_id")
+        doctor_id = (event.get("queryStringParameters") or {}).get("doctor_id")
         return handle_connect(connection_id, doctor_id)
-        
-    elif route_key == "$disconnect":
+
+    if route_key == "$disconnect":
         return handle_disconnect(connection_id)
-        
-    elif route_key == "subscribe_patient":
-        # Custom action to subscribe to a specific patient's real-time vitals
-        body = json.loads(event.get("body", "{}"))
-        patient_id = body.get("patient_id")
-        
-        table.update_item(
-            Key={"connection_id": connection_id},
-            UpdateExpression="SET active_patient_id = :p",
-            ExpressionAttributeValues={":p": patient_id}
-        )
-        return {"statusCode": 200, "body": f"Subscribed to patient {patient_id}"}
-        
+
+    if route_key == "$default":
+        return handle_default(event, connection_id)
+
+    # Legacy custom route for subscribe_patient if ever configured
+    if route_key == "subscribe_patient":
+        try:
+            body = json.loads(event.get("body") or "{}")
+            patient_id = (body.get("patient_id") or "").strip()
+            if not patient_id:
+                return {"statusCode": 400, "body": "patient_id required"}
+            payload = {
+                "type": "subscribe_patient",
+                "message": "Subscription acknowledged",
+                "patient_id": patient_id,
+            }
+            management = _get_management_client(event)
+            if management:
+                _post_to_connection(management, connection_id, payload)
+            return {"statusCode": 200, "body": json.dumps(payload)}
+        except json.JSONDecodeError as exc:
+            logger.warning("subscribe_patient failed: %s", exc)
+            return {"statusCode": 400, "body": "Invalid JSON"}
+
     return {"statusCode": 404, "body": "Route not found"}

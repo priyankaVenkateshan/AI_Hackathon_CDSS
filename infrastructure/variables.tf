@@ -1,4 +1,4 @@
-# Project and region (CDSS: ap-south-1 for Mumbai, DISHA)
+# Project and region (default ap-south-1 for Mumbai/DISHA data residency)
 variable "project_name" {
   description = "Project name for resource naming"
   type        = string
@@ -6,7 +6,7 @@ variable "project_name" {
 }
 
 variable "aws_region" {
-  description = "AWS region for deployment (ap-south-1 for DISHA/data residency)"
+  description = "AWS region for deployment (ap-south-1 for DISHA compliance)"
   type        = string
   default     = "ap-south-1"
 }
@@ -31,9 +31,9 @@ variable "db_password" {
 }
 
 
-# Bedrock (triage and CDSS agents)
+# Bedrock (CDSS agents)
 variable "bedrock_agent_id" {
-  description = "Bedrock Agent ID for triage (empty = use Converse API)"
+  description = "Bedrock Agent ID (optional; empty = use Converse API for CDSS)"
   type        = string
   default     = ""
 }
@@ -55,9 +55,10 @@ variable "lambda_handlers" {
   description = "Map of Lambda function name -> handler path (api = router for API Gateway)"
   type        = map(string)
   default = {
-    api        = "cdss.api.handlers.router.handler"
-    supervisor = "cdss.api.handlers.supervisor.handler"
-    patient    = "cdss.api.handlers.patient.handler"
+    api           = "cdss.api.handlers.router.handler"
+    agent_worker  = "cdss.mcp.consumer.handler"
+    supervisor    = "cdss.api.handlers.supervisor.handler"
+    patient       = "cdss.api.handlers.patient.handler"
     surgery    = "cdss.api.handlers.surgery.handler"
     resource   = "cdss.api.handlers.resource.handler"
     scheduling = "cdss.api.handlers.scheduling.handler"
@@ -92,6 +93,18 @@ variable "enable_websocket_api" {
   default     = true
 }
 
+variable "enable_websocket_authorizer" {
+  description = "Require JWT (Cognito) authorizer on WebSocket $connect. Set false for local testing without auth."
+  type        = bool
+  default     = true
+}
+
+variable "websocket_connections_table_name" {
+  description = "Reserved for future: RDS table name for WebSocket connection IDs (Phase 4). Currently unused; WebSocket is stateless."
+  type        = string
+  default     = "cdss-websocket-connections"
+}
+
 # Lambda VPC (for RDS access). When true, Lambdas run in private subnets; add Bedrock VPC endpoint if needed.
 variable "enable_lambda_vpc" {
   description = "Attach Lambdas to VPC so they can reach RDS (private subnets)"
@@ -123,4 +136,17 @@ variable "enable_translate" {
   description = "Enable Amazon Translate permissions for agents"
   type        = bool
   default     = true
+}
+
+# AgentCore (Bedrock AgentCore Runtime) – per docs/agentcore-implementation-plan.md
+variable "use_agentcore" {
+  description = "When true, Lambda may invoke AgentCore Runtime (e.g. for /hospitals); requires agent_runtime_arn"
+  type        = bool
+  default     = false
+}
+
+variable "agent_runtime_arn" {
+  description = "ARN of the deployed AgentCore Runtime (set after 'agentcore deploy' from agentcore/agent/)"
+  type        = string
+  default     = ""
 }
