@@ -57,6 +57,7 @@ function AppLayout() {
               </ProtectedRoute>
             } />
             <Route path="/medications" element={<ProtectedRoute><Medications /></ProtectedRoute>} />
+            <Route path="/clinical-workboard" element={<ProtectedRoute><Medications /></ProtectedRoute>} />
             <Route path="/schedule" element={<ProtectedRoute><Schedule /></ProtectedRoute>} />
             <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />

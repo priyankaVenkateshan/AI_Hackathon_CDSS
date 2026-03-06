@@ -5,8 +5,8 @@
 
 .cw-page {
   padding: 24px;
-  background: #f9fafb;
-  min-height: calc(100vh - var(--header-height));
+  background: #ffffff;
+  min-height: calc(100vh - var(--header-height, 60px));
 }
 
 .cw-breadcrumb {
@@ -259,11 +259,16 @@
   color: #991b1b;
 }
 
-.cw-alert--staffing,
-.cw-alert--escalation {
+.cw-alert--staffing {
   background: #fff7ed;
   border-color: #fed7aa;
   color: #9a3412;
+}
+
+.cw-alert--escalation {
+  background: #f9fafb;
+  border-color: #e5e7eb;
+  color: #4b5563;
 }
 
 .cw-alert--shift {

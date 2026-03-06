@@ -1,161 +1,130 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { patients, todaySchedule, pendingClinicalTasks, clinicalAlerts } from '../../data/mockData';
+import { useEffect, useState } from 'react';
+import {
+  dashboardOverview,
+  pendingClinicalTasks,
+} from '../../data/mockData';
 import { useActivity } from '../../context/ActivityContext';
-import { useAuth } from '../../context/AuthContext';
-import { roles } from '../../context/AuthContext';
 import './Dashboard.css';
 
-function Dashboard() {
-  const navigate = useNavigate();
-  const { logActivity } = useActivity();
-  const { user, hasRole } = useAuth();
-  const isSurgeon = hasRole(roles.SURGEON);
+// SVG Sparkline Component
+const Sparkline = ({ data, color, height = 60, width = 200 }) => {
+  const max = Math.max(...data);
+  const min = Math.min(...data);
+  const range = max - min || 1;
+  const points = data.map((val, i) => ({
+    x: (i / (data.length - 1)) * width,
+    y: height - ((val - min) / range) * height
+  }));
 
-  useEffect(() => {
-    logActivity('view_dashboard');
-  }, [logActivity]);
-
-  const tasksToShow = pendingClinicalTasks.filter((t) => !t.surgeonOnly || isSurgeon);
-
-  const scheduleWithLocation = todaySchedule.map((s) => {
-    const type = s.type || 'Consultation';
-    let consultationType = 'OP';
-    if (type === 'Follow-up' || type === 'Lab Review') consultationType = 'Follow-up';
-    if (type === 'Pre-op Check' || type === 'Emergency') consultationType = 'Surgery';
-    if (type === 'Consultation') consultationType = 'Consultation';
-    return {
-      ...s,
-      consultationType,
-      location: type === 'Pre-op Check' ? 'OT-3' : type === 'Emergency' ? 'ICU' : 'Room 4',
-    };
-  });
-
-  const myPatients = patients.filter((p) => p.status !== 'scheduled').slice(0, 6);
-
-  const priorityClass = (p) => {
-    const s = (p || '').toLowerCase();
-    if (s === 'high') return 'high';
-    if (s === 'medium') return 'medium';
-    return 'low';
-  };
-
-  const scheduleTypeClass = (type) => {
-    if (type === 'Consultation') return 'consultation';
-    if (type === 'Follow-up') return 'followup';
-    if (type === 'Surgery') return 'surgery';
-    return 'consultation';
-  };
+  const d = `M ${points.map(p => `${p.x},${p.y}`).join(' L ')}`;
+  const areaD = `${d} L ${points[points.length - 1].x},${height} L 0,${height} Z`;
 
   return (
-    <div className="dash page-enter">
-      <div className="dash__grid">
-        {/* ─── Top Section: 2-column responsive ─── */}
-        <section className="dash__top dash__top--left">
-          <div className="dash-card">
-            <h2 className="dash-card__title">Pending Clinical Tasks</h2>
-            <ul className="dash-tasks">
-              {tasksToShow.map((task) => (
-                <li key={task.id} className="dash-tasks__item">
-                  <div className="dash-tasks__main">
-                    <span className="dash-tasks__patient">{task.patientName}</span>
-                    <span className="dash-tasks__type">{task.taskType}</span>
-                    <span className={`dash-tasks__priority dash-tasks__priority--${priorityClass(task.priority)}`}>
-                      {task.priority}
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    className="dash-tasks__action"
-                    onClick={() => navigate('/patients')}
-                  >
-                    Quick Action
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </section>
+    <svg width={width} height={height} className="sparkline">
+      <defs>
+        <linearGradient id={`gradient-${color}`} x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.2" />
+          <stop offset="100%" stopColor={color} stopOpacity="0.0" />
+        </linearGradient>
+      </defs>
+      <path d={areaD} fill={`url(#gradient-${color})`} />
+      <path d={d} stroke={color} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+};
 
-        <section className="dash__top dash__top--right">
-          <div className="dash-card">
-            <h2 className="dash-card__title">Today&apos;s Schedule</h2>
-            <ul className="dash-schedule">
-              {scheduleWithLocation.map((item, i) => (
-                <li
-                  key={i}
-                  className={`dash-schedule__item dash-schedule__item--${scheduleTypeClass(item.consultationType)}`}
-                >
-                  <span className="dash-schedule__time">{item.time}</span>
-                  <span className="dash-schedule__patient">{item.patient}</span>
-                  <span className="dash-schedule__type">
-                    {item.consultationType === 'Consultation' ? 'OP' : item.consultationType === 'Follow-up' ? 'Follow-up' : 'Surgery'}
-                  </span>
-                  <span className="dash-schedule__location">{item.location}</span>
-                  <button
-                    type="button"
-                    className="dash-schedule__btn"
-                    onClick={() => item.patient && item.patient !== 'Walk-in slot' && navigate('/patients')}
-                  >
-                    View Patient
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </section>
+export default function Dashboard() {
+  const { logActivity } = useActivity();
 
-        {/* ─── Row 2: Patient Overview Summary + Recent Alerts ─── */}
-        <section className="dash__row2 dash__summary">
-          <div className="dash-card dash-card--summary">
-            <h2 className="dash-card__title">Patient Overview Summary</h2>
-            <div className="dash-summary__content">
-              <div className="dash-summary__actions">
-                {myPatients.slice(0, 4).map((p) => (
-                  <button
-                    key={p.id}
-                    type="button"
-                    className="dash-summary__btn"
-                    onClick={() => navigate(`/patient/${p.id}`)}
-                  >
-                    <span className="dash-summary__btn-name">{p.name}</span>
-                    <span className="dash-summary__btn-meta">{p.ward || '—'} · {(p.severity || '—')}</span>
-                  </button>
-                ))}
-              </div>
+  useEffect(() => {
+    logActivity('view_dashboard_redesign');
+  }, [logActivity]);
+
+  return (
+    <div className="dashboard-redesign page-enter">
+      <div className="dashboard__container">
+
+        {/* Stat Cards Section */}
+        <section className="dashboard__stats-grid">
+          <div className="stat-card">
+            <div className="stat-card__main">
+              <span className="stat-card__label">Total Patients</span>
+              <h2 className="stat-card__value">{dashboardOverview.totalPatients}</h2>
+            </div>
+            <div className="stat-card__meta">
+              <span className="stat-card__trend positive">▲ 4.7% last week</span>
+              <Sparkline data={dashboardOverview.stats.patients} color="#48bb78" />
+            </div>
+          </div>
+
+          <div className="stat-card">
+            <div className="stat-card__main">
+              <span className="stat-card__label">Patients Attended</span>
+              <h2 className="stat-card__value">{dashboardOverview.patientsAttended}</h2>
+            </div>
+            <div className="stat-card__meta">
+              <span className="stat-card__trend positive">▲ 12% last week</span>
+              <Sparkline data={dashboardOverview.stats.attended} color="#38bdf8" />
+            </div>
+          </div>
+
+          <div className="stat-card">
+            <div className="stat-card__main">
+              <span className="stat-card__label">Today's Appointment</span>
+              <h2 className="stat-card__value">{dashboardOverview.todayAppointments}</h2>
+            </div>
+            <div className="stat-card__meta">
+              <span className="stat-card__trend negative">▼ 2.4% last week</span>
+              <Sparkline data={dashboardOverview.stats.appointments} color="#f56565" />
+            </div>
+          </div>
+
+          <div className="stat-card">
+            <div className="stat-card__main">
+              <span className="stat-card__label">Surgery Schedules</span>
+              <h2 className="stat-card__value">{dashboardOverview.surgeriesScheduled}</h2>
+            </div>
+            <div className="stat-card__meta">
+              <span className="stat-card__trend positive">▲ 8.2% last week</span>
+              <Sparkline data={dashboardOverview.stats.surgeries} color="#818cf8" />
             </div>
           </div>
         </section>
 
-        <section className="dash__row2 dash__alerts">
-          <div className="dash-card">
-            <h2 className="dash-card__title">Recent Alerts</h2>
-            <p className="dash-alerts__note">Clinical alerts only</p>
-            <ul className="dash-alerts-list">
-              {clinicalAlerts.slice(0, 5).map((a) => (
-                <li key={a.id} className={`dash-alert dash-alert--${a.type}`}>
-                  <div className="dash-alert__head">
-                    <span className="dash-alert__title">{a.title}</span>
-                    <span className="dash-alert__time">{a.time}</span>
+        {/* Doctor's Tasks Section */}
+        <section className="dashboard__activity">
+          <div className="activity-card">
+            <div className="activity-card__header">
+              <h3 className="activity-card__title">Doctor's Tasks for the Day</h3>
+              <div className="activity-card__controls">
+                <span className="current-date">Friday, March 6, 2026</span>
+              </div>
+            </div>
+
+            <div className="tasks-list">
+              {pendingClinicalTasks.map((task) => (
+                <div key={task.id} className="task-item">
+                  <div className="task-item__main">
+                    <div className={`task-badge ${task.priority.toLowerCase()}`}>
+                      {task.priority}
+                    </div>
+                    <div className="task-content">
+                      <span className="task-type">{task.taskType}</span>
+                      <span className="task-patient">Patient: {task.patientName}</span>
+                    </div>
                   </div>
-                  <p className="dash-alert__message">{a.message}</p>
-                  {a.patient && a.patient !== '—' && (
-                    <button
-                      type="button"
-                      className="dash-alert__action"
-                      onClick={() => navigate('/patients')}
-                    >
-                      View
-                    </button>
-                  )}
-                </li>
+                  <button className="task-action-btn">View Details</button>
+                </div>
               ))}
-            </ul>
+            </div>
+
+            <div className="activity-footer">
+              <span className="footer-info">Showing {pendingClinicalTasks.length} pending tasks</span>
+            </div>
           </div>
         </section>
+
       </div>
     </div>
   );
 }
-
-export default Dashboard;
