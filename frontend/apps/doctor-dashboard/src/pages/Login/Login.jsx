@@ -6,6 +6,7 @@ import './Login.css';
 export default function Login() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [rememberMe, setRememberMe] = useState(true);
     const [error, setError] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -35,24 +36,23 @@ export default function Login() {
         <div className="login-container">
             <div className="login-card animate-in">
                 <div className="login-logo">
-                    <div className="logo-icon">C</div>
-                    <h1>CDSS Platform</h1>
-                    <p>Clinical Decision Support System</p>
+                    <h1>CDSS Login</h1>
+                    <p>Enter your credentials to continue</p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="login-form">
                     <div className="form-group">
-                        <label>Clinical Email</label>
+                        <label>EMAIL</label>
                         <input
                             type="email"
-                            placeholder="name@hospital.ai"
+                            placeholder="admin@cdss.ai"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             required
                         />
                     </div>
                     <div className="form-group">
-                        <label>Credential Key</label>
+                        <label>PASSWORD</label>
                         <input
                             type="password"
                             placeholder="••••••••"
@@ -60,6 +60,24 @@ export default function Login() {
                             onChange={(e) => setPassword(e.target.value)}
                             required
                         />
+                    </div>
+
+                    <div className="login-actions-row">
+                        <label className="login-remember">
+                            <input
+                                type="checkbox"
+                                checked={rememberMe}
+                                onChange={(e) => setRememberMe(e.target.checked)}
+                            />
+                            <span>Remember me</span>
+                        </label>
+                        <button
+                            type="button"
+                            className="login-forgot"
+                            onClick={() => setError('Please contact IT support to reset your password.')}
+                        >
+                            Forgot password?
+                        </button>
                     </div>
 
                     {error && <div className="login-error">⚠️ {error}</div>}
@@ -70,10 +88,7 @@ export default function Login() {
                 </form>
 
                 <div className="login-footer">
-                    <p>Secured by Hospital KMS & Biometric Auth</p>
-                    <div className="demo-hint">
-                        <small>Demo: Staff priya@cdss.ai / Admin admin@cdss.ai — Patient rajesh@patient.demo (pwd: password123)</small>
-                    </div>
+                    <small>Demo: priya@cdss.ai / admin@cdss.ai (password123)</small>
                 </div>
             </div>
         </div>

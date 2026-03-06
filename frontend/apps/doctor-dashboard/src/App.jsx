@@ -13,6 +13,8 @@ import AIChat from './pages/AIChat/AIChat';
 import Surgery from './pages/Surgery/Surgery';
 import SurgeryPlanning from './pages/SurgeryPlanning/SurgeryPlanning';
 import Medications from './pages/Medications/Medications';
+import Doctors from './pages/Doctors/Doctors';
+import Appointments from './pages/Appointments/Appointments';
 import AdminUsers from './pages/Admin/AdminUsers';
 import AdminAudit from './pages/Admin/AdminAudit';
 import AdminConfig from './pages/Admin/AdminConfig';
@@ -32,6 +34,7 @@ import PatientPortalHistory from './pages/PatientPortal/PatientPortalHistory';
 import PatientPortalMedications from './pages/PatientPortal/PatientPortalMedications';
 import PatientPortalSummary from './pages/PatientPortal/PatientPortalSummary';
 import PatientPortalAppointments from './pages/PatientPortal/PatientPortalAppointments';
+import Notifications from './pages/Notifications/Notifications';
 import MyActivity from './pages/MyActivity/MyActivity';
 import './App.css';
 
@@ -45,7 +48,10 @@ function AppLayout() {
           <Routes>
             <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/activity" element={<ProtectedRoute><MyActivity /></ProtectedRoute>} />
+            <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
             <Route path="/patients" element={<ProtectedRoute><Patients /></ProtectedRoute>} />
+            <Route path="/doctors" element={<ProtectedRoute requiredRoles={['admin']}><Doctors /></ProtectedRoute>} />
+            <Route path="/appointments" element={<ProtectedRoute><Appointments /></ProtectedRoute>} />
             <Route path="/patient/:patientId" element={<ProtectedRoute><PatientConsultation /></ProtectedRoute>} />
             <Route path="/ai" element={<ProtectedRoute><AIChat /></ProtectedRoute>} />
             <Route path="/surgery" element={<ProtectedRoute><Surgery /></ProtectedRoute>} />

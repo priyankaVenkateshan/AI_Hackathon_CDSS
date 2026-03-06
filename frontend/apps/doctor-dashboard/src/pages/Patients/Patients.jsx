@@ -52,11 +52,20 @@ export default function Patients() {
 
     const searchFiltered = !searchQuery.trim()
         ? filtered
-        : filtered.filter(
-            p =>
-                (p.name || '').toLowerCase().includes(searchQuery.trim().toLowerCase()) ||
-                (p.id || '').toLowerCase().includes(searchQuery.trim().toLowerCase())
-        );
+        : filtered.filter((p) => {
+            const q = searchQuery.trim().toLowerCase();
+            const name = (p.name || '').toLowerCase();
+            const id = (p.id || '').toLowerCase();
+            const ward = (p.ward || '').toLowerCase();
+            const bloodGroup = (p.bloodGroup || '').toLowerCase();
+            const severity = (p.severity || '').toLowerCase();
+            const status = (p.status || '').toLowerCase();
+            const lastVisit = (p.lastVisit || '').toLowerCase();
+            const conditionsStr = (Array.isArray(p.conditions) ? p.conditions : [p.conditions]).filter(Boolean).join(' ').toLowerCase();
+            const ageStr = p.age != null ? String(p.age) : '';
+            return name.includes(q) || id.includes(q) || ward.includes(q) || bloodGroup.includes(q) ||
+                severity.includes(q) || status.includes(q) || lastVisit.includes(q) || conditionsStr.includes(q) || ageStr.includes(q);
+        });
 
     const riskScore = (p) => {
         const s = (p.severity || '').toLowerCase();
@@ -89,15 +98,30 @@ export default function Patients() {
     return (
         <div className="patients-page page-enter">
             <div className="patients-page__header">
-                <h1 className="patients-page__title">🔍 Patient Search</h1>
+                <h1 className="patients-page__title">Patient Search</h1>
                 <div className="patients-page__search-engine">
-                    <input
-                        type="text"
-                        className="patients-search-input"
-                        placeholder="Search by Name or Patient ID"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                    />
+                    <label className="patients-search-wrap" htmlFor="patients-search-input">
+                        <span className="patients-search-wrap__icon" aria-hidden="true">🔍</span>
+                        <input
+                            id="patients-search-input"
+                            type="text"
+                            className="patients-search-input"
+                            placeholder="Search by ID, name, ward, condition, severity..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            aria-label="Search patients by ID, name, ward, condition, or severity"
+                        />
+                        {searchQuery.length > 0 && (
+                            <button
+                                type="button"
+                                className="patients-search-wrap__clear"
+                                onClick={(e) => { e.preventDefault(); setSearchQuery(''); }}
+                                aria-label="Clear search"
+                            >
+                                ✕
+                            </button>
+                        )}
+                    </label>
                 </div>
                 <div className="patients-page__filters">
                     {filters.map(f => (
