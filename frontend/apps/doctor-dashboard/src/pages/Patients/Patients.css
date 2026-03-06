@@ -21,75 +21,15 @@
     min-width: 220px;
 }
 
-.patients-search-wrap {
-    display: flex;
-    align-items: center;
-    position: relative;
-    width: 100%;
-    max-width: 360px;
-    background: #1e3a5f;
-    border: 1px solid rgba(96, 165, 250, 0.35);
-    border-radius: 12px;
-    cursor: text;
-    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05);
-}
-
-.patients-search-wrap:focus-within {
-    border-color: rgba(96, 165, 250, 0.6);
-    box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2);
-}
-
-.patients-search-wrap__icon {
-    flex-shrink: 0;
-    width: 44px;
-    height: 44px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 18px;
-    color: rgba(147, 197, 253, 0.9);
-    pointer-events: none;
-}
-
 .patients-search-input {
-    flex: 1;
-    min-width: 0;
-    height: 44px;
-    padding: 0 44px 0 0;
-    border: none;
-    border-radius: 12px;
+    width: 100%;
+    max-width: 320px;
+    padding: var(--space-2) var(--space-4);
+    border: 1px solid var(--surface-border);
+    border-radius: var(--radius-md);
     font-size: var(--text-sm);
-    background: transparent;
-    color: #fff;
-    outline: none;
-}
-
-.patients-search-input::placeholder {
-    color: rgba(255, 255, 255, 0.45);
-}
-
-.patients-search-wrap__clear {
-    position: absolute;
-    right: 8px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 28px;
-    height: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: none;
-    border-radius: 8px;
-    background: transparent;
-    color: rgba(147, 197, 253, 0.9);
-    font-size: 14px;
-    cursor: pointer;
-    transition: background 0.15s, color 0.15s;
-}
-
-.patients-search-wrap__clear:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: #fff;
+    background: var(--surface-card);
+    color: var(--text-primary);
 }
 
 .patients-page__content {

@@ -4,14 +4,22 @@ import { useAuth, roles } from '../../context/AuthContext';
 import './Sidebar.css';
 
 const navItems = [
-    { path: '/', icon: '➕', label: 'Dashboard', tooltip: 'Dashboard' },
-    { path: '/patients', icon: '👤', label: 'Patients', tooltip: 'Patients' },
-    { path: '/doctors', icon: '🩺', label: 'Doctors', tooltip: 'Doctors' },
-    { path: '/appointments', icon: '📅', label: 'Appointments', tooltip: 'Appointments' },
-    { path: '/reports', icon: '📄', label: 'Reports', tooltip: 'Reports' },
+    { section: 'Navigation' },
+    { path: '/', icon: '🏠', label: 'Dashboard', tooltip: 'Dashboard' },
+    { path: '/patients', icon: '👥', label: 'Patients', tooltip: 'Patients' },
+    { path: '/surgery', icon: '🔪', label: 'Surgeries', tooltip: 'Surgical Schedule' },
+    { path: '/medications', icon: '📋', label: 'Clinical Tasks', tooltip: 'Clinical Tasks' },
+    { path: '/reports', icon: '📊', label: 'Reports', tooltip: 'Reports' },
+    { path: '/profile', icon: '👤', label: 'Profile', tooltip: 'Profile' },
+    { section: 'System', roles: [roles.ADMIN] },
+    { path: '/admin/dashboard', icon: '📊', label: 'Admin Dashboard', tooltip: 'Admin overview', roles: [roles.ADMIN] },
+    { path: '/admin/users', icon: '👥', label: 'Users', tooltip: 'Users & roles', roles: [roles.ADMIN] },
+    { path: '/admin/audit', icon: '📋', label: 'Audit Log', tooltip: 'Audit log', roles: [roles.ADMIN] },
+    { path: '/admin/config', icon: '🔧', label: 'System Config', tooltip: 'Config', roles: [roles.ADMIN] },
     { path: '/admin/analytics', icon: '📊', label: 'Analytics', tooltip: 'Analytics', roles: [roles.ADMIN] },
+    { path: '/admin/resources', icon: '🛠️', label: 'Admin Resources', tooltip: 'OT & equipment', roles: [roles.ADMIN] },
     { path: '/settings', icon: '⚙️', label: 'Settings', tooltip: 'Settings', roles: [roles.ADMIN] },
-    ...(import.meta.env.DEV ? [{ path: '/debug', icon: '🔧', label: 'Debug', tooltip: 'Dev debug panel' }] : []),
+    ...(import.meta.env.DEV ? [{ path: '/debug', icon: '🔧', label: 'Debug', tooltip: 'Dev debug panel', section: null }] : []),
 ];
 
 export default function Sidebar() {

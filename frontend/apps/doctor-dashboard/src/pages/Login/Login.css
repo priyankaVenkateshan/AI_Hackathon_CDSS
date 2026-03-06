@@ -1,163 +1,324 @@
-/* Login page — dark theme, centered card (matches reference) */
-.login-container {
+/* ============================================================
+   CDSS Medical Dashboard — Exact Mockup Stylization
+   Strictly scoped to .login-screen-root to prevent dashboard 
+   style pollution.
+   ============================================================ */
+
+.login-screen-root {
     min-height: 100vh;
-    width: 100%;
+    width: 100vw;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    background: #0f1419;
-    padding: var(--space-6);
+    background: #f8fafc;
+    /* Very light clinical gray */
+    font-family: 'Inter', -apple-system, sans-serif;
+    color: #1e293b;
+    padding: 24px;
+    margin: 0;
     box-sizing: border-box;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 10000;
 }
 
-.login-card {
+/* --- Top Branding Logo --- */
+.cdss-branding-top {
+    position: absolute;
+    top: 40px;
+    left: 40px;
+}
+
+.cdss-logo-v3 {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.cdss-logo-v3 svg {
+    width: 52px;
+    height: 52px;
+}
+
+.logo-label-v3 {
+    display: flex;
+    flex-direction: column;
+    line-height: 1;
+}
+
+.brand-main {
+    font-size: 32px;
+    font-weight: 800;
+    color: #0f172a;
+    letter-spacing: -0.01em;
+}
+
+.brand-sub {
+    font-size: 16px;
+    font-weight: 700;
+    color: #475569;
+    letter-spacing: 0.12em;
+    margin-top: 2px;
+}
+
+/* --- Login Card Implementation --- */
+.login-card-exact {
     width: 100%;
-    max-width: 420px;
-    padding: var(--space-8);
-    background: #1a1f26;
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 16px;
-    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.4);
-}
-
-.login-logo {
+    max-width: 470px;
+    background: #ffffff;
+    border-radius: 24px;
+    padding: 60px 48px 48px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.06);
+    border: 1px solid #eef2f6;
     text-align: center;
-    margin-bottom: var(--space-8);
 }
 
-.login-logo h1 {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: #fff;
-    margin: 0 0 4px 0;
+.login-title-exact {
+    font-size: 28px;
+    font-weight: 800;
+    color: #1e293b;
+    margin-bottom: 8px;
 }
 
-.login-logo p {
-    color: #94a3b8;
-    font-size: 0.875rem;
-    margin: 0;
-}
-
-.login-form {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-5);
-}
-
-.form-group {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-2);
-}
-
-.form-group label {
-    font-size: 0.6875rem;
-    font-weight: 700;
-    color: #fff;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-}
-
-.form-group input {
-    padding: 12px 14px;
-    background: #252a33;
-    border: none;
-    border-radius: 10px;
-    color: #fff;
-    font-size: 0.875rem;
-    outline: none;
-    transition: background 0.15s ease;
-}
-
-.form-group input::placeholder {
+.login-subtitle-exact {
+    font-size: 15px;
     color: #64748b;
+    margin-bottom: 32px;
 }
 
-.form-group input:focus {
-    background: #2d333d;
+/* --- Form & Controls --- */
+.login-form-exact {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    text-align: left;
 }
 
-.login-actions-row {
+.login-field-group label {
+    display: block;
+    font-size: 13px;
+    font-weight: 700;
+    color: #334155;
+    margin-bottom: 8px;
+}
+
+.login-input-box,
+.login-select-box {
+    position: relative;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: var(--space-4);
-    margin-top: -4px;
 }
 
-.login-remember {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    color: rgba(255, 255, 255, 0.9);
-    font-size: 0.8125rem;
-    font-weight: 600;
-    cursor: pointer;
+.login-input-box input,
+.login-select-box select {
+    width: 100%;
+    height: 48px;
+    padding: 0 16px;
+    background: #ffffff;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 10px;
+    font-size: 15px;
+    color: #1e293b;
+    transition: all 0.2s;
+    outline: none;
 }
 
-.login-remember input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
-    margin: 0;
-    accent-color: #ef4444;
-    cursor: pointer;
+.login-input-box input:focus,
+.login-select-box select:focus {
+    border-color: #1d82f6;
+    box-shadow: 0 0 0 4px rgba(29, 130, 246, 0.08);
 }
 
-.login-forgot {
+.field-icon-right {
+    position: absolute;
+    right: 14px;
+    font-size: 18px;
+    color: #94a3b8;
+}
+
+.field-icon-left {
+    position: absolute;
+    left: 14px;
+    font-size: 16px;
+    color: #94a3b8;
+}
+
+.field-icon-left~input {
+    padding-left: 44px;
+}
+
+.field-action-right {
+    position: absolute;
+    right: 14px;
     background: none;
     border: none;
-    padding: 0;
-    font-size: 0.8125rem;
-    font-weight: 600;
-    color: #3b82f6;
-    text-decoration: none;
+    color: #94a3b8;
+    cursor: pointer;
+    font-size: 18px;
+}
+
+/* --- Select Styling --- */
+.login-select-box::after {
+    content: "▼";
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 10px;
+    color: #94a3b8;
+    pointer-events: none;
+}
+
+.login-select-box select {
+    appearance: none;
+    padding-right: 40px;
+}
+
+/* --- Actions Row --- */
+.login-actions-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 4px;
+}
+
+.exact-switch {
+    display: flex;
+    align-items: center;
+    gap: 12px;
     cursor: pointer;
 }
 
-.login-forgot:hover {
-    color: #60a5fa;
+.exact-switch input {
+    display: none;
+}
+
+.switch-track {
+    width: 44px;
+    height: 24px;
+    background: #cbd5e1;
+    border-radius: 20px;
+    position: relative;
+    transition: 0.3s;
+}
+
+.switch-track::before {
+    content: "";
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 18px;
+    height: 18px;
+    background: white;
+    border-radius: 50%;
+    transition: 0.3s;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.exact-switch input:checked+.switch-track {
+    background: #1d82f6;
+}
+
+.exact-switch input:checked+.switch-track::before {
+    transform: translateX(20px);
+}
+
+.switch-text {
+    font-size: 14px;
+    font-weight: 600;
+    color: #475569;
+}
+
+.forgot-link-exact {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1d82f6;
+    text-decoration: none;
+}
+
+.forgot-link-exact:hover {
     text-decoration: underline;
 }
 
-.login-error {
-    padding: var(--space-3);
-    background: rgba(239, 68, 68, 0.12);
-    border: 1px solid rgba(239, 68, 68, 0.3);
-    border-radius: 10px;
-    color: #fca5a5;
-    font-size: 0.8125rem;
-    text-align: center;
-}
-
-.login-btn {
-    margin-top: var(--space-2);
-    padding: 14px 20px;
-    background: #2563eb;
-    color: #fff;
+/* --- Submit Button --- */
+.login-submit-btn-exact {
+    width: 100%;
+    height: 52px;
+    background: #1d82f6;
+    color: #ffffff;
     border: none;
-    border-radius: 10px;
+    border-radius: 26px;
+    /* Pill shape matched to mockup */
+    font-size: 16px;
     font-weight: 700;
-    font-size: 0.9375rem;
     cursor: pointer;
-    transition: background 0.15s ease, transform 0.15s ease;
+    transition: all 0.2s;
+    margin-top: 12px;
+    box-shadow: 0 8px 16px rgba(29, 130, 246, 0.2);
 }
 
-.login-btn:hover:not(:disabled) {
-    background: #1d4ed8;
+.login-submit-btn-exact:hover:not(:disabled) {
+    background: #1971d6;
+    box-shadow: 0 10px 20px rgba(29, 130, 246, 0.25);
     transform: translateY(-1px);
 }
 
-.login-btn:disabled {
-    opacity: 0.6;
+.login-submit-btn-exact:disabled {
+    opacity: 0.7;
     cursor: not-allowed;
 }
 
-.login-footer {
-    margin-top: var(--space-8);
+/* --- Footer --- */
+.login-footer-exact {
+    margin-top: 40px;
+}
+
+.assistance-text {
+    font-size: 14px;
+    color: #64748b;
+    margin-bottom: 4px;
+}
+
+.assistance-text a {
+    color: #475569;
+    font-weight: 700;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.copyright-text {
+    font-size: 12px;
+    color: #94a3b8;
+}
+
+.login-error-exact {
+    background: #fef2f2;
+    color: #dc2626;
+    padding: 10px;
+    border-radius: 8px;
+    font-size: 13px;
+    border: 1px solid #fee2e2;
     text-align: center;
 }
 
-.login-footer small {
-    font-size: 0.75rem;
-    color: #64748b;
+/* --- Responsive Adaption --- */
+@media (max-width: 640px) {
+    .cdss-branding-top {
+        position: static;
+        margin-bottom: 40px;
+    }
+
+    .login-card-exact {
+        padding: 40px 24px;
+        border-radius: 0;
+        box-shadow: none;
+        border: none;
+    }
+
+    .login-screen-root {
+        padding: 0;
+        background: white;
+    }
 }

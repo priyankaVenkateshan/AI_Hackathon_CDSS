@@ -320,15 +320,7 @@ export const todaySchedule = [
   { time: '15:30', patient: 'Arjun Nair', type: 'Pre-op Check', status: 'upcoming' },
 ];
 
-/** For dashboard: task type, patient, priority, used for surgeons (pre-op clearance) and doctors */
-export const pendingClinicalTasks = [
-  { id: 't1', patientName: 'Rajesh Kumar', taskType: 'Lab review pending', priority: 'High' },
-  { id: 't2', patientName: 'Lakshmi Devi', taskType: 'Prescription approval pending', priority: 'High' },
-  { id: 't3', patientName: 'Mohammed Farhan', taskType: 'Discharge summary pending', priority: 'Medium' },
-  { id: 't4', patientName: 'Ananya Singh', taskType: 'Consultation follow-ups', priority: 'Low' },
-  { id: 't5', patientName: 'Arjun Nair', taskType: 'Pre-op clearance', priority: 'Medium', surgeonOnly: true },
-];
-
+/** For dashboard / AI: clinical alerts */
 export const aiAlerts = [
   {
     id: 'alert-1',
@@ -380,152 +372,17 @@ export const aiAlerts = [
   },
 ];
 
+/** Clinical updates for dashboard: type, title, patient, description, time, priority */
+export const clinicalUpdates = [
+  { id: 'cu3', type: 'discharge_pending', title: 'Discharge Pending', patientName: 'Lakshmi Devi', description: 'Discharge summary and prescriptions pending sign-off.', time: '1 hr ago', priority: 'moderate' },
+  { id: 'cu4', type: 'upcoming_surgery', title: 'Upcoming Surgery', patientName: 'Arjun Nair', description: 'ACL reconstruction — Pre-op cleared. OT-3, March 5.', time: '30 min ago', priority: 'info' },
+  { id: 'cu5', type: 'follow_up_reminder', title: 'Follow-up Reminder', patientName: 'Ananya Singh', description: 'Routine follow-up due in 2 days. Diabetic care review.', time: '2 hr ago', priority: 'normal' },
+];
+
 /** Clinical alerts only (no AI marketing / Global Risk Pulse) for dashboard */
 export const clinicalAlerts = aiAlerts.filter(
   (a) => ['critical', 'warning', 'info', 'success'].includes(a.type)
 );
-
-// ─── Operations-focused Dashboard (no AI/risk) ───
-
-export const dashboardOverview = {
-  todayAppointments: 18,
-  totalPatients: 210,
-  patientsAttended: 12,
-  surgeriesScheduled: 5,
-  pendingCaseNotes: 3,
-  shiftHoursRemaining: 4,
-  updatedAt: '5 mins ago',
-  stats: {
-    appointments: [10, 12, 15, 14, 16, 18],
-    patients: [180, 200, 190, 220, 210, 210],
-    attended: [8, 10, 9, 11, 10, 12],
-    surgeries: [2, 3, 2, 4, 3, 5]
-  }
-};
-
-/** Appointment Activity for new dashboard table */
-export const appointmentActivity = [
-  {
-    id: 1,
-    name: 'Leslie Alexander',
-    age: 25,
-    fees: '$25/h',
-    date: '10/10/2020',
-    visitTime: '09:15-09:45am',
-    doctor: 'Dr. Jacob Jones',
-    conditions: 'Mumps Stage II',
-    avatar: 'https://i.pravatar.cc/150?u=leslie'
-  },
-  {
-    id: 2,
-    name: 'Ronald Richards',
-    age: 43,
-    fees: '$25/h',
-    date: '10/12/2020',
-    visitTime: '12:00-12:45pm',
-    doctor: 'Dr. Theresa Webb',
-    conditions: 'Depression',
-    avatar: 'https://i.pravatar.cc/150?u=ronald'
-  },
-  {
-    id: 3,
-    name: 'Jane Cooper',
-    age: 55,
-    fees: '$25/h',
-    date: '10/13/2020',
-    visitTime: '01:15-01:45pm',
-    doctor: 'Dr. Jacob Jones',
-    conditions: 'Arthritis',
-    avatar: 'https://i.pravatar.cc/150?u=jane'
-  },
-  {
-    id: 4,
-    name: 'Robert Fox',
-    age: 23,
-    fees: '$25/h',
-    date: '10/14/2020',
-    visitTime: '02:00-02:45pm',
-    doctor: 'Dr. Arlene McCoy',
-    conditions: 'Fracture',
-    avatar: 'https://i.pravatar.cc/150?u=robert'
-  },
-  {
-    id: 5,
-    name: 'Jenny Wilson',
-    age: 29,
-    fees: '$25/h',
-    date: '10/15/2020',
-    visitTime: '12:00-12:45pm',
-    doctor: 'Dr. Esther Howard',
-    conditions: 'Depression',
-    avatar: 'https://i.pravatar.cc/150?u=jenny'
-  },
-];
-
-/** Operational alerts only: shift, staffing, emergency, escalation. No AI/clinical risk. */
-export const operationalAlerts = [
-  {
-    id: 'op-2',
-    type: 'shift',
-    title: 'Shift extended',
-    message: 'Shift extended by 2 hours (Overtime approved).',
-    time: '09:00',
-    action: 'Acknowledge',
-  },
-  {
-    id: 'op-3',
-    type: 'emergency',
-    title: 'Emergency admission',
-    message: 'Emergency admission assigned to you.',
-    time: '11:45',
-    action: null,
-  },
-  {
-    id: 'op-4',
-    type: 'shift',
-    title: 'OT rescheduled',
-    message: 'OT rescheduled to 4:30 PM.',
-    time: '10:30',
-    action: 'View',
-  },
-  {
-    id: 'op-5',
-    type: 'info',
-    title: 'Nurse escalation request',
-    message: 'Nurse escalation request pending.',
-    time: '11:00',
-    action: 'View',
-  },
-  {
-    id: 'op-6',
-    type: 'info',
-    title: 'ICU transfer request',
-    message: 'ICU transfer request requires your approval.',
-    time: '11:20',
-    action: 'Acknowledge',
-  },
-];
-
-/** Exactly 3 alerts for clean dashboard: Staffing (View), Shift (Acknowledge), Emergency (no button). */
-export const vitalAlertsThree = operationalAlerts.slice(0, 3);
-
-/** Checklist-style pending tasks (no AI recommendations). */
-export const pendingTasksChecklist = [
-  { id: 'ck-1', label: 'Complete discharge summary', done: false },
-  { id: 'ck-2', label: 'Review lab results', done: false },
-  { id: 'ck-3', label: 'Sign prescriptions', done: false },
-  { id: 'ck-4', label: 'Approve surgery notes', done: false },
-];
-
-/** My Patients Today for dashboard table: name, room, condition, priority. */
-export const myPatientsToday = [
-  { id: 'PT-1001', name: 'Rajesh Kumar', room: 'Ward 4', condition: 'Type 2 Diabetes, Hypertension', priority: 'High' },
-  { id: 'PT-1002', name: 'Ananya Singh', room: 'OPD-2', condition: 'Migraine', priority: 'Low' },
-  { id: 'PT-1003', name: 'Mohammed Farhan', room: 'ICU', condition: 'Pneumonia, COPD', priority: 'High' },
-  { id: 'PT-1004', name: 'Lakshmi Devi', room: 'Cardiology', condition: 'Atrial Fibrillation, Heart Failure', priority: 'High' },
-  { id: 'PT-1005', name: 'Arjun Nair', room: 'Ortho', condition: 'ACL Tear — Left Knee', priority: 'Medium' },
-  { id: 'PT-1006', name: 'Fatima Begum', room: 'Ward 2', condition: 'Hypothyroidism', priority: 'Low' },
-];
 
 export const consultationHistory = [
   {
@@ -555,54 +412,9 @@ export const consultationHistory = [
 ];
 
 export const surgeries = [
-  {
-    id: 'SRG-001',
-    patient: 'Arjun Nair',
-    type: 'ACL Reconstruction',
-    complexity: 'Moderate',
-    estimatedDuration: '90 min',
-    ot: 'OT-3',
-    date: '2026-03-05',
-    time: '09:00',
-    status: 'scheduled',
-    surgeon: 'Dr. Vikram Patel',
-    preOpRequirements: {
-      equipment: ['Arthroscopy tower', 'ACL graft system', 'Surgical drill', 'Cams'],
-      checklist: ['NPO status confirmed', 'Consent signed', 'Marking done', 'Prophylactic antibiotics given']
-    }
-  },
-  {
-    id: 'SRG-002',
-    patient: 'Lakshmi Devi',
-    type: 'Cardiac Catheterization',
-    complexity: 'High',
-    estimatedDuration: '120 min',
-    ot: 'OT-1',
-    date: '2026-03-06',
-    time: '10:00',
-    status: 'pre-op',
-    surgeon: 'Dr. Meena Rao',
-    preOpRequirements: {
-      equipment: ['Fluoroscopy system', 'Catheter kit', 'Contrast media', 'Monitoring sensors'],
-      checklist: ['INR checked', 'Renal function verified', 'Allergies screened', 'Consent signed']
-    }
-  },
-  {
-    id: 'SRG-003',
-    patient: 'Unknown',
-    type: 'Appendectomy',
-    complexity: 'Low',
-    estimatedDuration: '60 min',
-    ot: 'OT-2',
-    date: '2026-03-04',
-    time: '14:00',
-    status: 'in-prep',
-    surgeon: 'Dr. Priya Sharma',
-    preOpRequirements: {
-      equipment: ['Laparoscopic set', 'Endoclip applier', 'Suction irrigator'],
-      checklist: ['General anesthesia clearance', 'NPO status', 'Consent signed', 'Skin prep done']
-    }
-  },
+  { id: 'SRG-001', patient: 'Arjun Nair', type: 'ACL Reconstruction', complexity: 'Moderate', estimatedDuration: '90 min', ot: 'OT-3', date: '2026-03-05', time: '09:00', status: 'scheduled', surgeon: 'Dr. Vikram Patel' },
+  { id: 'SRG-002', patient: 'Lakshmi Devi', type: 'Cardiac Catheterization', complexity: 'High', estimatedDuration: '120 min', ot: 'OT-1', date: '2026-03-06', time: '10:00', status: 'pre-op', surgeon: 'Dr. Meena Rao' },
+  { id: 'SRG-003', patient: 'Unknown', type: 'Appendectomy', complexity: 'Low', estimatedDuration: '60 min', ot: 'OT-2', date: '2026-03-04', time: '14:00', status: 'in-prep', surgeon: 'Dr. Priya Sharma' },
 ];
 
 export const medications = [
