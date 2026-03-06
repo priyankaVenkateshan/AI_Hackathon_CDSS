@@ -20,16 +20,21 @@ export default function Login() {
         setIsSubmitting(true);
         setError('');
 
-        const result = await login(email, password);
-        if (result.success) {
-            const role = result.user?.role;
-            const isPatient = role === 'patient';
-            const targetPath = isPatient ? '/patient-portal' : (from || '/');
-            navigate(targetPath, { replace: true });
-        } else {
-            setError(result.message || 'Login failed');
+        try {
+            const result = await login(email, password);
+            if (result.success) {
+                const role = result.user?.role;
+                const isPatient = role === 'patient';
+                const targetPath = isPatient ? '/patient-portal' : (from || '/');
+                navigate(targetPath, { replace: true });
+            } else {
+                setError(result.message || 'Login failed');
+            }
+        } catch (_) {
+            setError('Connection error. Please try again.');
+        } finally {
+            setIsSubmitting(false);
         }
-        setIsSubmitting(false);
     };
 
     return (
