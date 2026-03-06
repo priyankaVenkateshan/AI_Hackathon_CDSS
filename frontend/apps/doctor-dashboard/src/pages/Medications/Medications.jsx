@@ -12,22 +12,6 @@ const OPERATIONAL_ALERTS = [
   { id: 6, title: 'Nurse escalation', detail: 'Escalation request from Ward 3 (pain management).', type: 'Escalation', time: '09:45', action: 'Acknowledge' },
 ];
 
-const PENDING_TASKS = [
-  { label: 'Review Lab Results', count: 3 },
-  { label: 'Sign Discharge Summary', count: 2 },
-  { label: 'Approve Prescriptions', count: 5 },
-  { label: 'Respond to Nurse Escalation', count: 1 },
-  { label: 'Complete Case Notes', count: null },
-];
-
-const TODAY_SCHEDULE = [
-  { time: '09:00 AM', activity: 'OPD Consultation' },
-  { time: '11:00 AM', activity: 'Ward Rounds' },
-  { time: '01:30 PM', activity: 'Surgery (Appendectomy)' },
-  { time: '04:00 PM', activity: 'ICU Review' },
-  { time: '06:00 PM', activity: 'Case Documentation' },
-];
-
 const SUMMARY_CARDS = [
   { label: 'Patients Assigned Today', value: 14, updated: '5' },
   { label: 'Critical Cases', value: 2, updated: '2' },
@@ -42,22 +26,6 @@ function SummaryCard({ label, value, updated }) {
       <div className="cw-summary-card__value">{value}</div>
       <div className="cw-summary-card__label">{label}</div>
       <div className="cw-summary-card__updated">Updated {updated} mins ago</div>
-    </div>
-  );
-}
-
-function OperationalAlert({ title, detail, type, time, action }) {
-  return (
-    <div className={`cw-alert cw-alert--${type.toLowerCase()}`}>
-      <div className="cw-alert__head">
-        <span className="cw-alert__title">{title}</span>
-        <span className="cw-alert__type">{type}</span>
-      </div>
-      <p className="cw-alert__detail">{detail}</p>
-      <div className="cw-alert__foot">
-        <span className="cw-alert__time">{time}</span>
-        <button type="button" className="cw-btn cw-btn--sm">{action}</button>
-      </div>
     </div>
   );
 }
@@ -84,6 +52,7 @@ export default function Medications() {
     <div className="cw-page page-enter">
       <div className="cw-breadcrumb">Doctor Portal / Dashboard / Clinical Workboard</div>
       <h1 className="cw-title">Clinical Workboard</h1>
+      <p style={{ margin: '0 0 16px', fontSize: '14px', color: '#059669', fontWeight: 600 }}>✓ Refreshed — Pending Tasks &amp; Schedule sections removed</p>
 
       <div className="cw-grid">
         {/* 1. Top Summary Strip */}
@@ -137,57 +106,29 @@ export default function Medications() {
               </table>
             </div>
           </div>
-
-          {/* B. Pending Clinical Tasks */}
-          <div className="cw-card cw-tasks-card">
-            <h2 className="cw-card__title">Pending Clinical Tasks</h2>
-            <ul className="cw-tasks-list">
-              {PENDING_TASKS.map((task) => (
-                <li key={task.label} className="cw-tasks-item">
-                  <button type="button" className="cw-tasks-link">
-                    {task.label}
-                    {task.count != null && <span className="cw-tasks-count">({task.count})</span>}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
         </section>
 
-        {/* 3. Right 30% - Operational Alert Center */}
+        {/* Right 30% - Operational Alert Center */}
         <aside className="cw-sidebar">
           <div className="cw-card cw-alerts-card">
             <h2 className="cw-card__title">Operational Alert Center</h2>
             <div className="cw-alerts-list">
               {OPERATIONAL_ALERTS.map((a) => (
-                <OperationalAlert
-                  key={a.id}
-                  title={a.title}
-                  detail={a.detail}
-                  type={a.type}
-                  time={a.time}
-                  action={a.action}
-                />
-              ))}
-            </div>
-          </div>
-        </aside>
-
-        {/* 4. Today's Schedule Panel - full width */}
-        <section className="cw-section cw-schedule-section">
-          <div className="cw-card cw-schedule-card">
-            <h2 className="cw-card__title">Today's Schedule</h2>
-            <div className="cw-schedule-timeline">
-              {TODAY_SCHEDULE.map((slot) => (
-                <div key={slot.time} className="cw-schedule-item">
-                  <span className="cw-schedule__time">{slot.time}</span>
-                  <span className="cw-schedule__dash">–</span>
-                  <span className="cw-schedule__activity">{slot.activity}</span>
+                <div key={a.id} className={`cw-alert cw-alert--${a.type.toLowerCase()}`}>
+                  <div className="cw-alert__head">
+                    <span className="cw-alert__title">{a.title}</span>
+                    <span className="cw-alert__type">{a.type}</span>
+                  </div>
+                  <p className="cw-alert__detail">{a.detail}</p>
+                  <div className="cw-alert__foot">
+                    <span className="cw-alert__time">{a.time}</span>
+                    <button type="button" className="cw-btn cw-btn--sm">{a.action}</button>
+                  </div>
                 </div>
               ))}
             </div>
           </div>
-        </section>
+        </aside>
       </div>
     </div>
   );

@@ -23,9 +23,6 @@ export default function Surgery() {
     const [error, setError] = useState(null);
     const [replacementFor, setReplacementFor] = useState(null);
     const [replacementNotified, setReplacementNotified] = useState(false);
-    const [selectedPreOp, setSelectedPreOp] = useState(null);
-    const [sessionRequirements, setSessionRequirements] = useState({});
-    const [newItemTexts, setNewItemTexts] = useState({ equipment: '', checklist: '' });
 
     const mockReplacements = [
         { id: 'DR-ALT-1', name: 'Dr. Suresh Reddy', specialty: 'General Surgery', status: 'available' },
@@ -97,31 +94,18 @@ export default function Surgery() {
                             <th>Team</th>
                             <th>Duration</th>
                             <th>Status</th>
-                            <th>Clinical Info</th>
                         </tr>
                     </thead>
                     <tbody>
                         {list.map((s) => (
-                            <tr key={s.id}>
-                                <td onClick={() => isSurgeon && navigate(`/surgery-planning/${s.id}`)} style={{ cursor: isSurgeon ? 'pointer' : 'default' }}>{s.type}</td>
+                            <tr key={s.id} onClick={() => isSurgeon && navigate(`/surgery-planning/${s.id}`)}>
+                                <td>{s.type}</td>
                                 <td>{s.date} {s.time}</td>
                                 <td>{s.surgeon || '—'}</td>
                                 <td>{s.ot || '—'}</td>
                                 <td>Team —</td>
                                 <td>{s.estimatedDuration || '—'}</td>
                                 <td><span className={`surgery-status-tag surgery-status-tag--${(s.status || '').replace('-', '_')}`}>{s.status === 'in-prep' ? 'In Progress' : s.status === 'pre-op' ? 'Pre-Op Assessment' : (s.status || 'Scheduled')}</span></td>
-                                <td>
-                                    <button
-                                        className="surgery-card__plan-btn"
-                                        style={{ padding: '4px 8px', fontSize: '11px', margin: 0 }}
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            setSelectedPreOp(s);
-                                        }}
-                                    >
-                                        Pre-Op Info
-                                    </button>
-                                </td>
                             </tr>
                         ))}
                     </tbody>
@@ -130,27 +114,27 @@ export default function Surgery() {
 
             {/* Complication Simulator - Surgeon only */}
             {isSurgeon && (
-                <div className="surgery-complication-simulator">
-                    <h2 className="surgery-section-title">Complication Simulator (Edge Case)</h2>
-                    <div className="complication-simulator__card">
-                        <div className="complication-simulator__row">
-                            <span className="complication-simulator__label">Complication Type</span>
-                            <span className="complication-simulator__value">Intraoperative findings — unexpected bleeding</span>
-                        </div>
-                        <div className="complication-simulator__row">
-                            <span className="complication-simulator__label">AI Suggested Intervention</span>
-                            <span className="complication-simulator__value">Real-time surgical guidance: Apply pressure, consider vessel ligation; check coagulation panel.</span>
-                        </div>
-                        <div className="complication-simulator__row">
-                            <span className="complication-simulator__label">Immediate Actions</span>
-                            <ol className="complication-simulator__actions">
-                                <li>Maintain hemodynamics; request blood products if needed.</li>
-                                <li>Identify source; consider intra-op imaging.</li>
-                                <li>Follow emergency protocol for hemorrhage control.</li>
-                            </ol>
-                        </div>
+            <div className="surgery-complication-simulator">
+                <h2 className="surgery-section-title">Complication Simulator (Edge Case)</h2>
+                <div className="complication-simulator__card">
+                    <div className="complication-simulator__row">
+                        <span className="complication-simulator__label">Complication Type</span>
+                        <span className="complication-simulator__value">Intraoperative findings — unexpected bleeding</span>
+                    </div>
+                    <div className="complication-simulator__row">
+                        <span className="complication-simulator__label">AI Suggested Intervention</span>
+                        <span className="complication-simulator__value">Real-time surgical guidance: Apply pressure, consider vessel ligation; check coagulation panel.</span>
+                    </div>
+                    <div className="complication-simulator__row">
+                        <span className="complication-simulator__label">Immediate Actions</span>
+                        <ol className="complication-simulator__actions">
+                            <li>Maintain hemodynamics; request blood products if needed.</li>
+                            <li>Identify source; consider intra-op imaging.</li>
+                            <li>Follow emergency protocol for hemorrhage control.</li>
+                        </ol>
                     </div>
                 </div>
+            </div>
             )}
 
             {replacementFor && (
@@ -184,12 +168,12 @@ export default function Surgery() {
                     <strong>New surgery requested for {location.state.patientName}</strong>
                     <p style={{ margin: 'var(--space-2) 0', fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>Create a surgery and open the planning flow to pick an OT slot.</p>
                     {isSurgeon && (
-                        <button
-                            className="btn btn--primary"
-                            onClick={() => navigate('/surgery-planning/new', { state: { patientId: location.state.patientId, patientName: location.state.patientName }, replace: true })}
-                        >
-                            Create surgery & plan
-                        </button>
+                    <button
+                        className="btn btn--primary"
+                        onClick={() => navigate('/surgery-planning/new', { state: { patientId: location.state.patientId, patientName: location.state.patientName }, replace: true })}
+                    >
+                        Create surgery & plan
+                    </button>
                     )}
                 </div>
             )}
@@ -217,18 +201,6 @@ export default function Surgery() {
                                     <div style={{ marginTop: 'var(--space-2)', fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
                                         🩺 {surgery.surgeon || '—'}
                                     </div>
-
-                                    <button
-                                        className="surgery-card__plan-btn"
-                                        style={{ marginTop: 'var(--space-2)', background: '#6366f1', color: '#fff' }}
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            setSelectedPreOp(surgery);
-                                        }}
-                                    >
-                                        View Pre-Op Requirements
-                                    </button>
-
                                     {(surgery.status === 'scheduled' || surgery.status === 'in-prep') && isSurgeon && (
                                         <>
                                             <button
@@ -263,105 +235,6 @@ export default function Surgery() {
                     );
                 })}
             </div>
-
-            {/* Pre-Op Requirements Modal */}
-            {selectedPreOp && (() => {
-                const sId = selectedPreOp.id;
-                // Initialize or get session-specific data for this surgery
-                const sessionData = sessionRequirements[sId] || {
-                    equipment: (selectedPreOp.preOpRequirements?.equipment || []).map(name => ({ name, checked: false })),
-                    checklist: (selectedPreOp.preOpRequirements?.checklist || []).map(name => ({ name, checked: false }))
-                };
-
-                const toggleItem = (type, index) => {
-                    const newData = { ...sessionData };
-                    newData[type][index].checked = !newData[type][index].checked;
-                    setSessionRequirements({ ...sessionRequirements, [sId]: newData });
-                };
-
-                const addItem = (type) => {
-                    const text = newItemTexts[type].trim();
-                    if (!text) return;
-                    const newData = { ...sessionData };
-                    newData[type].push({ name: text, checked: false });
-                    setSessionRequirements({ ...sessionRequirements, [sId]: newData });
-                    setNewItemTexts({ ...newItemTexts, [type]: '' });
-                };
-
-                return (
-                    <div className="pre-op-modal-overlay" onClick={() => setSelectedPreOp(null)}>
-                        <div className="pre-op-modal" onClick={e => e.stopPropagation()}>
-                            <div className="pre-op-modal__header">
-                                <div>
-                                    <h3 className="pre-op-modal__title">Pre-Op Planning Checklist</h3>
-                                    <p className="pre-op-modal__subtitle">{selectedPreOp.type} — {selectedPreOp.patient}</p>
-                                </div>
-                                <button className="pre-op-modal__close" onClick={() => setSelectedPreOp(null)}>×</button>
-                            </div>
-                            <div className="pre-op-modal__content">
-                                {/* Equipment Section */}
-                                <div className="pre-op-section">
-                                    <h4 className="pre-op-section__title">🛠 Required Equipment</h4>
-                                    <div className="pre-op-checklist">
-                                        {sessionData.equipment.map((item, idx) => (
-                                            <label key={`eq-${idx}`} className={`pre-op-checkbox-item ${item.checked ? 'is-checked' : ''}`}>
-                                                <input
-                                                    type="checkbox"
-                                                    checked={item.checked}
-                                                    onChange={() => toggleItem('equipment', idx)}
-                                                />
-                                                <span className="checkbox-custom"></span>
-                                                <span className="item-name">{item.name}</span>
-                                            </label>
-                                        ))}
-                                    </div>
-                                    <div className="pre-op-add-item">
-                                        <input
-                                            type="text"
-                                            placeholder="Add equipment..."
-                                            value={newItemTexts.equipment}
-                                            onChange={(e) => setNewItemTexts({ ...newItemTexts, equipment: e.target.value })}
-                                            onKeyDown={(e) => e.key === 'Enter' && addItem('equipment')}
-                                        />
-                                        <button onClick={() => addItem('equipment')}>Add</button>
-                                    </div>
-                                </div>
-
-                                {/* Checklist Section */}
-                                <div className="pre-op-section">
-                                    <h4 className="pre-op-section__title">📋 Pre-Operation Checklist</h4>
-                                    <div className="pre-op-checklist">
-                                        {sessionData.checklist.map((item, idx) => (
-                                            <label key={`ch-${idx}`} className={`pre-op-checkbox-item ${item.checked ? 'is-checked' : ''}`}>
-                                                <input
-                                                    type="checkbox"
-                                                    checked={item.checked}
-                                                    onChange={() => toggleItem('checklist', idx)}
-                                                />
-                                                <span className="checkbox-custom"></span>
-                                                <span className="item-name">{item.name}</span>
-                                            </label>
-                                        ))}
-                                    </div>
-                                    <div className="pre-op-add-item">
-                                        <input
-                                            type="text"
-                                            placeholder="Add checklist item..."
-                                            value={newItemTexts.checklist}
-                                            onChange={(e) => setNewItemTexts({ ...newItemTexts, checklist: e.target.value })}
-                                            onKeyDown={(e) => e.key === 'Enter' && addItem('checklist')}
-                                        />
-                                        <button onClick={() => addItem('checklist')}>Add</button>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="pre-op-modal__footer">
-                                <button className="btn btn--primary" onClick={() => setSelectedPreOp(null)}>Done</button>
-                            </div>
-                        </div>
-                    </div>
-                );
-            })()}
         </div>
     );
 }
