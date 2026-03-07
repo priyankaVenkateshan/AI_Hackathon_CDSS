@@ -379,6 +379,15 @@ export const clinicalUpdates = [
   { id: 'cu5', type: 'follow_up_reminder', title: 'Follow-up Reminder', patientName: 'Ananya Singh', description: 'Routine follow-up due in 2 days. Diabetic care review.', time: '2 hr ago', priority: 'normal' },
 ];
 
+/** Doctor's tasks for the day: id, priority (High|Medium|Low), taskType, patientName — used by Dashboard "Doctor's Tasks" section */
+export const pendingClinicalTasks = [
+  { id: 't1', priority: 'High', taskType: 'Discharge summary', patientName: 'Lakshmi Devi' },
+  { id: 't2', priority: 'High', taskType: 'Lab review', patientName: 'Mohammed Farhan' },
+  { id: 't3', priority: 'Medium', taskType: 'Pre-op check', patientName: 'Arjun Nair' },
+  { id: 't4', priority: 'Medium', taskType: 'Prescription sign-off', patientName: 'Rajesh Kumar' },
+  { id: 't5', priority: 'Low', taskType: 'Follow-up reminder', patientName: 'Ananya Singh' },
+];
+
 /** Clinical alerts only (no AI marketing / Global Risk Pulse) for dashboard */
 export const clinicalAlerts = aiAlerts.filter(
   (a) => ['critical', 'warning', 'info', 'success'].includes(a.type)
