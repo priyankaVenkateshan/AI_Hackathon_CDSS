@@ -103,7 +103,7 @@ export default function Header() {
       <div className="header__inner">
         {/* Left: CDSS title + breadcrumb */}
         <div className="header__left">
-          <h1 className="header__title">CDSS — Clinical Decision Support</h1>
+          <h1 className="header__title">CDSS DASHBOARD</h1>
           <Breadcrumbs />
         </div>
 

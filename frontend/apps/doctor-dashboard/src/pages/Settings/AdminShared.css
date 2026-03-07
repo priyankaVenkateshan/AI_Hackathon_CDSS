@@ -1,7 +1,16 @@
 .admin-page {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: var(--space-4);
+  padding: 24px 32px;
+}
+
+.admin-page__title,
+.admin-page__desc,
+.admin-cards {
+  width: 100%;
+  max-width: 1200px;
 }
 
 .admin-page__title {

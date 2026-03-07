@@ -3,12 +3,23 @@ import { useState } from 'react';
 import { useAuth, roles } from '../../context/AuthContext';
 import './Sidebar.css';
 
-const navItems = [
+/** Admin dashboard sidebar: Dashboard, Patients, Doctors, Appointments, Reports, Analytics, Settings */
+const adminNavItems = [
+    { path: '/', icon: '📊', label: 'Dashboard', tooltip: 'Dashboard' },
+    { path: '/patients', icon: '👥', label: 'Patients', tooltip: 'Patients' },
+    { path: '/doctors', icon: '🩺', label: 'Doctors', tooltip: 'Doctors' },
+    { path: '/appointments', icon: '📅', label: 'Appointments', tooltip: 'Appointments' },
+    { path: '/reports', icon: '📄', label: 'Reports', tooltip: 'Reports' },
+    { path: '/admin/analytics', icon: '📈', label: 'Analytics', tooltip: 'Analytics' },
+    { path: '/settings', icon: '⚙️', label: 'Settings', tooltip: 'Settings' },
+];
+
+/** Doctor dashboard sidebar */
+const doctorNavItems = [
     { path: '/', icon: '🎛️', label: 'Dashboard', tooltip: 'Dashboard' },
     { path: '/schedule', icon: '📅', label: 'Appointments', tooltip: 'Appointments' },
     { path: '/patients', icon: '👥', label: 'Patients', tooltip: 'Patients' },
     { path: '/surgery', icon: '🏥', label: 'Surgery', tooltip: 'Surgery' },
-    { path: '/admin/dashboard', icon: '🛡️', label: 'Admin Dashboard', tooltip: 'System monitoring (admin only)', roles: [roles.ADMIN] },
 ];
 
 import { currentDoctor } from '../../data/mockData';
@@ -23,10 +34,8 @@ export default function Sidebar() {
         navigate('/login');
     };
 
-    const filteredNavItems = navItems.filter((item) => {
-        if (!item.roles) return true;
-        return hasRole && hasRole(item.roles);
-    });
+    const isAdmin = hasRole && hasRole([roles.ADMIN]);
+    const navItems = isAdmin ? adminNavItems : doctorNavItems;
 
     const displayName = user?.name || currentDoctor?.name || 'Doctor';
     const displayInitials = user?.name ? user.name.split(' ').map((n) => n[0]).join('') : (currentDoctor?.initials || 'D');
@@ -50,7 +59,7 @@ export default function Sidebar() {
 
             {/* Navigation */}
             <nav className="sidebar__nav">
-                {filteredNavItems.map((item) => (
+                {navItems.map((item) => (
                     <NavLink
                         key={item.path}
                         to={item.path}
