@@ -54,15 +54,6 @@ export default function PatientPortalLayout() {
                 <div className="patient-portal-nav__logo">
                     <span className="patient-portal-nav__icon">C</span>
                     <span className="patient-portal-nav__title">CDSS Patient</span>
-                    <button
-                        type="button"
-                        className="patient-portal-nav__collapse"
-                        onClick={() => setNavCollapsed((v) => !v)}
-                        aria-label={navCollapsed ? 'Expand navigation' : 'Collapse navigation'}
-                        title={navCollapsed ? 'Expand' : 'Collapse'}
-                    >
-                        {navCollapsed ? '›' : '‹'}
-                    </button>
                 </div>
                 <nav className="patient-portal-nav__links">
                     {patientNavItems.map((item) => (
@@ -77,6 +68,23 @@ export default function PatientPortalLayout() {
                         </NavLink>
                     ))}
                 </nav>
+                <div className="patient-portal-nav__footer">
+                    <button type="button" className="patient-portal-nav__footer-btn" onClick={handleLogout}>
+                        <span className="sidebar__link-icon">🔓</span>
+                        <span className="sidebar__link-text">Logout</span>
+                    </button>
+                    <div className="patient-portal-nav__footer-divider" />
+                    <button
+                        type="button"
+                        className="patient-portal-nav__footer-btn"
+                        onClick={() => setNavCollapsed((v) => !v)}
+                        aria-label={navCollapsed ? 'Expand navigation' : 'Collapse navigation'}
+                        title={navCollapsed ? 'Expand' : 'Collapse'}
+                    >
+                        <span className="sidebar__link-icon">{navCollapsed ? '▶' : '◀'}</span>
+                        <span className="sidebar__link-text">{navCollapsed ? '' : 'Collapse'}</span>
+                    </button>
+                </div>
             </aside>
             <div className="patient-portal-main">
                 <header className="patient-portal-header">
@@ -99,9 +107,6 @@ export default function PatientPortalLayout() {
                                 </button>
                             ))}
                         </div>
-                        <button type="button" className="patient-portal-header__logout" onClick={handleLogout}>
-                            {t(language, 'header_signOut')}
-                        </button>
                     </div>
                 </header>
                 <div className="patient-portal-main__content">

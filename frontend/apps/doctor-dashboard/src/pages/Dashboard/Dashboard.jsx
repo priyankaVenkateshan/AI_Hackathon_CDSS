@@ -1,12 +1,16 @@
 import { useNavigate } from 'react-router-dom';
+import { useAuth, roles } from '../../context/AuthContext';
 import {
+  dashboardOverview,
+  pendingClinicalTasks,
   adminDashboardKpis,
   adminTodayAppointments,
   adminTrendsData,
 } from '../../data/mockData';
 import './Dashboard.css';
 
-const Sparkline = ({ data, color, height = 48, width = 140 }) => {
+// Shared Sparkline for both dashboards
+const Sparkline = ({ data, color, height = 48, width = 140, className = '' }) => {
   const max = Math.max(...data);
   const min = Math.min(...data);
   const range = max - min || 1;
@@ -16,20 +20,89 @@ const Sparkline = ({ data, color, height = 48, width = 140 }) => {
   }));
   const d = `M ${points.map((p) => `${p.x},${p.y}`).join(' L ')}`;
   const areaD = `${d} L ${points[points.length - 1].x},${height} L 0,${height} Z`;
+  const gradId = `grad-${color.replace(/[^a-z0-9]/gi, '')}`;
   return (
-    <svg width={width} height={height} className="admin-dash__sparkline">
+    <svg width={width} height={height} className={className}>
       <defs>
-        <linearGradient id={`grad-${color.replace(/[^a-z0-9]/gi, '')}`} x1="0" x2="0" y1="0" y2="1">
+        <linearGradient id={gradId} x1="0" x2="0" y1="0" y2="1">
           <stop offset="0%" stopColor={color} stopOpacity="0.25" />
           <stop offset="100%" stopColor={color} stopOpacity="0" />
         </linearGradient>
       </defs>
-      <path d={areaD} fill={`url(#grad-${color.replace(/[^a-z0-9]/gi, '')})`} />
+      <path d={areaD} fill={`url(#${gradId})`} />
       <path d={d} stroke={color} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 };
 
+// Doctor Dashboard: Total Patients, Patients Attended, Today's Appointment, Surgery Schedules + Doctor's Tasks
+const doctorKpis = [
+  { label: 'Total Patients', value: dashboardOverview.totalPatients, delta: '▲ 6.7% last week', trend: 'positive', sparkData: dashboardOverview.stats.patients, color: '#48bb78' },
+  { label: 'Patients Attended', value: dashboardOverview.patientsAttended, delta: '▲ 12% last week', trend: 'positive', sparkData: dashboardOverview.stats.attended, color: '#38bdf8' },
+  { label: "Today's Appointment", value: dashboardOverview.todayAppointments, delta: '▼ 2.4% last week', trend: 'negative', sparkData: dashboardOverview.stats.appointments, color: '#f56565' },
+  { label: 'Surgery Schedules', value: dashboardOverview.surgeriesScheduled, delta: '▲ 6.2% last week', trend: 'positive', sparkData: dashboardOverview.stats.surgeries, color: '#818cf8' },
+];
+
+function DoctorDashboard() {
+  const navigate = useNavigate();
+  const currentDate = new Date();
+  const dateStr = currentDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+  return (
+    <div className="dashboard-redesign page-enter">
+      <div className="dashboard__container">
+        <section className="dashboard__stats-grid">
+          {doctorKpis.map((kpi) => (
+            <div key={kpi.label} className="stat-card">
+              <div className="stat-card__main">
+                <span className="stat-card__label">{kpi.label}</span>
+                <h2 className="stat-card__value">{kpi.value}</h2>
+              </div>
+              <div className="stat-card__meta">
+                <span className={`stat-card__trend ${kpi.trend}`}>{kpi.delta}</span>
+                <Sparkline data={kpi.sparkData} color={kpi.color} className="sparkline" />
+              </div>
+            </div>
+          ))}
+        </section>
+
+        <section className="dashboard__activity">
+          <div className="activity-card">
+            <div className="activity-card__header">
+              <h3 className="activity-card__title">Doctor&apos;s Tasks for the Day</h3>
+              <div className="activity-card__controls">
+                <span className="current-date">{dateStr}</span>
+              </div>
+            </div>
+            <div className="tasks-list">
+              {pendingClinicalTasks.map((task) => (
+                <div key={task.id} className="task-item">
+                  <div className="task-item__main">
+                    <div className={`task-badge ${task.priority.toLowerCase()}`}>
+                      {task.priority.toUpperCase()}
+                    </div>
+                    <div className="task-content">
+                      <span className="task-type">{task.taskType}</span>
+                      <span className="task-patient">Patient: {task.patientName}</span>
+                    </div>
+                  </div>
+                  <button type="button" className="task-action-btn" onClick={() => navigate('/patients')}>
+                    View Details
+                  </button>
+                </div>
+              ))}
+            </div>
+            <div className="activity-footer">
+              <span className="footer-info">Showing {pendingClinicalTasks.length} pending tasks</span>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  );
+}
+
+// Admin Dashboard: KPIs, Trends, Today's Appointments, Quick Actions (unchanged)
 const quickActions = [
   { label: 'Add Patient', path: '/patients' },
   { label: 'Schedule Appointment', path: '/appointments' },
@@ -39,7 +112,7 @@ const quickActions = [
 
 const statusColors = { Waiting: '#3b82f6', Completed: '#22c55e', Scheduled: '#eab308' };
 
-export default function Dashboard() {
+function AdminDashboard() {
   const navigate = useNavigate();
   const { labels, patients, appointments } = adminTrendsData;
   const chartHeight = 200;
@@ -70,7 +143,6 @@ export default function Dashboard() {
   return (
     <div className="admin-dash page-enter">
       <div className="admin-dash__container">
-        {/* KPI row */}
         <section className="admin-dash__kpis">
           {adminDashboardKpis.map((kpi) => (
             <div key={kpi.id} className="admin-dash__kpi-card">
@@ -78,13 +150,12 @@ export default function Dashboard() {
               <div className="admin-dash__kpi-value">{kpi.value}</div>
               <div className="admin-dash__kpi-meta">
                 <span className={`admin-dash__kpi-delta ${kpi.trend}`}>{kpi.delta}</span>
-                <Sparkline data={kpi.sparkData} color={kpi.color} />
+                <Sparkline data={kpi.sparkData} color={kpi.color} className="admin-dash__sparkline" />
               </div>
             </div>
           ))}
         </section>
 
-        {/* Middle: Trends chart + Today's Appointments */}
         <section className="admin-dash__middle">
           <div className="admin-dash__trends-card">
             <h3 className="admin-dash__card-title">Patient & Appointment Trends</h3>
@@ -102,7 +173,6 @@ export default function Dashboard() {
               ))}
             </div>
           </div>
-
           <div className="admin-dash__appointments-card">
             <h3 className="admin-dash__card-title">Today&apos;s Appointments</h3>
             <table className="admin-dash__table">
@@ -135,7 +205,6 @@ export default function Dashboard() {
           </div>
         </section>
 
-        {/* Bottom: Quick Actions + Today's Appointments (duplicate) */}
         <section className="admin-dash__bottom">
           <div className="admin-dash__quick-actions-card">
             <h3 className="admin-dash__card-title">Quick Actions</h3>
@@ -150,7 +219,6 @@ export default function Dashboard() {
               ))}
             </ul>
           </div>
-
           <div className="admin-dash__appointments-card">
             <h3 className="admin-dash__card-title">Today&apos;s Appointments</h3>
             <table className="admin-dash__table">
@@ -185,4 +253,11 @@ export default function Dashboard() {
       </div>
     </div>
   );
+}
+
+export default function Dashboard() {
+  const { hasRole } = useAuth();
+  const isAdmin = hasRole && hasRole([roles.ADMIN]);
+
+  return isAdmin ? <AdminDashboard /> : <DoctorDashboard />;
 }
