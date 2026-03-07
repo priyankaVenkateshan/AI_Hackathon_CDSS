@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth, roles } from '../../context/AuthContext';
 import { useLocation, useNavigate } from 'react-router-dom';
 import './Header.css';
 
@@ -101,10 +101,9 @@ export default function Header() {
   return (
     <header className="header header--ops">
       <div className="header__inner">
-        {/* Left: CDSS title + breadcrumb */}
         <div className="header__left">
-          <h1 className="header__title">CDSS DASHBOARD</h1>
-          <Breadcrumbs />
+          <h1 className="header__title">{user.role === roles.ADMIN ? 'CDSS DASHBOARD' : 'Doctor Portal'}</h1>
+          {user.role !== roles.ADMIN && <Breadcrumbs />}
         </div>
 
         {/* Center: Search — label makes icon + area focus input for accessibility */}
