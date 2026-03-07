@@ -8,13 +8,14 @@ const navItems = [
     { path: '/schedule', icon: '📅', label: 'Appointments', tooltip: 'Appointments' },
     { path: '/patients', icon: '👥', label: 'Patients', tooltip: 'Patients' },
     { path: '/surgery', icon: '🏥', label: 'Surgery', tooltip: 'Surgery' },
+    { path: '/admin/dashboard', icon: '🛡️', label: 'Admin Dashboard', tooltip: 'System monitoring (admin only)', roles: [roles.ADMIN] },
 ];
 
 import { currentDoctor } from '../../data/mockData';
 
 export default function Sidebar() {
     const [collapsed, setCollapsed] = useState(false);
-    const { logout } = useAuth(); // Assuming user is not needed if we use currentDoctor
+    const { user, hasRole, logout } = useAuth();
     const navigate = useNavigate();
 
     const handleLogout = () => {
@@ -22,26 +23,34 @@ export default function Sidebar() {
         navigate('/login');
     };
 
+    const filteredNavItems = navItems.filter((item) => {
+        if (!item.roles) return true;
+        return hasRole && hasRole(item.roles);
+    });
+
+    const displayName = user?.name || currentDoctor?.name || 'Doctor';
+    const displayInitials = user?.name ? user.name.split(' ').map((n) => n[0]).join('') : (currentDoctor?.initials || 'D');
+
     return (
         <aside className={`sidebar${collapsed ? ' collapsed' : ''}`}>
             {/* Profile Section */}
             <div className="sidebar__profile">
                 <div className="sidebar__avatar-wrap">
                     <div className="sidebar__avatar-initials">
-                        {currentDoctor.initials}
+                        {displayInitials}
                     </div>
                 </div>
                 {!collapsed && (
                     <div className="sidebar__profile-info">
-                        <h3 className="sidebar__doctor-name">{currentDoctor.name}, DMD</h3>
-                        <p className="sidebar__doctor-title">Primary care doctor</p>
+                        <h3 className="sidebar__doctor-name">{displayName}</h3>
+                        <p className="sidebar__doctor-title">{user?.role === roles.ADMIN ? 'Administrator' : 'Primary care doctor'}</p>
                     </div>
                 )}
             </div>
 
             {/* Navigation */}
             <nav className="sidebar__nav">
-                {navItems.map((item) => (
+                {filteredNavItems.map((item) => (
                     <NavLink
                         key={item.path}
                         to={item.path}
