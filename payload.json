@@ -1,0 +1,17 @@
+{
+    "body": "{\"message\": \"Is surgery suggested for high priority patient PT-1002?\"}",
+    "httpMethod": "POST",
+    "path": "/api/v1/supervisor",
+    "headers": {
+        "Accept-Language": "en"
+    },
+    "requestContext": {
+        "authorizer": {
+            "claims": {
+                "custom:role": "doctor",
+                "email": "test@example.com",
+                "sub": "test-user"
+            }
+        }
+    }
+}

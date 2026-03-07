@@ -6,7 +6,7 @@
     display: grid;
     grid-template-columns: 1fr 400px;
     gap: var(--space-5);
-    height: calc(100vh - var(--header-height) - var(--space-8) - var(--space-8));
+    align-items: flex-start;
 }
 
 /* ─── Patient Details (Left) ─── */
@@ -14,8 +14,8 @@
     display: flex;
     flex-direction: column;
     gap: var(--space-5);
-    overflow-y: auto;
     padding-right: var(--space-2);
+    padding-bottom: 40px;
 }
 
 .patient-header {
@@ -541,7 +541,9 @@
     border: 1px solid var(--surface-border);
     display: flex;
     flex-direction: column;
-    height: 100%;
+    height: calc(100vh - 120px);
+    position: sticky;
+    top: 24px;
     overflow: hidden;
 }
 

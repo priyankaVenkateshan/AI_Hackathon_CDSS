@@ -42,8 +42,8 @@ def _mock_session():
 
     # Sample Patients
     patients = [
-        MockModel(id="PT-1001", name="Rajesh Kumar", gender="M", conditions=["Hypertension"], blood_group="B+", severity="moderate", status="active", vitals={"bp": "130/82", "hr": 78}, last_visit=datetime.date(2025, 2, 20)),
-        MockModel(id="PT-1002", name="Priya Sharma", gender="F", conditions=["Asthma"], blood_group="O+", severity="low", status="active", vitals={"bp": "118/76", "hr": 72}, last_visit=datetime.date(2025, 3, 1)),
+        MockModel(id="PT-1001", name="Rajesh Kumar", date_of_birth=datetime.date(1980, 5, 20), gender="M", conditions=["Hypertension"], blood_group="B+", severity="moderate", status="active", vitals={"bp": "130/82", "hr": 78}, last_visit=datetime.date(2025, 2, 20)),
+        MockModel(id="PT-1002", name="Priya Sharma", date_of_birth=datetime.date(1992, 8, 15), gender="F", conditions=["Asthma"], blood_group="O+", severity="low", status="active", vitals={"bp": "118/76", "hr": 72}, last_visit=datetime.date(2025, 3, 1)),
     ]
 
     # Sample Surgeries
@@ -70,7 +70,14 @@ def _mock_session():
         return mock_result
 
     session.scalars.side_effect = mock_scalars
-    session.scalar.return_value = None
+    
+    def mock_scalar(statement):
+        stmt_str = str(statement).lower()
+        if "from patients" in stmt_str:
+            return patients[0]
+        return None
+        
+    session.scalar.side_effect = mock_scalar
     session.execute.return_value.all.return_value = []
     session.execute.return_value.first.return_value = None
     

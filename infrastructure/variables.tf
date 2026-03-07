@@ -150,3 +150,16 @@ variable "agent_runtime_arn" {
   type        = string
   default     = ""
 }
+
+# Monitoring & cost (Phase 12)
+variable "monthly_budget_usd" {
+  description = "Monthly cost budget in USD for budget alerts (e.g. 100); set 0 to disable budget"
+  type        = number
+  default     = 100
+}
+
+variable "budget_notification_emails" {
+  description = "Email addresses for budget alerts (80%% and 100%% actual/forecasted). At least one required when monthly_budget_usd > 0."
+  type        = list(string)
+  default     = ["your-email@example.com"]
+}

@@ -123,17 +123,7 @@ export default function AdminDashboard() {
     <div className="admin-dashboard">
       {/* ═══ Top Bar ═══ */}
       <header className="admin-topbar">
-        <div className="admin-topbar__left">
-          <div className="admin-topbar__logo">
-            <div className="admin-topbar__logo-icon">C</div>
-            <div className="admin-topbar__logo-text">
-              <span className="admin-topbar__logo-title">CDSS Admin</span>
-              <span className="admin-topbar__logo-subtitle">System Monitoring</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="admin-topbar__controls">
+        <div className="admin-topbar__controls" style={{ marginLeft: 'auto' }}>
           <select
             id="admin-hospital-filter"
             className="admin-topbar__select"
@@ -162,10 +152,6 @@ export default function AdminDashboard() {
             <span className="admin-topbar__refresh-dot" />
             Live · {lastRefresh.toLocaleTimeString()}
           </div>
-
-          <button id="admin-logout-btn" className="admin-topbar__logout-btn" onClick={handleLogout}>
-            🚪 Sign Out
-          </button>
         </div>
       </header>
 

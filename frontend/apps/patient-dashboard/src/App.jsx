@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeContext';
-import { AuthProvider, roles } from './context/AuthContext';
+import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
 import Sidebar from './components/Sidebar/Sidebar';
 import Header from './components/Header/Header';
@@ -10,10 +10,7 @@ import MyMedications from './pages/MyMedications/MyMedications';
 import MyRecords from './pages/MyRecords/MyRecords';
 import Contact from './pages/Contact/Contact';
 import Login from './pages/Login/Login';
-import Debug from './pages/Debug/Debug';
 import './App.css';
-
-const isDev = import.meta.env.DEV;
 
 function AppLayout() {
   return (
@@ -23,14 +20,11 @@ function AppLayout() {
         <Header />
         <main className="app-main">
           <Routes>
-            <Route path="/" element={<ProtectedRoute requiredRoles={[roles.PATIENT]}><Dashboard /></ProtectedRoute>} />
-            <Route path="/appointments" element={<ProtectedRoute requiredRoles={[roles.PATIENT]}><MyAppointments /></ProtectedRoute>} />
-            <Route path="/medications" element={<ProtectedRoute requiredRoles={[roles.PATIENT]}><MyMedications /></ProtectedRoute>} />
-            <Route path="/records" element={<ProtectedRoute requiredRoles={[roles.PATIENT]}><MyRecords /></ProtectedRoute>} />
-            <Route path="/contact" element={<ProtectedRoute requiredRoles={[roles.PATIENT]}><Contact /></ProtectedRoute>} />
-            {isDev && (
-              <Route path="/debug" element={<ProtectedRoute requiredRoles={[roles.PATIENT]}><Debug /></ProtectedRoute>} />
-            )}
+            <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/appointments" element={<ProtectedRoute><MyAppointments /></ProtectedRoute>} />
+            <Route path="/medications" element={<ProtectedRoute><MyMedications /></ProtectedRoute>} />
+            <Route path="/records" element={<ProtectedRoute><MyRecords /></ProtectedRoute>} />
+            <Route path="/contact" element={<ProtectedRoute><Contact /></ProtectedRoute>} />
           </Routes>
         </main>
       </div>

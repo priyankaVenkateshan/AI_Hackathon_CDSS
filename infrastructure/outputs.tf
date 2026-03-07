@@ -115,3 +115,14 @@ output "gateway_get_hospitals_lambda_arn" {
   description = "ARN of the Gateway tool Lambda (get_hospitals, get_ot_status, get_abdm_record stub)"
   value       = aws_lambda_function.gateway_tools.arn
 }
+
+# Monitoring (Phase 12)
+output "cloudwatch_dashboard_name" {
+  description = "CloudWatch dashboard name for CDSS metrics"
+  value       = aws_cloudwatch_dashboard.cdss.dashboard_name
+}
+
+output "alarms_sns_topic_arn" {
+  description = "SNS topic ARN for alarm notifications (subscribe email for alerts)"
+  value       = aws_sns_topic.alarms.arn
+}

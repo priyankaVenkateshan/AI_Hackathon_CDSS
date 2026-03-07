@@ -88,14 +88,14 @@ The Control Plane API only supports MCP targets. Add your Lambda as a target in 
 2. **Test the hospitals API**  
    Call `POST <api-base>/api/v1/hospitals` with body `{"severity": "high", "limit": 5}`. You should get a response (stub or AgentCore). Check CloudWatch for `HospitalMatcher source=... duration_ms=...`.
 
-3. **Proceed to AC-2 (CDSS severity assessment + Observability)**  
-   See [agentcore-implementation-plan.md](./agentcore-implementation-plan.md): POST /api/v1/triage (CDSS severity assessment) with AgentCore or stub, tracing with Patient_ID/Doctor_ID in log metadata (CDSS.mdc), then persist to Aurora when ready.
+3. **Proceed to AC-2 (All 5 Agents + Observability)**  
+   See [agentcore-implementation-plan.md](./agentcore-implementation-plan.md): extend Gateway Lambda with tools for Patient, Surgery, Resource, Scheduling, Engagement agents; enable tracing with Patient_ID/Doctor_ID in log metadata (CDSS.mdc).
 
 ## Lambda Handler Format (Reference)
 
 The Gateway invokes the Lambda with:
 
-- **Event**: Tool input props (e.g. `{ "severity": "high", "limit": 3 }` for get_hospitals, or CDSS-specific params for OT/ABDM tools)
+- **Event**: Tool input props (e.g. `{ "severity": "high", "limit": 3 }` for get_hospitals, `{ "patient_id": "PT-1001" }` for get_patient, or CDSS-specific params for surgery/schedule/engagement tools)
 - **Context**: `client_context.custom["bedrockAgentCoreToolName"]` = `TARGET___tool_name`
 - **Response**: JSON matching the tool’s declared schema (e.g. `{ "hospitals": [...], "safety_disclaimer": "..." }`). For CDSS clinical tools, include safety disclaimers per [.cursor/rules/CDSS.mdc](../.cursor/rules/CDSS.mdc).
 

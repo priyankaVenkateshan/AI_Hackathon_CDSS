@@ -1,5 +1,8 @@
 """
-AgentCore Gateway tool Lambda – get_hospitals, get_ot_status, get_abdm_record.
+AgentCore Gateway tool Lambda – tools for all 5 CDSS agents + hospitals.
+
+CDSS agents: Patient, Surgery, Resource, Scheduling, Engagement.
+There is NO Triage agent.
 
 Invoked by Bedrock AgentCore Gateway. Event = tool input props; tool name from
 client_context.custom["bedrockAgentCoreToolName"] as TARGET___tool_name.
@@ -23,6 +26,12 @@ SAFETY_DISCLAIMER = (
     "Hospital availability and suitability are indicative. "
     "Confirm capacity and eligibility with the facility before referral. "
     "This is not medical advice."
+)
+
+CLINICAL_DISCLAIMER = (
+    "AI-generated clinical data is for decision support only. "
+    "All decisions require qualified medical judgment. "
+    "This system does not replace a doctor."
 )
 
 
@@ -113,19 +122,12 @@ def _query_hospitals_from_db(severity: str, limit: int) -> list | None:
         hospitals = []
         for r in rows:
             hospitals.append({
-                "id": r[0],
-                "name": r[1],
-                "city": r[2],
-                "state": r[3],
+                "id": r[0], "name": r[1], "city": r[2], "state": r[3],
                 "specialties": r[4] if r[4] else [],
-                "available_beds": r[5],
-                "icu_beds": r[6],
-                "available_icu_beds": r[7],
-                "tier": r[8],
-                "emergency_available": r[9],
-                "contact_phone": r[10],
-                "latitude": r[11],
-                "longitude": r[12],
+                "available_beds": r[5], "icu_beds": r[6],
+                "available_icu_beds": r[7], "tier": r[8],
+                "emergency_available": r[9], "contact_phone": r[10],
+                "latitude": r[11], "longitude": r[12],
                 "available": (r[5] or 0) > 0,
             })
         return hospitals
@@ -155,11 +157,8 @@ def _query_ot_status_from_db() -> list | None:
         for r in rows:
             avail = r[3] if r[3] else {}
             ots.append({
-                "ot_id": r[0],
-                "name": r[1],
-                "status": r[2],
-                "area": avail.get("area", ""),
-                "floor": avail.get("floor", ""),
+                "ot_id": r[0], "name": r[1], "status": r[2],
+                "area": avail.get("area", ""), "floor": avail.get("floor", ""),
                 "next_free": avail.get("nextFree"),
                 "open_slots_upcoming": r[4],
             })
@@ -169,18 +168,15 @@ def _query_ot_status_from_db() -> list | None:
         return None
 
 
-# ─── Tool handlers ──────────────────────────────────────────────────
+# ─── Tool handlers (existing) ───────────────────────────────────────
 
 def _get_hospitals(event: Dict[str, Any]) -> Dict[str, Any]:
     """Hospital list from DB or synthetic fallback."""
     severity = (event.get("severity") or "medium").lower()
     limit = min(int(event.get("limit", 5)), 20)
-
     hospitals = _query_hospitals_from_db(severity, limit)
     if hospitals is not None:
         return {"hospitals": hospitals, "source": "database", "safety_disclaimer": SAFETY_DISCLAIMER}
-
-    # Fallback synthetic
     hospitals = [
         {"id": f"H{i}", "name": f"Hospital {i} ({severity})", "distance_km": 2 + i, "available": True}
         for i in range(1, limit + 1)
@@ -193,7 +189,6 @@ def _get_ot_status(event: Dict[str, Any]) -> Dict[str, Any]:
     ots = _query_ot_status_from_db()
     if ots is not None:
         return {"operation_theaters": ots, "source": "database", "safety_disclaimer": SAFETY_DISCLAIMER}
-
     return {
         "available_slots": [],
         "message": "OT status unavailable; database not connected.",
@@ -211,10 +206,327 @@ def _get_abdm_record(event: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+# ─── Patient Agent tools ────────────────────────────────────────────
+
+def _get_patient(event: Dict[str, Any]) -> Dict[str, Any]:
+    """Retrieve a single patient by ID. Used by the Patient Agent via AgentCore."""
+    patient_id = (event.get("patient_id") or "").strip()
+    if not patient_id:
+        return {"error": "patient_id is required", "safety_disclaimer": CLINICAL_DISCLAIMER}
+    engine = _get_db_engine()
+    if engine is None:
+        return {"error": "Database not available", "source": "synthetic", "safety_disclaimer": CLINICAL_DISCLAIMER}
+    try:
+        from sqlalchemy import text
+        with engine.connect() as conn:
+            row = conn.execute(
+                text("SELECT id, name, date_of_birth, gender, language, abha_id, conditions, "
+                     "allergies, vitals, blood_group, ward, severity, status, surgery_readiness "
+                     "FROM patients WHERE id = :pid"),
+                {"pid": patient_id},
+            ).fetchone()
+        if not row:
+            return {"error": f"Patient {patient_id} not found", "safety_disclaimer": CLINICAL_DISCLAIMER}
+        with engine.connect() as conn:
+            visits = conn.execute(
+                text("SELECT id, visit_date, doctor_id, department, diagnosis, notes "
+                     "FROM visits WHERE patient_id = :pid ORDER BY visit_date DESC LIMIT 10"),
+                {"pid": patient_id},
+            ).fetchall()
+        return {
+            "patient": {
+                "id": row[0], "name": row[1],
+                "date_of_birth": str(row[2]) if row[2] else None,
+                "gender": row[3], "language": row[4], "abha_id": row[5],
+                "conditions": row[6] or [], "allergies": row[7] or [],
+                "vitals": row[8] or {}, "blood_group": row[9],
+                "ward": row[10], "severity": row[11], "status": row[12],
+                "surgery_readiness": row[13] or {},
+            },
+            "visits": [
+                {"id": v[0], "visit_date": str(v[1]) if v[1] else None,
+                 "doctor_id": v[2], "department": v[3],
+                 "diagnosis": v[4], "notes": v[5]}
+                for v in visits
+            ],
+            "source": "database",
+            "safety_disclaimer": CLINICAL_DISCLAIMER,
+        }
+    except Exception as e:
+        logger.warning("get_patient DB query failed: %s", e)
+        return {"error": str(e), "safety_disclaimer": CLINICAL_DISCLAIMER}
+
+
+def _list_patients(event: Dict[str, Any]) -> Dict[str, Any]:
+    """List patients with optional filters. Used by the Patient Agent via AgentCore."""
+    limit = min(int(event.get("limit", 20)), 50)
+    status_filter = (event.get("status") or "").strip()
+    engine = _get_db_engine()
+    if engine is None:
+        return {"patients": [], "source": "synthetic", "safety_disclaimer": CLINICAL_DISCLAIMER}
+    try:
+        from sqlalchemy import text
+        query = "SELECT id, name, gender, ward, severity, status FROM patients"
+        params: Dict[str, Any] = {"lim": limit}
+        if status_filter:
+            query += " WHERE status = :status"
+            params["status"] = status_filter
+        query += " ORDER BY created_at DESC LIMIT :lim"
+        with engine.connect() as conn:
+            rows = conn.execute(text(query), params).fetchall()
+        return {
+            "patients": [
+                {"id": r[0], "name": r[1], "gender": r[2], "ward": r[3],
+                 "severity": r[4], "status": r[5]}
+                for r in rows
+            ],
+            "source": "database",
+            "safety_disclaimer": CLINICAL_DISCLAIMER,
+        }
+    except Exception as e:
+        logger.warning("list_patients DB query failed: %s", e)
+        return {"patients": [], "error": str(e), "safety_disclaimer": CLINICAL_DISCLAIMER}
+
+
+# ─── Surgery Agent tools ────────────────────────────────────────────
+
+def _get_surgeries(event: Dict[str, Any]) -> Dict[str, Any]:
+    """List surgeries, optionally filtered by patient_id. Used by the Surgery Agent."""
+    patient_id = (event.get("patient_id") or "").strip()
+    limit = min(int(event.get("limit", 20)), 50)
+    engine = _get_db_engine()
+    if engine is None:
+        return {"surgeries": [], "source": "synthetic", "safety_disclaimer": CLINICAL_DISCLAIMER}
+    try:
+        from sqlalchemy import text
+        query = ("SELECT s.id, s.patient_id, s.surgery_type, s.classification, s.status, "
+                 "s.scheduled_date, s.requirements, s.checklist, p.name AS patient_name "
+                 "FROM surgeries s JOIN patients p ON s.patient_id = p.id")
+        params: Dict[str, Any] = {"lim": limit}
+        if patient_id:
+            query += " WHERE s.patient_id = :pid"
+            params["pid"] = patient_id
+        query += " ORDER BY s.scheduled_date DESC LIMIT :lim"
+        with engine.connect() as conn:
+            rows = conn.execute(text(query), params).fetchall()
+        return {
+            "surgeries": [
+                {"id": r[0], "patient_id": r[1], "surgery_type": r[2],
+                 "classification": r[3], "status": r[4],
+                 "scheduled_date": str(r[5]) if r[5] else None,
+                 "requirements": r[6] or {}, "checklist": r[7] or {},
+                 "patient_name": r[8]}
+                for r in rows
+            ],
+            "source": "database",
+            "safety_disclaimer": CLINICAL_DISCLAIMER,
+        }
+    except Exception as e:
+        logger.warning("get_surgeries DB query failed: %s", e)
+        return {"surgeries": [], "error": str(e), "safety_disclaimer": CLINICAL_DISCLAIMER}
+
+
+def _get_surgery(event: Dict[str, Any]) -> Dict[str, Any]:
+    """Retrieve a single surgery by ID. Used by the Surgery Agent."""
+    surgery_id = (event.get("surgery_id") or "").strip()
+    if not surgery_id:
+        return {"error": "surgery_id is required", "safety_disclaimer": CLINICAL_DISCLAIMER}
+    engine = _get_db_engine()
+    if engine is None:
+        return {"error": "Database not available", "safety_disclaimer": CLINICAL_DISCLAIMER}
+    try:
+        from sqlalchemy import text
+        with engine.connect() as conn:
+            row = conn.execute(
+                text("SELECT s.id, s.patient_id, s.surgery_type, s.classification, s.status, "
+                     "s.scheduled_date, s.requirements, s.checklist, s.duration_minutes, "
+                     "s.complexity, p.name AS patient_name "
+                     "FROM surgeries s JOIN patients p ON s.patient_id = p.id "
+                     "WHERE s.id = :sid"),
+                {"sid": surgery_id},
+            ).fetchone()
+        if not row:
+            return {"error": f"Surgery {surgery_id} not found", "safety_disclaimer": CLINICAL_DISCLAIMER}
+        return {
+            "surgery": {
+                "id": row[0], "patient_id": row[1], "surgery_type": row[2],
+                "classification": row[3], "status": row[4],
+                "scheduled_date": str(row[5]) if row[5] else None,
+                "requirements": row[6] or {}, "checklist": row[7] or {},
+                "duration_minutes": row[8], "complexity": row[9],
+                "patient_name": row[10],
+            },
+            "source": "database",
+            "safety_disclaimer": CLINICAL_DISCLAIMER,
+        }
+    except Exception as e:
+        logger.warning("get_surgery DB query failed: %s", e)
+        return {"error": str(e), "safety_disclaimer": CLINICAL_DISCLAIMER}
+
+
+# ─── Scheduling Agent tools ─────────────────────────────────────────
+
+def _get_schedule(event: Dict[str, Any]) -> Dict[str, Any]:
+    """Query schedule slots with optional date/ot filters. Used by the Scheduling Agent."""
+    ot_id = (event.get("ot_id") or "").strip()
+    date_filter = (event.get("date") or "").strip()
+    limit = min(int(event.get("limit", 20)), 50)
+    engine = _get_db_engine()
+    if engine is None:
+        return {"slots": [], "source": "synthetic", "safety_disclaimer": CLINICAL_DISCLAIMER}
+    try:
+        from sqlalchemy import text
+        query = "SELECT id, ot_id, doctor_id, slot_date, start_time, end_time, status FROM schedule_slots"
+        conditions = []
+        params: Dict[str, Any] = {"lim": limit}
+        if ot_id:
+            conditions.append("ot_id = :ot_id")
+            params["ot_id"] = ot_id
+        if date_filter:
+            conditions.append("slot_date = :slot_date")
+            params["slot_date"] = date_filter
+        if conditions:
+            query += " WHERE " + " AND ".join(conditions)
+        query += " ORDER BY slot_date, start_time LIMIT :lim"
+        with engine.connect() as conn:
+            rows = conn.execute(text(query), params).fetchall()
+        return {
+            "slots": [
+                {"id": r[0], "ot_id": r[1], "doctor_id": r[2],
+                 "slot_date": str(r[3]) if r[3] else None,
+                 "start_time": str(r[4]) if r[4] else None,
+                 "end_time": str(r[5]) if r[5] else None,
+                 "status": r[6]}
+                for r in rows
+            ],
+            "source": "database",
+            "safety_disclaimer": CLINICAL_DISCLAIMER,
+        }
+    except Exception as e:
+        logger.warning("get_schedule DB query failed: %s", e)
+        return {"slots": [], "error": str(e), "safety_disclaimer": CLINICAL_DISCLAIMER}
+
+
+def _find_replacement(event: Dict[str, Any]) -> Dict[str, Any]:
+    """Find replacement staff by speciality. Used by the Scheduling Agent."""
+    speciality = (event.get("speciality") or event.get("specialty") or "").strip()
+    engine = _get_db_engine()
+    if engine is None:
+        return {"replacements": [], "source": "synthetic", "safety_disclaimer": CLINICAL_DISCLAIMER}
+    try:
+        from sqlalchemy import text
+        query = "SELECT id, name, status, availability FROM resources WHERE type = 'staff'"
+        params: Dict[str, Any] = {}
+        if speciality:
+            query += " AND (name ILIKE :spec OR availability::text ILIKE :spec)"
+            params["spec"] = f"%{speciality}%"
+        query += " AND status = 'available' ORDER BY name LIMIT 10"
+        with engine.connect() as conn:
+            rows = conn.execute(text(query), params).fetchall()
+        return {
+            "replacements": [
+                {"id": r[0], "name": r[1], "status": r[2], "availability": r[3] or {}}
+                for r in rows
+            ],
+            "source": "database",
+            "safety_disclaimer": CLINICAL_DISCLAIMER,
+        }
+    except Exception as e:
+        logger.warning("find_replacement DB query failed: %s", e)
+        return {"replacements": [], "error": str(e), "safety_disclaimer": CLINICAL_DISCLAIMER}
+
+
+# ─── Engagement Agent tools ─────────────────────────────────────────
+
+def _get_medications(event: Dict[str, Any]) -> Dict[str, Any]:
+    """List medications for a patient. Used by the Engagement Agent."""
+    patient_id = (event.get("patient_id") or "").strip()
+    if not patient_id:
+        return {"error": "patient_id is required", "safety_disclaimer": CLINICAL_DISCLAIMER}
+    engine = _get_db_engine()
+    if engine is None:
+        return {"medications": [], "source": "synthetic", "safety_disclaimer": CLINICAL_DISCLAIMER}
+    try:
+        from sqlalchemy import text
+        with engine.connect() as conn:
+            rows = conn.execute(
+                text("SELECT id, drug_name, dosage, frequency, start_date, end_date, active "
+                     "FROM medications WHERE patient_id = :pid ORDER BY created_at DESC"),
+                {"pid": patient_id},
+            ).fetchall()
+        return {
+            "medications": [
+                {"id": r[0], "drug_name": r[1], "dosage": r[2],
+                 "frequency": r[3], "start_date": str(r[4]) if r[4] else None,
+                 "end_date": str(r[5]) if r[5] else None, "active": r[6]}
+                for r in rows
+            ],
+            "source": "database",
+            "safety_disclaimer": CLINICAL_DISCLAIMER,
+        }
+    except Exception as e:
+        logger.warning("get_medications DB query failed: %s", e)
+        return {"medications": [], "error": str(e), "safety_disclaimer": CLINICAL_DISCLAIMER}
+
+
+def _get_reminders_adherence(event: Dict[str, Any]) -> Dict[str, Any]:
+    """Get reminder adherence stats for a patient. Used by the Engagement Agent."""
+    patient_id = (event.get("patient_id") or "").strip()
+    if not patient_id:
+        return {"error": "patient_id is required", "safety_disclaimer": CLINICAL_DISCLAIMER}
+    engine = _get_db_engine()
+    if engine is None:
+        return {"adherence": {}, "source": "synthetic", "safety_disclaimer": CLINICAL_DISCLAIMER}
+    try:
+        from sqlalchemy import text
+        with engine.connect() as conn:
+            row = conn.execute(
+                text("SELECT "
+                     "  COUNT(*) AS total, "
+                     "  COUNT(*) FILTER (WHERE status = 'acknowledged') AS acked, "
+                     "  COUNT(*) FILTER (WHERE status = 'pending') AS pending, "
+                     "  COUNT(*) FILTER (WHERE status = 'overdue') AS overdue "
+                     "FROM reminders WHERE patient_id = :pid"),
+                {"pid": patient_id},
+            ).fetchone()
+        total = row[0] if row else 0
+        acked = row[1] if row else 0
+        return {
+            "adherence": {
+                "patient_id": patient_id,
+                "total_reminders": total,
+                "acknowledged": acked,
+                "pending": row[2] if row else 0,
+                "overdue": row[3] if row else 0,
+                "adherence_rate": round(acked / total, 2) if total > 0 else 0.0,
+            },
+            "source": "database",
+            "safety_disclaimer": CLINICAL_DISCLAIMER,
+        }
+    except Exception as e:
+        logger.warning("get_reminders_adherence DB query failed: %s", e)
+        return {"adherence": {}, "error": str(e), "safety_disclaimer": CLINICAL_DISCLAIMER}
+
+
+# ─── Tool registry ──────────────────────────────────────────────────
+
 TOOL_HANDLERS: Dict[str, Any] = {
+    # Existing
     "get_hospitals": _get_hospitals,
     "get_ot_status": _get_ot_status,
     "get_abdm_record": _get_abdm_record,
+    # Patient Agent
+    "get_patient": _get_patient,
+    "list_patients": _list_patients,
+    # Surgery Agent
+    "get_surgeries": _get_surgeries,
+    "get_surgery": _get_surgery,
+    # Scheduling Agent
+    "get_schedule": _get_schedule,
+    "find_replacement": _find_replacement,
+    # Engagement Agent
+    "get_medications": _get_medications,
+    "get_reminders_adherence": _get_reminders_adherence,
 }
 
 
@@ -224,14 +536,20 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     Returns JSON matching tool schema with safety_disclaimer for clinical tools.
     """
     tool_name = _get_tool_name(event, context)
-    fn = TOOL_HANDLERS.get(tool_name, _get_hospitals)
+    fn = TOOL_HANDLERS.get(tool_name)
+    if fn is None:
+        return {
+            "error": f"Unknown tool: {tool_name}",
+            "available_tools": list(TOOL_HANDLERS.keys()),
+            "safety_disclaimer": SAFETY_DISCLAIMER,
+        }
     try:
         result = fn(event)
         return result
     except Exception as e:
         logger.exception("Gateway tool %s failed: %s", tool_name, e)
         return {
-            "hospitals": [],
             "error": str(e),
+            "tool": tool_name,
             "safety_disclaimer": SAFETY_DISCLAIMER,
         }

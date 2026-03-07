@@ -175,6 +175,16 @@ def _post_patients(event: dict) -> dict:
     with get_session() as session:
         from cdss.db.models import Patient
 
+        # Enforce unique abha_id — return 409 if duplicate
+        abha_id_val = (body.get("abha_id") or body.get("abhaId") or "").strip() or None
+        if abha_id_val:
+            existing = session.query(Patient).filter(Patient.abha_id == abha_id_val).first()
+            if existing:
+                return json_response(409, {
+                    "error": f"Patient with abha_id '{abha_id_val}' already exists",
+                    "existing_patient_id": existing.id,
+                })
+
         patient_id = _next_patient_id(session)
         now = datetime.now(timezone.utc)
         dob = _parse_date(body.get("dateOfBirth") or body.get("date_of_birth"))

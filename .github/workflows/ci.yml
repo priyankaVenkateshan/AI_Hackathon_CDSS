@@ -1,0 +1,40 @@
+# CDSS CI – lint and unit/local tests (offline, no AWS required)
+# Runs on push/PR to main; use aws-smoke.yml for deployed API smoke tests.
+
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install package and deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+          pip install boto3  # used by scripts (e.g. get_token) and handlers
+
+      - name: Syntax / import check
+        run: |
+          python -m py_compile src/cdss/api/handlers/router.py
+          python -c "import cdss.api.handlers.router; print('router OK')"
+
+      - name: Local API handler tests (mocked DB)
+        run: |
+          python scripts/test_api_local.py
+        env:
+          # Ensure no real DB is used
+          DATABASE_URL: ""
+          RDS_CONFIG_SECRET_NAME: ""
