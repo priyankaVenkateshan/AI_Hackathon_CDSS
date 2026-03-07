@@ -86,18 +86,82 @@
 
 /* Calendar Styling */
 .calendar-container {
-  margin-top: 8px;
-  width: 100%;
-  display: flex;
-  justify-content: center;
+    margin-top: 8px;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    background: #f8fafc;
+    padding: 24px;
+    border-radius: 16px;
 }
 
 .custom-calendar {
-  width: 100% !important;
-  max-width: 500px;
-  border: none !important;
-  font-family: inherit !important;
-  padding: 10px;
+    width: 100% !important;
+    max-width: 450px;
+    border: none !important;
+    background: transparent !important;
+    font-family: inherit !important;
+}
+
+.react-calendar__navigation {
+    margin-bottom: 20px;
+}
+
+.react-calendar__navigation button {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    color: #2d3748;
+    background: none;
+    border-radius: 8px;
+    padding: 8px;
+}
+
+.react-calendar__navigation button:enabled:hover,
+.react-calendar__navigation button:enabled:focus {
+    background-color: #edf2f7;
+}
+
+.react-calendar__month-view__weekdays {
+    text-transform: uppercase;
+    font-weight: 700;
+    font-size: 11px;
+    color: #a0aec0;
+    margin-bottom: 12px;
+}
+
+.react-calendar__month-view__days__day {
+    font-weight: 600;
+    color: #4a5568;
+    padding: 12px !important;
+    border-radius: 12px;
+}
+
+.react-calendar__tile:enabled:hover,
+.react-calendar__tile:enabled:focus {
+    background-color: #edf2f7 !important;
+    color: #2d3748;
+}
+
+.react-calendar__tile--now {
+    background: #fff5f5 !important;
+    color: #f56565 !important;
+    font-weight: 800;
+}
+
+.react-calendar__tile--active {
+    background: #6366f1 !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.react-calendar__tile--active:enabled:hover,
+.react-calendar__tile--active:enabled:focus {
+    background: #4f46e5 !important;
+}
+
+.react-calendar__month-view__days__day--neighboringMonth {
+    color: #e2e8f0 !important;
 }
 
 /* List Styling */
@@ -112,41 +176,44 @@
 }
 
 .schedule-list__item {
-  padding: 24px;
-  border-radius: 16px;
-  background: #ffffff;
-  border: 1px solid #f4f7fe;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  transition: all 0.2s ease;
+    padding: 20px 24px;
+    border-radius: 16px;
+    background: #ffffff;
+    border: 1px solid #f1f5f9;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .schedule-list__item:hover {
-  border-color: #e2e8f0;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+    border-color: #e2e8f0;
 }
 
 .schedule-item__main {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  flex: 1;
-  text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex: 2;
 }
 
 .schedule-list__time {
-  font-size: 13px;
-  font-weight: 700;
-  color: #f56565;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #6366f1;
+    background: #eef2ff;
+    padding: 6px 12px;
+    border-radius: 8px;
+    min-width: 80px;
+    text-align: center;
 }
 
 .schedule-list__patient {
-  font-size: 17px;
-  font-weight: 600;
-  color: #2d3748;
+    font-size: 16px;
+    font-weight: 600;
+    color: #1e293b;
 }
 
 .schedule-item__meta {

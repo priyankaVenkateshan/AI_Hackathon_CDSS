@@ -62,7 +62,11 @@ def _get_patient_id(claims: Dict[str, Any]) -> str:
 
 
 def _path_requires_admin(path: str) -> bool:
+    """True if path is an admin-only path (handles /stage/api/v1/admin or /api/v1/admin)."""
     path_normalized = (path or "").strip().lower()
+    # Strip leading stage segment if present (e.g. /dev/api/... -> /api/...)
+    if path_normalized.startswith("/dev/") or path_normalized.startswith("/prod/"):
+        path_normalized = "/" + path_normalized.split("/", 2)[-1]
     return any(path_normalized.startswith(p.strip().lower()) for p in ADMIN_PATHS)
 
 
@@ -280,9 +284,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         if proxy.startswith("v1/hospitals"):
             from cdss.api.handlers.hospitals import hospitals_handler
             return hospitals_handler(event, context)
-        if proxy.startswith("v1/triage"):
-            from cdss.api.handlers.triage import triage_handler
-            return triage_handler(event, context)
+        # NOTE: Triage route removed — CDSS uses 5 agents only (no Triage agent).
         if proxy.startswith("v1/supervisor"):
             from cdss.api.handlers.supervisor import handler as supervisor_handler
             return supervisor_handler(event, context)

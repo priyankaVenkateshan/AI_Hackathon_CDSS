@@ -11,7 +11,6 @@ const navItems = [
   { path: '/records', icon: '📋', label: 'My Records', tooltip: 'Health records' },
   { section: 'Support' },
   { path: '/contact', icon: '💬', label: 'Contact & Messages', tooltip: 'Contact' },
-  ...(import.meta.env.DEV ? [{ path: '/debug', icon: '🔧', label: 'Debug', tooltip: 'Connection status (dev)' }] : []),
 ];
 
 export default function Sidebar() {

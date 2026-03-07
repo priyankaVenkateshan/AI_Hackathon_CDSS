@@ -18,12 +18,8 @@ export default function Login() {
     setIsSubmitting(true);
     setError('');
     const result = await login(email, password);
-    if (result.success) {
-      // #region agent log
-      fetch('http://127.0.0.1:7803/ingest/454ee95e-546b-4257-becf-08e4fe56dd25',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'11cc47'},body:JSON.stringify({sessionId:'11cc47',location:'patient-dashboard:Login:beforeNav',message:'login success before navigate',data:{from,hasUser:!!result.user},timestamp:Date.now(),hypothesisId:'H5'})}).catch(()=>{});
-      // #endregion
-      navigate(from, { replace: true });
-    } else setError(result.message || 'Login failed');
+    if (result.success) navigate(from, { replace: true });
+    else setError(result.message || 'Login failed');
     setIsSubmitting(false);
   };
 

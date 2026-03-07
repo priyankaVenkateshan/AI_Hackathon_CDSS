@@ -1,11 +1,14 @@
 """
 Supervisor agent – routes natural-language intents to specialized CDSS sub-agents.
 
+CDSS has exactly 5 agents: Patient, Surgery, Resource, Scheduling, Engagement.
+There is NO Triage agent.
+
 POST /api/v1/supervisor (or POST /agent -> delegated here):
   Body: { "message": "...", "patient_id": "PT-xxx" (optional), "context": {} }
   1. Classify intent via Bedrock (or keyword fallback).
   2. Delegate to the matching sub-agent handler (Patient, Surgery, Resource,
-     Scheduling, Engagement, Hospitals, Triage).
+     Scheduling, Engagement, Hospitals).
   3. When USE_AGENTCORE=true and AGENT_RUNTIME_ARN is set, invoke AgentCore
      Runtime instead of local Bedrock (AC-1 PoC; converse fallback).
   4. Return aggregated response with safety disclaimer and audit trace.
@@ -42,7 +45,6 @@ INTENT_LABELS = [
     "scheduling",    # Scheduling Agent: booking, replacement, utilisation
     "engagement",    # Engagement Agent: medications, reminders, consultations
     "hospitals",     # Hospital data lookup within CDSS
-    "triage",        # CDSS severity assessment (Supervisor flow; aligns with Telemedicine MCP Specialist escalation)
     "general",       # General clinical chat
 ]
 
@@ -52,13 +54,13 @@ INTENT_LABELS = [
 # ---------------------------------------------------------------------------
 
 _INTENT_KEYWORDS: Dict[str, list[str]] = {
-    "patient": ["patient", "history", "record", "summary", "readiness", "demographics", "allergy", "condition"],
+    "patient": ["patient", "history", "record", "summary", "readiness", "demographics", "allergy", "condition",
+               "triage", "severity", "emergency", "urgency", "priority"],
     "surgery": ["surgery", "surgical", "checklist", "procedure", "instrument", "operation", "pre-op", "complication"],
     "resource": ["resource", "ot ", "equipment", "staff", "specialist", "availability", "inventory", "conflict"],
     "scheduling": ["schedule", "booking", "slot", "replacement", "workload", "utilisation", "utilization", "calendar"],
     "engagement": ["medication", "reminder", "adherence", "consultation", "transcript", "nudge", "prescription"],
     "hospitals": ["hospital", "facility", "referral", "nearest"],
-    "triage": ["triage", "severity", "emergency", "urgency", "priority"],
 }
 
 
@@ -197,14 +199,17 @@ def _invoke_agentcore(message: str, intent: str, context: Dict[str, Any]) -> Dic
             **context,
         }).encode("utf-8")
         session_id = str(uuid.uuid4())
+        runtime_arn = os.environ.get("AGENT_RUNTIME_ARN", "").strip()
+        if not runtime_arn:
+            return None
+
         resp = client.invoke_agent_runtime(
             agentRuntimeArn=runtime_arn,
-            qualifier="DEFAULT",
             runtimeSessionId=session_id,
             payload=payload,
             contentType="application/json",
         )
-        result = resp.get("responseBody") or resp.get("body")
+        result = resp.get("response")
         if result is None:
             return None
         if hasattr(result, "read"):
@@ -283,18 +288,8 @@ def _delegate_to_local_agent(intent: str, message: str, patient_id: str, context
             data = _parse_handler_response(hospitals_handler(event, None))
             return _reply_with_bedrock_context(message, "Hospital match data", data)
 
-        if intent == "triage":
-            # CDSS severity assessment – same Lambda, not a separate agent (architecture: Supervisor + 5 agents + MCP)
-            event = _build_proxy_event(
-                "POST", "v1/triage",
-                body=json.dumps({
-                    "patient_id": patient_id or "unknown",
-                    "chief_complaint": message[:500],
-                }),
-            )
-            from cdss.api.handlers.triage import triage_handler
-            data = _parse_handler_response(triage_handler(event, None))
-            return _reply_with_bedrock_context(message, "Triage/severity assessment result", data)
+        # NOTE: Triage agent removed per CDSS architecture (5 agents only).
+        # Former triage keywords (emergency, severity, urgency) now route to patient intent.
 
         # general – use chat
         from cdss.bedrock.chat import invoke_chat
@@ -413,6 +408,20 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         duration_ms,
         extra={"intent": intent, "source": source, "duration_ms": duration_ms},
     )
+
+    # Inter-agent event log (Req 8 audit)
+    try:
+        from cdss.services.event_log import log_agent_event
+        log_agent_event(
+            source_agent="supervisor",
+            target_agent=f"{intent}_agent",
+            action=f"delegate:{intent}",
+            correlation_id=correlation_id,
+            success=not (isinstance(data, dict) and "error" in data),
+            duration_ms=duration_ms,
+        )
+    except Exception:
+        pass  # Non-fatal
 
     return json_response(
         200,

@@ -16,16 +16,45 @@ export class CdssStack extends cdk.Stack {
         super(scope, id, props);
 
         // --- 1. Network Layer ---
-        const vpc = new ec2.Vpc(this, 'CdssVpc', { maxAzs: 2 });
+        const vpc = new ec2.Vpc(this, 'CdssVpc', { 
+            maxAzs: 2,
+            subnetConfiguration: [
+                { name: 'Public', subnetType: ec2.SubnetType.PUBLIC },
+                { name: 'Private', subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
+                { name: 'Isolated', subnetType: ec2.SubnetType.PRIVATE_ISOLATED },
+            ],
+        });
 
         // --- 2. Data Layer ---
-        // RDS Aurora PostgreSQL Serverless v2
+        const dbSecurityGroup = new ec2.SecurityGroup(this, 'DbSecurityGroup', {
+            vpc,
+            description: 'Allow PostgreSQL access from Lambda',
+            allowAllOutbound: true,
+        });
+
+        const lambdaSecurityGroup = new ec2.SecurityGroup(this, 'LambdaSecurityGroup', {
+            vpc,
+            description: 'Security group for backend Lambdas',
+            allowAllOutbound: true,
+        });
+
+        dbSecurityGroup.addIngressRule(
+            lambdaSecurityGroup,
+            ec2.Port.tcp(5432),
+            'Allow Lambda access to PostgreSQL'
+        );
+
+        // RDS Aurora PostgreSQL Serverless v2 (Refined)
         const cluster = new rds.DatabaseCluster(this, 'CdssDatabase', {
             engine: rds.DatabaseClusterEngine.auroraPostgres({ version: rds.AuroraPostgresEngineVersion.VER_15_4 }),
             vpc,
+            vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_ISOLATED },
+            securityGroups: [dbSecurityGroup],
             writer: rds.ClusterInstance.serverlessV2('writer'),
             serverlessV2MinCapacity: 0.5,
             serverlessV2MaxCapacity: 2,
+            defaultDatabaseName: 'cdssdb',
+            removalPolicy: cdk.RemovalPolicy.DESTROY,
         });
 
         // DynamoDB Table (Agent Sessions)
@@ -55,15 +84,20 @@ export class CdssStack extends cdk.Stack {
                 handler: 'handler.lambda_handler',
                 code: lambda.Code.fromAsset(path.join(__dirname, `../../backend/agents/${folder}`)),
                 vpc,
+                vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
+                securityGroups: [lambdaSecurityGroup],
                 environment: {
                     SESSIONS_TABLE: sessionsTable.tableName,
                     DB_CLUSTER_ARN: cluster.clusterArn,
+                    DB_SECRET_ARN: cluster.secret?.secretArn || '',
                 },
                 layers: [sharedLayer],
                 timeout: cdk.Duration.seconds(30)
             });
             fn.addToRolePolicy(bedrockPolicy);
             sessionsTable.grantReadWriteData(fn);
+            cluster.grantConnect(fn);
+            if (cluster.secret) cluster.secret.grantRead(fn);
             return fn;
         };
 
@@ -97,8 +131,15 @@ export class CdssStack extends cdk.Stack {
             handler: 'dashboard_handler.lambda_handler',
             code: lambda.Code.fromAsset(path.join(__dirname, '../../backend/api/rest')),
             vpc,
+            vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
+            securityGroups: [lambdaSecurityGroup],
+            environment: {
+                DB_SECRET_ARN: cluster.secret?.secretArn || '',
+            },
             layers: [sharedLayer]
         });
+        cluster.grantConnect(dashboardFn);
+        if (cluster.secret) cluster.secret.grantRead(dashboardFn);
         api.root.addResource('dashboard').addMethod('GET', new apigateway.LambdaIntegration(dashboardFn));
 
         // WebSocket API (L2 constructs for WebSockets are pending in CDK, using Cfn)

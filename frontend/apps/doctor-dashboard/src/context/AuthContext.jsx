@@ -1,5 +1,4 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { flushSync } from 'react-dom';
 import { isCognitoEnabled } from '../api/config';
 
 const AuthContext = createContext();
@@ -18,7 +17,6 @@ const users = [
     { id: 'u3', name: 'Nurse Anjali', role: roles.NURSE, email: 'anjali@cdss.ai', password: 'password123' },
     { id: 'u4', name: 'Admin Sameer', role: roles.ADMIN, email: 'admin@cdss.ai', password: 'password123' },
     { id: 'PT-1001', name: 'Rajesh Kumar', role: roles.PATIENT, email: 'rajesh@patient.demo', password: 'password123' },
-    { id: 'p1', name: 'Rahul Kumar', role: roles.PATIENT, email: 'patient@cdss.ai', password: 'password123' },
 ];
 
 const CDSS_USER_KEY = 'cdss_user';
@@ -38,22 +36,9 @@ export function AuthProvider({ children }) {
                             localStorage.setItem(CDSS_USER_KEY, JSON.stringify(sessionUser));
                         }
                         setLoading(false);
-                        // #region agent log
-                        fetch('http://127.0.0.1:7803/ingest/454ee95e-546b-4257-becf-08e4fe56dd25',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'4da93a'},body:JSON.stringify({sessionId:'4da93a',location:'AuthContext:cognitoDone',message:'auth loading done',data:{loading:false,hasUser:!!sessionUser},timestamp:Date.now(),hypothesisId:'H2'})}).catch(()=>{});
-                        // #endregion
                     })
-                    .catch(() => {
-                        setLoading(false);
-                        // #region agent log
-                        fetch('http://127.0.0.1:7803/ingest/454ee95e-546b-4257-becf-08e4fe56dd25',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'4da93a'},body:JSON.stringify({sessionId:'4da93a',location:'AuthContext:cognitoCatch',message:'cognitoGetSession failed',data:{loading:false},timestamp:Date.now(),hypothesisId:'H2'})}).catch(()=>{});
-                        // #endregion
-                    });
-            }).catch(() => {
-                setLoading(false);
-                // #region agent log
-                fetch('http://127.0.0.1:7803/ingest/454ee95e-546b-4257-becf-08e4fe56dd25',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'4da93a'},body:JSON.stringify({sessionId:'4da93a',location:'AuthContext:cognitoImportCatch',message:'cognito import failed',data:{loading:false},timestamp:Date.now(),hypothesisId:'H2'})}).catch(()=>{});
-                // #endregion
-            });
+                    .catch(() => setLoading(false));
+            }).catch(() => setLoading(false));
             return;
         }
         const savedUser = localStorage.getItem(CDSS_USER_KEY);
@@ -63,9 +48,6 @@ export function AuthProvider({ children }) {
             } catch (_) { /* ignore */ }
         }
         setLoading(false);
-        // #region agent log
-        fetch('http://127.0.0.1:7803/ingest/454ee95e-546b-4257-becf-08e4fe56dd25',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'4da93a'},body:JSON.stringify({sessionId:'4da93a',location:'AuthContext:mockDone',message:'auth loading done',data:{loading:false,hasSavedUser:!!savedUser},timestamp:Date.now(),hypothesisId:'H2'})}).catch(()=>{});
-        // #endregion
     }, []);
 
     const login = async (email, password) => {
@@ -73,9 +55,7 @@ export function AuthProvider({ children }) {
             try {
                 const { cognitoSignIn } = await import('../lib/cognito');
                 const sessionUser = await cognitoSignIn(email, password);
-                flushSync(() => {
-                    setUser(sessionUser);
-                });
+                setUser(sessionUser);
                 localStorage.setItem(CDSS_USER_KEY, JSON.stringify(sessionUser));
                 return { success: true, user: sessionUser };
             } catch (err) {
@@ -87,9 +67,7 @@ export function AuthProvider({ children }) {
         if (foundUser) {
             const { password: _, ...userWithoutPassword } = foundUser;
             const userWithToken = { ...userWithoutPassword, token: userWithoutPassword.id };
-            flushSync(() => {
-                setUser(userWithToken);
-            });
+            setUser(userWithToken);
             localStorage.setItem(CDSS_USER_KEY, JSON.stringify(userWithToken));
             return { success: true, user: userWithToken };
         }

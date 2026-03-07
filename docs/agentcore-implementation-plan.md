@@ -12,7 +12,7 @@
 |--------|-----------|
 | **requirements.md** | Req 8: MCP for agent-to-agent communication; event logs and audit. Req 10: AWS Bedrock, MCP servers, audit trails, RBAC, data localization (India). Req 2–7: Patient_Agent, Surgery_Agent, Resource_Agent, Scheduling_Agent, Patient_Engagement_Agent. |
 | **CDSS.mdc** | Clinical assessment schemas (priority, confidence, risk_factors); surgery readiness (pre_op_status, checklist_flags, requires_senior_review); trace review and medical audit; safety disclaimers and senior review flags. |
-| **CDSS product** | Staff app (Doctor_Module) + Patient portal (Patient_Module); `/api/v1/*` REST API; multi-agent Lambda router. AgentCore will host or back the same agents (Patient, Surgery, Resource, Scheduling, Engagement) with Gateway-exposed MCP tools. |
+| **CDSS product** | Staff app (Doctor_Module) + Patient portal (Patient_Module); `/api/v1/*` REST API; multi-agent Lambda router. AgentCore will host or back the same agents (Patient, Surgery, Resource, Scheduling, Engagement) with Gateway-exposed MCP tools. There is NO Triage agent. |
 
 **Region:** Data residency per requirements is India (ap-south-1). Use AgentCore in regions where available; keep persistence and PII in ap-south-1 where required.
 
@@ -92,15 +92,15 @@ CDSS aligns with requirements: API Gateway exposes Staff/Patient-facing routes; 
                     ┌─────────────────────────────────────────┐
                     │     API Gateway (CDSS)                   │
                     │  /api/v1/*  /hospitals  /health           │
-                    │  + /api/v1/triage (CDSS severity assessment) │
+                    │  POST /api/v1/agent (Supervisor → 5 agents) │
                     └─────────────────────────────────────────┘
                                        │
                     ┌──────────────────┼──────────────────┐
                     │                  │                  │
                     ▼                  ▼                  ▼
              ┌──────────┐      ┌──────────────┐   ┌──────────┐
-             │ Severity │      │Hospital Match│   │ Routing  │
-             │ (CDSS)   │      │   Lambda     │   │  Lambda  │
+             │ Patient  │      │Hospital Match│   │ Routing  │
+             │ Agent    │      │   Lambda     │   │  Lambda  │
              └────┬─────┘      └──────┬───────┘   └────┬─────┘
                   │                   │                 │
                   └───────────────────┼─────────────────┘
@@ -141,16 +141,16 @@ CDSS aligns with requirements: API Gateway exposes Staff/Patient-facing routes; 
 
 ---
 
-### Phase AC-2: Triage + Observability
+### Phase AC-2: All 5 Agents + Observability
 
-**Goal:** Migrate Triage to AgentCore; enable full trace observability.
+**Goal:** Migrate all 5 CDSS agents to AgentCore; enable full trace observability.
 
 **Deliverables:**
-- [ ] Triage agent on AgentCore Runtime
+- [ ] All 5 agents (Patient, Surgery, Resource, Scheduling, Engagement) on AgentCore Runtime
 - [ ] AgentCore Observability: tracing, CloudWatch dashboards (links to Patient_ID, Doctor_ID per CDSS.mdc)
 - [ ] Trace review workflow for Admin/Dev (medical audit; Req 10 audit trails)
-- [x] POST /api/v1/triage (CDSS severity assessment) invokes AgentCore or stub; tracing with patient_id/doctor_id in log metadata (CDSS.mdc)
-- [ ] Persist severity assessments to Aurora (when severity_assessments table ready)
+- [ ] Gateway tools for all agents: get_patient, list_patients, get_surgeries, get_surgery, get_schedule, find_replacement, get_medications, get_reminders_adherence
+- [ ] Persist clinical assessments to Aurora (when tables ready)
 
 ---
 
@@ -192,7 +192,7 @@ CDSS aligns with requirements: API Gateway exposes Staff/Patient-facing routes; 
 | Phase | Focus | Status | Dependency |
 |-------|-------|--------|------------|
 | AC-1 | Runtime + Gateway + CDSS PoC agent | Next | None |
-| AC-2 | Triage + Observability | Pending | AC-1 |
+| AC-2 | All 5 Agents + Observability | Pending | AC-1 |
 | AC-3 | Memory + Hospital MCP | Pending | AC-1, AC-2 |
 | AC-4 | Routing + Identity | Pending | AC-1 |
 

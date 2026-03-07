@@ -131,7 +131,7 @@ resource "aws_lambda_function" "websocket_authorizer" {
   environment {
     variables = {
       COGNITO_USER_POOL_ID = aws_cognito_user_pool.main.id
-      AWS_REGION           = var.aws_region
+      # AWS_REGION is reserved; Lambda receives it automatically
     }
   }
 

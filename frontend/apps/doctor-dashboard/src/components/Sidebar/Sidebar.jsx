@@ -4,23 +4,18 @@ import { useAuth, roles } from '../../context/AuthContext';
 import './Sidebar.css';
 
 const navItems = [
-    { section: 'Navigation' },
-    { path: '/', icon: '🏠', label: 'Dashboard', tooltip: 'Dashboard' },
+    { path: '/', icon: '🎛️', label: 'Dashboard', tooltip: 'Dashboard' },
+    { path: '/schedule', icon: '📅', label: 'Appointments', tooltip: 'Appointments' },
     { path: '/patients', icon: '👥', label: 'Patients', tooltip: 'Patients' },
-    { path: '/surgery', icon: '🔪', label: 'Surgeries', tooltip: 'Surgical Schedule' },
-    { path: '/medications', icon: '📋', label: 'Clinical Tasks', tooltip: 'Clinical Tasks' },
-    { path: '/reports', icon: '📊', label: 'Reports', tooltip: 'Reports' },
-    { path: '/profile', icon: '👤', label: 'Profile', tooltip: 'Profile' },
-    { section: 'System', roles: [roles.ADMIN] },
-    { path: '/admin/dashboard', icon: '📊', label: 'Admin Dashboard', tooltip: 'Admin overview', roles: [roles.ADMIN] },
-    { path: '/admin/users', icon: '👥', label: 'Users', tooltip: 'Users & roles', roles: [roles.ADMIN] },
-    { path: '/admin/audit', icon: '📋', label: 'Audit Log', tooltip: 'Audit log', roles: [roles.ADMIN] },
-    { path: '/admin/config', icon: '🔧', label: 'System Config', tooltip: 'Config', roles: [roles.ADMIN] },
-    { path: '/admin/analytics', icon: '📊', label: 'Analytics', tooltip: 'Analytics', roles: [roles.ADMIN] },
-    { path: '/admin/resources', icon: '🛠️', label: 'Admin Resources', tooltip: 'OT & equipment', roles: [roles.ADMIN] },
-    { path: '/settings', icon: '⚙️', label: 'Settings', tooltip: 'Settings', roles: [roles.ADMIN] },
-    ...(import.meta.env.DEV ? [{ path: '/debug', icon: '🔧', label: 'Debug', tooltip: 'Dev debug panel', section: null }] : []),
+    { path: '/surgery', icon: '🏥', label: 'Surgery', tooltip: 'Surgery' },
+    { section: 'ADMINISTRATION', roles: [roles.ADMIN] },
+    { path: '/admin/dashboard', icon: '📊', label: 'Monitoring', tooltip: 'System Monitoring', roles: [roles.ADMIN] },
+    { path: '/admin/users', icon: '👥', label: 'Users', tooltip: 'User Management', roles: [roles.ADMIN] },
+    { path: '/admin/audit', icon: '🛡️', label: 'Audit', tooltip: 'Audit Logs', roles: [roles.ADMIN] },
+    { path: '/admin/config', icon: '⚙️', label: 'Config', tooltip: 'System Config', roles: [roles.ADMIN] },
 ];
+
+import { currentDoctor } from '../../data/mockData';
 
 export default function Sidebar() {
     const [collapsed, setCollapsed] = useState(false);
@@ -32,32 +27,34 @@ export default function Sidebar() {
         navigate('/login');
     };
 
-    const filteredNavItems = navItems.filter(item => {
-        if (!item.roles) return true;
-        return hasRole(item.roles);
-    });
-
     return (
         <aside className={`sidebar${collapsed ? ' collapsed' : ''}`}>
-            {/* Logo */}
-            <div className="sidebar__logo">
-                <div className="sidebar__logo-icon">C</div>
-                <div className="sidebar__logo-text">
-                    <span className="sidebar__logo-title">CDSS</span>
-                    <span className="sidebar__logo-subtitle">Clinical Decision Support</span>
+            {/* Profile Section */}
+            <div className="sidebar__profile">
+                <div className="sidebar__avatar-wrap">
+                    <div className="sidebar__avatar-initials">
+                        {currentDoctor.initials}
+                    </div>
                 </div>
+                {!collapsed && (
+                    <div className="sidebar__profile-info">
+                        <h3 className="sidebar__doctor-name">{currentDoctor.name}, DMD</h3>
+                        <p className="sidebar__doctor-title">{user?.role === 'admin' ? 'System Administrator' : 'Primary care doctor'}</p>
+                    </div>
+                )}
             </div>
 
             {/* Navigation */}
             <nav className="sidebar__nav">
-                {filteredNavItems.map((item, i) => {
+                {navItems.map((item, i) => {
+                    // Check roles if defined
+                    if (item.roles && !hasRole(item.roles)) return null;
+
                     if (item.section) {
-                        return (
-                            <div key={`section-${i}`} className="sidebar__section-label">
-                                {item.section}
-                            </div>
-                        );
+                        if (collapsed) return <div key={`sec-${i}`} className="sidebar__divider" />;
+                        return <div key={`sec-${i}`} className="sidebar__section-label">{item.section}</div>;
                     }
+
                     return (
                         <NavLink
                             key={item.path}
@@ -68,24 +65,30 @@ export default function Sidebar() {
                         >
                             <span className="sidebar__link-icon">{item.icon}</span>
                             <span className="sidebar__link-text">{item.label}</span>
-                            {item.badge && <span className="sidebar__link-badge">{item.badge}</span>}
                         </NavLink>
                     );
                 })}
             </nav>
 
-            {/* Footer with Collapse and Logout */}
+            {/* Footer with Logout */}
             <div className="sidebar__footer">
-                <button className="sidebar__link logout-btn" onClick={handleLogout} style={{ width: '100%', background: 'none', border: 'none', padding: 'var(--space-3)', color: 'rgba(255,255,255,0.6)', cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
-                    <span className="sidebar__link-icon">🚪</span>
-                    <span className="sidebar__link-text">Sign Out</span>
+                <button className="sidebar__link logout-btn" onClick={handleLogout}>
+                    <span className="sidebar__link-icon">🔓</span>
+                    <span className="sidebar__link-text">Logout</span>
                 </button>
-                <div className="sidebar__divider" style={{ margin: 'var(--space-2) 0', borderTop: '1px solid rgba(255,255,255,0.05)' }} />
+                <div className="sidebar__divider" />
                 <button className="sidebar__collapse-btn" onClick={() => setCollapsed(!collapsed)}>
                     <span className="sidebar__collapse-icon">{collapsed ? '▶' : '◀'}</span>
                     <span className="sidebar__link-text">{collapsed ? '' : 'Collapse'}</span>
                 </button>
             </div>
+
+            {!collapsed && (
+                <div className="sidebar__copyright">
+                    © 2026 CDSS. All Rights Reserved
+                </div>
+            )}
         </aside>
     );
 }
+
