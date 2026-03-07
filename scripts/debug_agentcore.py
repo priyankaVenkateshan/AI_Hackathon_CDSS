@@ -15,13 +15,15 @@ payload = {
 print(f"Invoking AgentCore: {AGENT_RUNTIME_ARN}")
 try:
     response = client.invoke_agent_runtime(
-        agentRuntimeIdentifier=AGENT_RUNTIME_ARN,
+        agentRuntimeArn=AGENT_RUNTIME_ARN,
         runtimeSessionId=str(uuid.uuid4()),
         payload=json.dumps(payload).encode(),
         contentType="application/json"
     )
     
-    body = response.get("responseBody") or response.get("body")
+    body = response.get("response")
+    print("Full response object:")
+    print(response)
     if body:
         result = body.read().decode() if hasattr(body, "read") else body
         print("Success! Response:")

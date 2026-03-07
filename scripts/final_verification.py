@@ -123,9 +123,9 @@ def run_verification():
     print("="*60)
 
 if __name__ == "__main__":
-    # Ensure environment is set
-    os.environ["DATABASE_URL"] = "postgresql://cdssadmin:***REDACTED***@127.0.0.1:5433/cdssdb"
-    os.environ["BEDROCK_CONFIG_SECRET_NAME"] = "cdss-dev/bedrock-config"
-    os.environ["AWS_REGION"] = "ap-south-1"
-    
+    # Use Secrets Manager (RDS_CONFIG_SECRET_NAME + AWS_REGION) or set DATABASE_URL for local dev.
+    # Never commit credentials. For local runs without AWS, use: export DATABASE_URL=postgresql://...
+    if not os.environ.get("DATABASE_URL") and not os.environ.get("RDS_CONFIG_SECRET_NAME"):
+        print("Set DATABASE_URL or RDS_CONFIG_SECRET_NAME and AWS_REGION before running.")
+        sys.exit(1)
     run_verification()

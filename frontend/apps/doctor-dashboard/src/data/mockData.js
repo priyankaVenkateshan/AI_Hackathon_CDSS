@@ -320,15 +320,7 @@ export const todaySchedule = [
   { time: '15:30', patient: 'Arjun Nair', type: 'Pre-op Check', status: 'upcoming' },
 ];
 
-/** For dashboard: task type, patient, priority, used for surgeons (pre-op clearance) and doctors */
-export const pendingClinicalTasks = [
-  { id: 't1', patientName: 'Rajesh Kumar', taskType: 'Lab review pending', priority: 'High' },
-  { id: 't2', patientName: 'Lakshmi Devi', taskType: 'Prescription approval pending', priority: 'High' },
-  { id: 't3', patientName: 'Mohammed Farhan', taskType: 'Discharge summary pending', priority: 'Medium' },
-  { id: 't4', patientName: 'Ananya Singh', taskType: 'Consultation follow-ups', priority: 'Low' },
-  { id: 't5', patientName: 'Arjun Nair', taskType: 'Pre-op clearance', priority: 'Medium', surgeonOnly: true },
-];
-
+/** For dashboard / AI: clinical alerts */
 export const aiAlerts = [
   {
     id: 'alert-1',
@@ -378,6 +370,22 @@ export const aiAlerts = [
     patient: '—',
     time: '2 hr ago',
   },
+];
+
+/** Clinical updates for dashboard: type, title, patient, description, time, priority */
+export const clinicalUpdates = [
+  { id: 'cu3', type: 'discharge_pending', title: 'Discharge Pending', patientName: 'Lakshmi Devi', description: 'Discharge summary and prescriptions pending sign-off.', time: '1 hr ago', priority: 'moderate' },
+  { id: 'cu4', type: 'upcoming_surgery', title: 'Upcoming Surgery', patientName: 'Arjun Nair', description: 'ACL reconstruction — Pre-op cleared. OT-3, March 5.', time: '30 min ago', priority: 'info' },
+  { id: 'cu5', type: 'follow_up_reminder', title: 'Follow-up Reminder', patientName: 'Ananya Singh', description: 'Routine follow-up due in 2 days. Diabetic care review.', time: '2 hr ago', priority: 'normal' },
+];
+
+/** Doctor's tasks for the day: id, priority (High|Medium|Low), taskType, patientName — used by Dashboard "Doctor's Tasks" section */
+export const pendingClinicalTasks = [
+  { id: 't1', priority: 'High', taskType: 'Discharge summary', patientName: 'Lakshmi Devi' },
+  { id: 't2', priority: 'High', taskType: 'Lab review', patientName: 'Mohammed Farhan' },
+  { id: 't3', priority: 'Medium', taskType: 'Pre-op check', patientName: 'Arjun Nair' },
+  { id: 't4', priority: 'Medium', taskType: 'Prescription sign-off', patientName: 'Rajesh Kumar' },
+  { id: 't5', priority: 'Low', taskType: 'Follow-up reminder', patientName: 'Ananya Singh' },
 ];
 
 /** Clinical alerts only (no AI marketing / Global Risk Pulse) for dashboard */
@@ -613,4 +621,59 @@ export const medications = [
   { id: 'MED-005', patient: 'Mohammed Farhan', medication: 'Azithromycin 500mg', frequency: 'Once daily', nextDose: '2026-03-01T10:00:00', status: 'on-time', interactions: [] },
   { id: 'MED-006', patient: 'Mohammed Farhan', medication: 'Salbutamol Nebulization', frequency: 'Every 6 hours', nextDose: '2026-03-01T12:00:00', status: 'on-time', interactions: [] },
   { id: 'MED-007', patient: 'Fatima Begum', medication: 'Levothyroxine 50mcg', frequency: 'Once daily (empty stomach)', nextDose: '2026-03-02T06:00:00', status: 'on-time', interactions: [] },
+];
+
+// ─── Admin dashboard (exact reference layout) ───
+
+/** KPI cards: label, value, delta (e.g. "+1.2% last week"), trend (positive|negative), sparkline data */
+export const adminDashboardKpis = [
+  { id: 'patients', label: 'Patients Today', value: 128, delta: '+1.2% last week', trend: 'positive', sparkData: [118, 122, 120, 125, 124, 128], color: '#38bdf8' },
+  { id: 'appointments', label: 'Appointments', value: 42, delta: '+2.0% last week', trend: 'positive', sparkData: [38, 40, 39, 41, 40, 42], color: '#34d399' },
+  { id: 'surgeries', label: 'Surgeries', value: 6, delta: '+2.8% last week', trend: 'positive', sparkData: [4, 5, 5, 5, 6, 6], color: '#a78bfa' },
+  { id: 'alerts', label: 'Alerts', value: 3, delta: '-1.4% last week', trend: 'negative', sparkData: [4, 3, 4, 3, 3, 3], color: '#f87171' },
+];
+
+/** Today's appointments for admin dashboard table: time, patient, doctor, status (Waiting|Completed|Scheduled) */
+export const adminTodayAppointments = [
+  { id: 1, time: '09:00', patient: 'John Doe', doctor: 'Dr. Smith', status: 'Waiting' },
+  { id: 2, time: '10:30', patient: 'Emma Lee', doctor: 'Dr. Alex', status: 'Completed' },
+  { id: 3, time: '12:00', patient: 'Mike Ross', doctor: 'Dr. Sam', status: 'Scheduled' },
+];
+
+/** Patient & Appointment trends: x-axis labels (e.g. days 16–27), patients series, appointments series */
+export const adminTrendsData = {
+  labels: [16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27],
+  patients: [95, 98, 102, 105, 108, 112, 115, 118, 122, 125, 126, 128],
+  appointments: [28, 30, 32, 31, 35, 36, 38, 37, 40, 41, 42, 42],
+};
+
+/** Mock doctors for admin Doctors page */
+export const doctorsList = [
+  { id: 'DR-001', name: 'Dr. Priya Sharma', specialization: 'General Medicine', department: 'Internal Medicine', email: 'priya.sharma@hospital.com', status: 'Active' },
+  { id: 'DR-002', name: 'Dr. Vikram Mehta', specialization: 'Internal Medicine', department: 'Internal Medicine', email: 'vikram.mehta@hospital.com', status: 'Active' },
+  { id: 'DR-003', name: 'Dr. Meena Rao', specialization: 'Cardiology', department: 'Cardiology', email: 'meena.rao@hospital.com', status: 'Active' },
+  { id: 'DR-004', name: 'Dr. Vikram Patel', specialization: 'Orthopedics', department: 'Orthopedics', email: 'vikram.patel@hospital.com', status: 'Active' },
+  { id: 'DR-005', name: 'Dr. Smith', specialization: 'General Practice', department: 'OPD', email: 'smith@hospital.com', status: 'Active' },
+  { id: 'DR-006', name: 'Dr. Alex', specialization: 'Pediatrics', department: 'Pediatrics', email: 'alex@hospital.com', status: 'Active' },
+  { id: 'DR-007', name: 'Dr. Sam', specialization: 'General Medicine', department: 'OPD', email: 'sam@hospital.com', status: 'Active' },
+];
+
+/** Full appointments list for admin Appointments page */
+export const adminAppointmentsList = [
+  { id: 1, date: '2026-03-05', time: '09:00', patient: 'John Doe', doctor: 'Dr. Smith', status: 'Waiting', type: 'Consultation' },
+  { id: 2, date: '2026-03-05', time: '10:30', patient: 'Emma Lee', doctor: 'Dr. Alex', status: 'Completed', type: 'Follow-up' },
+  { id: 3, date: '2026-03-05', time: '12:00', patient: 'Mike Ross', doctor: 'Dr. Sam', status: 'Scheduled', type: 'Consultation' },
+  { id: 4, date: '2026-03-05', time: '14:00', patient: 'Rajesh Kumar', doctor: 'Dr. Priya Sharma', status: 'Scheduled', type: 'Lab Review' },
+  { id: 5, date: '2026-03-05', time: '15:30', patient: 'Fatima Begum', doctor: 'Dr. Vikram Mehta', status: 'Scheduled', type: 'Consultation' },
+  { id: 6, date: '2026-03-06', time: '09:00', patient: 'Lakshmi Devi', doctor: 'Dr. Meena Rao', status: 'Scheduled', type: 'Follow-up' },
+  { id: 7, date: '2026-03-06', time: '11:00', patient: 'Ananya Singh', doctor: 'Dr. Priya Sharma', status: 'Scheduled', type: 'Consultation' },
+];
+
+/** Recent reports for admin Reports page */
+export const adminReportsList = [
+  { id: 1, name: 'Daily Census Report', type: 'Operational', date: '2026-03-05', generatedBy: 'Admin Sameer' },
+  { id: 2, name: 'OT Utilization Summary', type: 'Analytics', date: '2026-03-04', generatedBy: 'System' },
+  { id: 3, name: 'Patient Admissions (Week)', type: 'Clinical', date: '2026-03-03', generatedBy: 'Admin Sameer' },
+  { id: 4, name: 'Medication Compliance Report', type: 'Clinical', date: '2026-03-02', generatedBy: 'System' },
+  { id: 5, name: 'Alerts & Escalations', type: 'Operational', date: '2026-03-01', generatedBy: 'System' },
 ];

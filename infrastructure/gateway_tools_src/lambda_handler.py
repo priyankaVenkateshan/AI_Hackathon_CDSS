@@ -58,6 +58,58 @@ def _get_tool_name(event: Dict[str, Any], context: Any) -> str:
 _db_engine = None
 
 
+def _get_db_connection_step_log() -> str | None:
+    """
+    Run connection steps and return a short diagnostic string on first failure.
+    Used for CloudWatch and optional tool response when DB is unavailable.
+    """
+    secret_name = os.environ.get("RDS_CONFIG_SECRET_NAME", "").strip()
+    if not secret_name:
+        return "RDS_CONFIG_SECRET_NAME not set"
+    try:
+        import boto3
+        from urllib.parse import quote_plus
+        region = os.environ.get("AWS_REGION", "ap-south-1")
+        sm = boto3.client("secretsmanager", region_name=region)
+        raw = sm.get_secret_value(SecretId=secret_name).get("SecretString", "{}")
+        cfg = json.loads(raw)
+        host = cfg.get("host", "")
+        port = cfg.get("port", 5432)
+        database = cfg.get("database", "cdssdb")
+        username = cfg.get("username", "")
+        if not host or not username:
+            return "secret_missing_host_or_username"
+    except Exception as e:
+        logger.warning("[DB] secret_fetch failed: %s", e)
+        return "secret_fetch_failed"
+
+    try:
+        rds_client = boto3.client("rds", region_name=region)
+        password = rds_client.generate_db_auth_token(
+            DBHostname=host, Port=port, DBUsername=username, Region=region,
+        )
+        db_url = f"postgresql+psycopg2://{username}:{quote_plus(password)}@{host}:{port}/{database}"
+    except Exception as e:
+        logger.warning("[DB] token_generate failed: %s", e)
+        return "token_generate_failed"
+
+    try:
+        from sqlalchemy import create_engine
+        engine = create_engine(db_url, pool_pre_ping=True, pool_size=1, max_overflow=0)
+    except Exception as e:
+        logger.warning("[DB] engine_create failed: %s", e)
+        return "engine_create_failed"
+
+    try:
+        from sqlalchemy import text
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+    except Exception as e:
+        logger.warning("[DB] connect failed (host=%s): %s", host[:50] if host else "", e)
+        return "connect_failed"
+    return None
+
+
 def _get_db_engine():
     """Lazily create a SQLAlchemy engine from Secrets Manager or DATABASE_URL."""
     global _db_engine
@@ -84,20 +136,28 @@ def _get_db_engine():
             password = rds_client.generate_db_auth_token(
                 DBHostname=host, Port=port, DBUsername=username, Region=region,
             )
-            db_url = f"postgresql+psycopg2://{username}:{quote_plus(password)}@{host}:{port}/{database}"
+            db_url = f"postgresql+psycopg2://{username}:{quote_plus(password)}@{host}:{port}/{database}?sslmode=require"
         except Exception as e:
-            logger.warning("Cannot build DB URL from secret: %s", e)
+            logger.warning("[DB] Cannot build DB URL from secret: %s", e)
             return None
 
     if not db_url:
+        logger.info("[DB] No DATABASE_URL or RDS_CONFIG_SECRET_NAME; using synthetic data")
         return None
 
     try:
         from sqlalchemy import create_engine
-        _db_engine = create_engine(db_url, pool_pre_ping=True, pool_size=1, max_overflow=0)
+        # connect_timeout so failures are fast and CloudWatch shows timeout vs other errors
+        _db_engine = create_engine(
+            db_url,
+            pool_pre_ping=True,
+            pool_size=1,
+            max_overflow=0,
+            connect_args={"connect_timeout": 5},
+        )
         return _db_engine
     except Exception as e:
-        logger.warning("Cannot create engine: %s", e)
+        logger.warning("[DB] Cannot create engine: %s", e)
         return None
 
 

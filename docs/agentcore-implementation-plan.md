@@ -164,6 +164,32 @@ CDSS aligns with requirements: API Gateway exposes Staff/Patient-facing routes; 
 - [ ] CDSS agents use real hospital and OT data via MCP/DB (replace stubs)
 - [ ] Patient context available across severity assessment → hospital → routing flow
 
+**Phase AC-3: Next steps (after AC-2 is done)**
+
+1. **Enable AgentCore Memory**
+   - In AWS Console: Bedrock → AgentCore → your agent/runtime → Memory (or equivalent).
+   - Configure short-term (session) memory so the agent retains context within a conversation.
+   - Configure long-term (patient) memory so Patient_Agent can persist patient context across sessions (Req 2 continuity).
+   - Wire memory ID or session ID from your API (e.g. `memory_id` / `session_id` in `invoke_agent_runtime` payload) so traces and memory align with Patient_ID.
+
+2. **Expose Hospital Data via MCP on the Gateway**
+   - Add or register a **Hospital Data MCP** tool source on the existing AgentCore Gateway (Bedrock → AgentCore → Gateways → [gateway] → Targets).
+   - If using a Lambda: ensure `get_hospitals`, `get_ot_status` (and any hospital/OT tools) are registered and return real or stub data per [agentcore-gateway-manual-steps.md](./agentcore-gateway-manual-steps.md).
+   - Optionally add ABDM and OT/resources as MCP or Lambda tools on the same Gateway.
+
+3. **Replace stubs with real data**
+   - Point Gateway Lambda (or MCP) at live DB: set `RDS_CONFIG_SECRET_NAME` (or `DATABASE_URL`) so `get_hospitals`, `get_ot_status`, and CDSS tools in `lambda_handler.py` query Aurora.
+   - Remove or replace synthetic/stub responses in Gateway tools with real hospital and OT data from Aurora (or external MCP).
+
+4. **Patient context across the flow**
+   - Ensure severity assessment → hospital match → routing flow share the same patient/session context (e.g. via memory or request payload: `patient_id`, `session_id`, `memory_id`).
+   - Verify in traces (CloudWatch / observability) that Patient_ID and Doctor_ID are present for medical audit (CDSS.mdc).
+
+5. **Docs and verification**
+   - Update [PROJECT_REFERENCE.md](./PROJECT_REFERENCE.md) with memory config, Gateway tool list, and any new env vars.
+   - Add a short verification: one full flow (e.g. "patient summary for PT-1001" → hospital match) that uses memory and real Gateway tools; confirm trace shows patient context and tool calls.
+   - **Gateway → Aurora:** When switching from stub to live DB, see [AC3_AURORA_GATEWAY_DEBUG.md](./AC3_AURORA_GATEWAY_DEBUG.md) for connection troubleshooting.
+
 ---
 
 ### Phase AC-4: Routing + Identity

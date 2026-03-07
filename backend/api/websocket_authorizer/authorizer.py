@@ -3,6 +3,9 @@ WebSocket $connect Lambda authorizer — validates Cognito JWT from ?token=.
 
 Used only for the $connect route. Validates the token using Cognito JWKS
 and returns an IAM policy Allow (with context: sub, role) or Deny.
+
+Cognito config: from AWS Secrets Manager (CDSS_APP_CONFIG_SECRET_NAME) when set,
+else from environment (COGNITO_USER_POOL_ID, AWS_REGION).
 """
 
 from __future__ import annotations
@@ -21,8 +24,32 @@ except ImportError:
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-COGNITO_USER_POOL_ID = os.environ.get("COGNITO_USER_POOL_ID", "")
-COGNITO_REGION = os.environ.get("AWS_REGION", "ap-south-1")
+# Resolve Cognito config from Secrets Manager or env (no hardcoded secrets).
+def _get_cognito_config() -> tuple[str, str]:
+    """Return (COGNITO_USER_POOL_ID, AWS_REGION). From Secrets Manager app config or env."""
+    secret_name = (os.environ.get("CDSS_APP_CONFIG_SECRET_NAME") or "").strip()
+    if secret_name:
+        try:
+            import boto3
+            from botocore.exceptions import ClientError
+            region = os.environ.get("AWS_REGION", "ap-south-1")
+            client = boto3.client("secretsmanager", region_name=region)
+            resp = client.get_secret_value(SecretId=secret_name)
+            raw = resp.get("SecretString")
+            if raw:
+                cfg = json.loads(raw)
+                pool_id = (cfg.get("cognito_user_pool_id") or "").strip()
+                aws_region = (cfg.get("aws_region") or cfg.get("region") or region).strip()
+                if pool_id:
+                    return pool_id, aws_region
+        except (ClientError, json.JSONDecodeError) as e:
+            logger.warning("Failed to load app config from Secrets Manager: %s", e)
+    pool_id = os.environ.get("COGNITO_USER_POOL_ID", "")
+    region = os.environ.get("AWS_REGION", "ap-south-1")
+    return (pool_id or "", region or "ap-south-1")
+
+
+COGNITO_USER_POOL_ID, COGNITO_REGION = _get_cognito_config()
 JWKS_URI = (
     f"https://cognito-idp.{COGNITO_REGION}.amazonaws.com/{COGNITO_USER_POOL_ID}/.well-known/jwks.json"
     if COGNITO_USER_POOL_ID

@@ -2,7 +2,7 @@
 Admin API handler – users, audit log, config, analytics.
 
 GET /api/v1/admin/audit: from audit_log table (Aurora).
-GET /api/v1/admin/users: from Cognito User Pool when COGNITO_USER_POOL_ID is set; otherwise stub (see docs).
+GET /api/v1/admin/users: from Cognito User Pool when cognito_user_pool_id is set (Secrets Manager or env); otherwise stub.
 GET/PUT /api/v1/admin/config: from SSM /cdss/admin/config when available; fallback in-memory stub for local dev.
 GET /api/v1/admin/analytics: from Aurora (OT utilization, reminder stats).
 Per project-conventions: RBAC enforced by router; no PHI in logs.
@@ -25,7 +25,7 @@ from cdss.db.session import get_session
 logger = logging.getLogger(__name__)
 
 # Fallback in-memory config when SSM is not available (e.g. local dev without /cdss/admin/config).
-# When COGNITO_USER_POOL_ID or SSM is unset, endpoints document that they run in stub mode.
+# When cognito_user_pool_id or SSM is unset, endpoints document that they run in stub mode.
 _ADMIN_CONFIG_FALLBACK: dict = {
     "mcpHospitalEndpoint": "",
     "mcpAbdmEndpoint": "",
@@ -34,6 +34,19 @@ _ADMIN_CONFIG_FALLBACK: dict = {
 
 SSM_ADMIN_CONFIG_NAME = "/cdss/admin/config"
 COGNITO_USER_POOL_ID_ENV = "COGNITO_USER_POOL_ID"
+
+
+def _get_cognito_pool_id() -> str:
+    """Cognito User Pool ID from AWS Secrets Manager (CDSS_APP_CONFIG_SECRET_NAME) or env."""
+    try:
+        from cdss.config.secrets import get_app_config
+        cfg = get_app_config()
+        pool_id = (cfg.get("cognito_user_pool_id") or "").strip()
+        if pool_id:
+            return pool_id
+    except Exception:
+        pass
+    return (os.environ.get(COGNITO_USER_POOL_ID_ENV) or "").strip()
 
 
 def _list_audit(limit: int) -> dict:
@@ -61,13 +74,13 @@ def _list_audit(limit: int) -> dict:
 
 def _list_users() -> dict:
     """
-    Return users from Cognito User Pool when COGNITO_USER_POOL_ID is set.
+    Return users from Cognito User Pool when cognito_user_pool_id is set (Secrets Manager or env).
     Otherwise returns empty list (stub mode for local dev without Cognito).
     """
-    pool_id = os.environ.get(COGNITO_USER_POOL_ID_ENV)
+    pool_id = _get_cognito_pool_id()
     if not pool_id or not pool_id.strip():
-        logger.debug("Admin users: stub mode (COGNITO_USER_POOL_ID not set)")
-        return json_response(200, {"users": [], "_stub": "Set COGNITO_USER_POOL_ID to list Cognito users"})
+        logger.debug("Admin users: stub mode (cognito_user_pool_id not set)")
+        return json_response(200, {"users": [], "_stub": "Set CDSS_APP_CONFIG_SECRET_NAME (with cognito_user_pool_id) or COGNITO_USER_POOL_ID to list Cognito users"})
 
     try:
         import boto3

@@ -34,6 +34,42 @@ The system is now fully implemented with a **5-Agent Architecture** managed by *
 | **Memory ID** | `cdssagent_Agent_mem-nS20OrA6Kt` |
 | **S3 Code Bucket** | `s3://bedrock-agentcore-codebuild-sources-746412758276-ap-south-1` |
 
+### 🔐 AWS Secrets Manager (boto3)
+
+All sensitive configuration (API keys, endpoints, DB credentials) must be stored in **AWS Secrets Manager** and retrieved at runtime via boto3. Do not use `.env` for secrets or hardcode credentials.
+
+| Env var (secret name / config) | Secret ID (example) | Purpose |
+| :--- | :--- | :--- |
+| `RDS_CONFIG_SECRET_NAME` | `cdss-dev/rds-config` | RDS/Aurora host, port, database, username (password = IAM auth token at runtime). |
+| `BEDROCK_CONFIG_SECRET_NAME` | `cdss-dev/bedrock-config` | Bedrock `model_id`, `region`; any API keys if required. |
+| `CDSS_APP_CONFIG_SECRET_NAME` | `cdss-dev/app-config` | App-level config: Cognito, EventBridge, gateway ARNs, API base URLs. |
+| `AWS_REGION` | — | AWS region (e.g. `ap-south-1`); not a secret, set by IaC or env. |
+
+**RDS secret JSON** (e.g. `cdss-dev/rds-config`):
+```json
+{ "host": "<cluster>.ap-south-1.rds.amazonaws.com", "port": 5432, "database": "cdssdb", "username": "cdssadmin", "region": "ap-south-1" }
+```
+Connection uses IAM auth token generated at runtime; no password in the secret.
+
+**Bedrock secret JSON** (e.g. `cdss-dev/bedrock-config`):
+```json
+{ "model_id": "anthropic.claude-3-haiku-20240307-v1:0", "region": "ap-south-1" }
+```
+
+**App config secret JSON** (e.g. `cdss-dev/app-config`):
+```json
+{
+  "cognito_user_pool_id": "ap-south-1_xxxxx",
+  "aws_region": "ap-south-1",
+  "event_bus_name": "cdss-events",
+  "agent_runtime_arn": "arn:aws:bedrock-agentcore:...",
+  "gateway_get_hospitals_lambda_arn": "arn:aws:lambda:..."
+}
+```
+Used by WebSocket authorizer, admin handler, and scripts that need Cognito/EventBridge/endpoints. Fallback: same values can be set via environment variables for local dev (secret names and non-secret IDs only; never commit credentials).
+
+**Code:** `src/cdss/config/secrets.py` — `get_secret()`, `get_app_config()`, `get_rds_config()`, `get_bedrock_config()`.
+
 ### 🔗 API Endpoints (Local & Deployed)
 *   **Local API**: `http://localhost:8080` (Run via `python scripts/run_api_local.py`)
 *   **Main Supervisor Entry**: `POST /api/v1/agent` or `POST /agent`

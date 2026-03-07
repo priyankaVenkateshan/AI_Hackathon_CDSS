@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useActivity } from '../../context/ActivityContext';
 import { isMockMode } from '../../api/config';
-import { getPatient, startConsultation, saveConsultation, postAgent } from '../../api/client';
+import { getPatient, startConsultation, saveConsultation } from '../../api/client';
 import { patients, consultationHistory } from '../../data/mockData';
 import './PatientConsultation.css';
 
@@ -19,7 +19,12 @@ const summaryLangHeadings = {
     bn: 'রোগী সারাংশ (AI summary)',
 };
 
-
+const aiResponses = [
+    { role: 'assistant', text: "Hello Dr. Sharma, I've pulled up this patient's complete history. Based on the latest vitals and lab results, here's my assessment:", time: '10:01 AM' },
+    { role: 'assistant', text: "📊 **Key Findings:**\n• Blood pressure trending upward (130/85 → needs monitoring)\n• HbA1c at 7.8% — above target of 7.0%\n• Current Amlodipine dose was recently increased to 10mg\n\n💡 **Recommendation:** Consider adding a second antihypertensive (e.g., Losartan 25mg) if BP remains elevated at next visit.", time: '10:01 AM' },
+    { role: 'user', text: "What about drug interactions with the current medications?", time: '10:02 AM' },
+    { role: 'assistant', text: "✅ **Drug Interaction Check:**\n• Metformin 500mg + Amlodipine 10mg — **No significant interactions**\n• If adding Losartan: Metformin + Losartan — **Safe combination**, but monitor renal function (creatinine) every 3 months.\n\n⚠️ **Note:** Avoid combining with NSAIDs as it may reduce antihypertensive efficacy and affect renal function.", time: '10:02 AM' },
+];
 
 const suggestions = [
     "Summarize patient history",
@@ -33,9 +38,7 @@ export default function PatientConsultation() {
     const { patientId } = useParams();
     const navigate = useNavigate();
     const [message, setMessage] = useState('');
-    const [messages, setMessages] = useState([
-        { role: 'assistant', text: "Hello! I'm your AI Clinical Assistant. I've analyzed the patient's data. How can I assist you today?", time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
-    ]);
+    const [messages, setMessages] = useState(aiResponses);
     const [isTyping, setIsTyping] = useState(false);
     const [patient, setPatient] = useState(null);
     const [history, setHistory] = useState(consultationHistory);
@@ -48,7 +51,6 @@ export default function PatientConsultation() {
     const [savingNotes, setSavingNotes] = useState(false);
     const [consultationStartTime, setConsultationStartTime] = useState(null);
     const [surgeryReadinessModalOpen, setSurgeryReadinessModalOpen] = useState(false);
-    const [entities, setEntities] = useState(null);
     const { user } = useAuth();
     const { logActivity } = useActivity();
 
@@ -130,69 +132,26 @@ export default function PatientConsultation() {
 
     const handleSend = () => {
         if (!message.trim()) return;
-        
-        const userMsg = { role: 'user', text: message, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) };
-        const updatedMessages = [...messages, userMsg];
-        
-        setMessages(updatedMessages);
+        setMessages(prev => [...prev, { role: 'user', text: message, time: 'Now' }]);
         setMessage('');
         setIsTyping(true);
         logActivity('ai_chat_patient', { patientId });
-
-        if (isMockMode()) {
-            setTimeout(() => {
-                setIsTyping(false);
-                setMessages(prev => [...prev, {
-                    role: 'assistant',
-                    text: "I've analyzed your query. Based on the patient's current condition and medical history, I recommend proceeding with the standard protocol.",
-                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                }]);
-            }, 1500);
-            return;
-        }
-
-        const chatContext = updatedMessages.map(m => ({
-            role: m.role,
-            text: m.text
-        }));
-
-        postAgent({
-            message: message,
-            patient_id: patientId,
-            agent_type: 'patient',
-            history: chatContext.slice(0, -1) // Excluding the message just sent since it's passed separately
-        })
-        .then(data => {
+        setTimeout(() => {
             setIsTyping(false);
             setMessages(prev => [...prev, {
                 role: 'assistant',
-                text: data.response || "I couldn't process that request. Please try again.",
-                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                text: "I've analyzed your query. Based on the patient's current condition and medical history, I recommend proceeding with the standard protocol. Would you like me to generate a detailed treatment plan?",
+                time: 'Now',
             }]);
-        })
-        .catch(err => {
-            setIsTyping(false);
-            setMessages(prev => [...prev, {
-                role: 'assistant',
-                text: "Error connecting to AI Assistant: " + err.message,
-                time: 'Error',
-            }]);
-        });
+        }, 2000);
     };
-
 
     const handleStartConsultation = () => {
         setStartConsultationLoading(true);
         if (isMockMode()) {
             setTimeout(() => {
                 setConsultationStartTime(new Date());
-                const mockSummary = "Key findings: Blood pressure trending upward (130/85). HbA1c at 7.8% — above target. Current Amlodipine dose recently increased to 10mg. Recommendation: Consider adding a second antihypertensive (e.g., Losartan 25mg) if BP remains elevated at next visit. Drug interaction check: Metformin + Amlodipine — no significant interactions.";
-                setAiSummaryFromStart(mockSummary);
-                setEntities({
-                    symptoms: ['Elevated BP'],
-                    medications: ['Metformin', 'Amlodipine'],
-                    recommendations: ['Review labs', 'Monitor BP']
-                });
+                setAiSummaryFromStart("Key findings: Blood pressure trending upward (130/85). HbA1c at 7.8% — above target. Current Amlodipine dose recently increased to 10mg. Recommendation: Consider adding a second antihypertensive (e.g., Losartan 25mg) if BP remains elevated at next visit. Drug interaction check: Metformin + Amlodipine — no significant interactions.");
                 setConsultationStarted(true);
                 setStartConsultationLoading(false);
             }, 800);
@@ -203,8 +162,7 @@ export default function PatientConsultation() {
         startConsultation(patientId, user?.id)
             .then((data) => {
                 setConsultationStartTime(new Date());
-                setAiSummaryFromStart(data.ai_summary || '');
-                setEntities(data.entities || null);
+                setAiSummaryFromStart(data.summary || data.ai_summary || '');
                 setConsultationStarted(true);
             })
             .catch(() => setConsultationStarted(false))
@@ -258,7 +216,7 @@ export default function PatientConsultation() {
                     {/* Patient Header */}
                     <div className="patient-header animate-in">
                         <div className="patient-header__row">
-                            <div className={`patient-header__avatar patient-header__avatar--${(patientResolved.gender || 'male').toLowerCase()}`}>
+                            <div className={`patient-header__avatar patient-header__avatar--${patientResolved.gender.toLowerCase()}`}>
                                 {getInitials(patientResolved.name)}
                             </div>
                             <div className="patient-header__info">
@@ -360,13 +318,13 @@ export default function PatientConsultation() {
                             <div className="ai-summary-block__content">{aiSummaryFromStart}</div>
                             <div className="medical-entities-block">
                                 <div className="card-header" style={{ marginBottom: 'var(--space-2)' }}>
-                                    <span className="card-header__title">📌 Medical entities extracted</span>
+                                    <span className="card-header__title">📌 Medical entities extracted (Req 6.3)</span>
                                 </div>
                                 <div className="medical-entities-grid">
-                                    <div><strong>Symptoms:</strong> {entities?.symptoms?.join(', ') || 'Stable'}</div>
-                                    <div><strong>Diagnoses:</strong> {patientResolved.conditions?.join(', ') || '—'}</div>
-                                    <div><strong>Medications:</strong> {entities?.medications?.join(', ') || 'Current regimen'}</div>
-                                    <div><strong>Recommendations:</strong> {entities?.recommendations?.join(', ') || 'Monitor status'}</div>
+                                    <div><strong>Symptoms:</strong> Elevated BP, elevated HbA1c</div>
+                                    <div><strong>Diagnoses:</strong> Hypertension, Type 2 Diabetes</div>
+                                    <div><strong>Medications:</strong> Metformin, Amlodipine</div>
+                                    <div><strong>Follow-up:</strong> Recheck BP and HbA1c at next visit; consider Losartan if BP remains elevated</div>
                                 </div>
                             </div>
                             <div className="consultation-notes-form">

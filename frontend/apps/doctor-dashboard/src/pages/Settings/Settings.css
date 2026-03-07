@@ -1,8 +1,15 @@
-/* Settings Page Styles */
+/* Settings Page Styles - Centered */
 .settings-page {
     display: flex;
     flex-direction: column;
+    align-items: center;
     gap: var(--space-5);
+    padding: 24px 32px;
+}
+
+.settings-page > * {
+    width: 100%;
+    max-width: 1200px;
 }
 
 .settings-page__title {

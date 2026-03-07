@@ -3,16 +3,23 @@ import { useState } from 'react';
 import { useAuth, roles } from '../../context/AuthContext';
 import './Sidebar.css';
 
-const navItems = [
+/** Admin dashboard sidebar: Dashboard, Patients, Doctors, Appointments, Reports, Analytics, Settings */
+const adminNavItems = [
+    { path: '/', icon: '📊', label: 'Dashboard', tooltip: 'Dashboard' },
+    { path: '/patients', icon: '👥', label: 'Patients', tooltip: 'Patients' },
+    { path: '/doctors', icon: '🩺', label: 'Doctors', tooltip: 'Doctors' },
+    { path: '/appointments', icon: '📅', label: 'Appointments', tooltip: 'Appointments' },
+    { path: '/reports', icon: '📄', label: 'Reports', tooltip: 'Reports' },
+    { path: '/admin/analytics', icon: '📈', label: 'Analytics', tooltip: 'Analytics' },
+    { path: '/settings', icon: '⚙️', label: 'Settings', tooltip: 'Settings' },
+];
+
+/** Doctor dashboard sidebar */
+const doctorNavItems = [
     { path: '/', icon: '🎛️', label: 'Dashboard', tooltip: 'Dashboard' },
     { path: '/schedule', icon: '📅', label: 'Appointments', tooltip: 'Appointments' },
     { path: '/patients', icon: '👥', label: 'Patients', tooltip: 'Patients' },
     { path: '/surgery', icon: '🏥', label: 'Surgery', tooltip: 'Surgery' },
-    { section: 'ADMINISTRATION', roles: [roles.ADMIN] },
-    { path: '/admin/dashboard', icon: '📊', label: 'Monitoring', tooltip: 'System Monitoring', roles: [roles.ADMIN] },
-    { path: '/admin/users', icon: '👥', label: 'Users', tooltip: 'User Management', roles: [roles.ADMIN] },
-    { path: '/admin/audit', icon: '🛡️', label: 'Audit', tooltip: 'Audit Logs', roles: [roles.ADMIN] },
-    { path: '/admin/config', icon: '⚙️', label: 'Config', tooltip: 'System Config', roles: [roles.ADMIN] },
 ];
 
 import { currentDoctor } from '../../data/mockData';
@@ -27,47 +34,43 @@ export default function Sidebar() {
         navigate('/login');
     };
 
+    const isAdmin = hasRole && hasRole([roles.ADMIN]);
+    const navItems = isAdmin ? adminNavItems : doctorNavItems;
+
+    const displayName = user?.name || currentDoctor?.name || 'Doctor';
+    const displayInitials = user?.name ? user.name.split(' ').map((n) => n[0]).join('') : (currentDoctor?.initials || 'D');
+
     return (
         <aside className={`sidebar${collapsed ? ' collapsed' : ''}`}>
             {/* Profile Section */}
             <div className="sidebar__profile">
                 <div className="sidebar__avatar-wrap">
                     <div className="sidebar__avatar-initials">
-                        {currentDoctor.initials}
+                        {displayInitials}
                     </div>
                 </div>
                 {!collapsed && (
                     <div className="sidebar__profile-info">
-                        <h3 className="sidebar__doctor-name">{currentDoctor.name}, DMD</h3>
-                        <p className="sidebar__doctor-title">{user?.role === 'admin' ? 'System Administrator' : 'Primary care doctor'}</p>
+                        <h3 className="sidebar__doctor-name">{displayName}</h3>
+                        <p className="sidebar__doctor-title">{user?.role === roles.ADMIN ? 'Administrator' : 'Primary care doctor'}</p>
                     </div>
                 )}
             </div>
 
             {/* Navigation */}
             <nav className="sidebar__nav">
-                {navItems.map((item, i) => {
-                    // Check roles if defined
-                    if (item.roles && !hasRole(item.roles)) return null;
-
-                    if (item.section) {
-                        if (collapsed) return <div key={`sec-${i}`} className="sidebar__divider" />;
-                        return <div key={`sec-${i}`} className="sidebar__section-label">{item.section}</div>;
-                    }
-
-                    return (
-                        <NavLink
-                            key={item.path}
-                            to={item.path}
-                            end={item.path === '/'}
-                            className={({ isActive }) => `sidebar__link${isActive ? ' active' : ''}`}
-                            data-tooltip={item.tooltip}
-                        >
-                            <span className="sidebar__link-icon">{item.icon}</span>
-                            <span className="sidebar__link-text">{item.label}</span>
-                        </NavLink>
-                    );
-                })}
+                {navItems.map((item) => (
+                    <NavLink
+                        key={item.path}
+                        to={item.path}
+                        end={item.path === '/'}
+                        className={({ isActive }) => `sidebar__link${isActive ? ' active' : ''}`}
+                        data-tooltip={item.tooltip}
+                    >
+                        <span className="sidebar__link-icon">{item.icon}</span>
+                        <span className="sidebar__link-text">{item.label}</span>
+                    </NavLink>
+                ))}
             </nav>
 
             {/* Footer with Logout */}

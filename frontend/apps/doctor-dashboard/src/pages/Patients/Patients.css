@@ -5,7 +5,15 @@
 .patients-page {
     display: flex;
     flex-direction: column;
+    align-items: center;
     gap: var(--space-5);
+    padding: 24px 32px;
+}
+
+.patients-page__header,
+.patients-page__content {
+    width: 100%;
+    max-width: 1200px;
 }
 
 .patients-page__header {
@@ -21,14 +29,74 @@
     min-width: 220px;
 }
 
-.patients-search-input {
+.patients-search-wrap {
+    display: flex;
+    align-items: center;
+    position: relative;
     width: 100%;
-    max-width: 320px;
-    padding: var(--space-2) var(--space-4);
-    border: 1px solid var(--surface-border);
-    border-radius: var(--radius-md);
-    font-size: var(--text-sm);
+    max-width: 360px;
     background: var(--surface-card);
+    border: 1px solid var(--surface-border);
+    border-radius: 12px;
+    cursor: text;
+    box-shadow: var(--shadow-sm);
+}
+
+.patients-search-wrap:focus-within {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px var(--color-primary-bg);
+}
+
+.patients-search-wrap__icon {
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    color: var(--text-muted);
+    pointer-events: none;
+}
+
+.patients-search-input {
+    flex: 1;
+    min-width: 0;
+    height: 44px;
+    padding: 0 44px 0 0;
+    border: none;
+    border-radius: 12px;
+    font-size: var(--text-sm);
+    background: transparent;
+    color: var(--text-primary);
+    outline: none;
+}
+
+.patients-search-input::placeholder {
+    color: var(--text-muted);
+}
+
+.patients-search-wrap__clear {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+
+.patients-search-wrap__clear:hover {
+    background: var(--surface-hover);
     color: var(--text-primary);
 }
 

@@ -3,23 +3,56 @@ import os
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
-# Environment variables (configured via CDK/Terraform or .env)
-DB_HOST = os.environ.get('DB_HOST', 'localhost')
-DB_NAME = os.environ.get('DB_NAME', 'cdssdb')
-DB_USER = os.environ.get('DB_USER', 'postgres')
-DB_PASS = os.environ.get('DB_PASS', 'password')
-DB_PORT = os.environ.get('DB_PORT', '5433')
+# Database config: from AWS Secrets Manager (RDS_CONFIG_SECRET_NAME) when set;
+# otherwise from environment for local dev. No hardcoded credentials.
+def _get_db_config():
+    """Resolve DB config from Secrets Manager or env. Prefer Secrets Manager."""
+    try:
+        from cdss.config.secrets import get_rds_config
+        region = os.environ.get("AWS_REGION", "ap-south-1")
+        cfg = get_rds_config(region=region)
+        if cfg and cfg.get("host") and cfg.get("username"):
+            import boto3
+            host = cfg.get("host", "")
+            port = int(cfg.get("port", 5432))
+            database = cfg.get("database", "cdssdb")
+            username = cfg.get("username", "")
+            rds_region = cfg.get("region") or region
+            rds = boto3.client("rds", region_name=rds_region)
+            password = rds.generate_db_auth_token(
+                DBHostname=host, Port=port, DBUsername=username, Region=rds_region
+            )
+            return {
+                "host": host,
+                "port": port,
+                "database": database,
+                "user": username,
+                "password": password,
+            }
+    except Exception:
+        pass
+    # Fallback: environment (local dev only; production should use Secrets Manager).
+    return {
+        "host": os.environ.get("DB_HOST", "localhost"),
+        "port": int(os.environ.get("DB_PORT", "5433")),
+        "database": os.environ.get("DB_NAME", "cdssdb"),
+        "user": os.environ.get("DB_USER", "postgres"),
+        "password": os.environ.get("DB_PASS", "password"),
+    }
+
 
 def get_db_connection():
-    """Establishes a connection to the PostgreSQL database."""
+    """Establishes a connection to the PostgreSQL database using config from Secrets Manager or env."""
     try:
+        cfg = _get_db_config()
         conn = psycopg2.connect(
-            host=DB_HOST,
-            database=DB_NAME,
-            user=DB_USER,
-            password=DB_PASS,
-            port=DB_PORT,
-            connect_timeout=5
+            host=cfg["host"],
+            database=cfg["database"],
+            user=cfg["user"],
+            password=cfg["password"],
+            port=cfg["port"],
+            connect_timeout=5,
+            sslmode="require" if os.environ.get("RDS_CONFIG_SECRET_NAME") else "prefer",
         )
         return conn
     except Exception as e:

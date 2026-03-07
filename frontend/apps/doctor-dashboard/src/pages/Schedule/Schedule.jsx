@@ -1,62 +1,59 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState } from 'react';
 import Calendar from 'react-calendar';
 import { useAuth, roles } from '../../context/AuthContext';
-import { getSchedule, getSurgeries } from '../../api/client';
+import { todaySchedule, surgeries } from '../../data/mockData';
 import { useNavigate } from 'react-router-dom';
 import 'react-calendar/dist/Calendar.css';
 import './Schedule.css';
 
 export default function Schedule() {
-  const { hasRole, user } = useAuth();
+  const { hasRole } = useAuth();
   const navigate = useNavigate();
   const isSurgeon = hasRole(roles.SURGEON);
   const [date, setDate] = useState(new Date());
-  const [appointments, setAppointments] = useState([]);
-  const [surgeries, setSurgeries] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [optimizing, setOptimizing] = useState(false);
 
-  useEffect(() => {
-    setLoading(true);
-    Promise.all([getSchedule(), getSurgeries()])
-      .then(([appts, surgs]) => {
-        setAppointments(Array.isArray(appts) ? appts : (appts.items || []));
-        setSurgeries(Array.isArray(surgs) ? surgs : (surgs.items || []));
-      })
-      .finally(() => setLoading(false));
-  }, []);
-
+  // Format date for comparison and display
   const selectedDateStr = date.toLocaleDateString('en-GB', {
     day: 'numeric',
     month: 'long',
-    year: 'numeric',
+    year: 'numeric'
   });
 
-  const currentAppointments = useMemo(() => {
-    const dStr = date.toISOString().split('T')[0];
-    return appointments.filter(a => (a.appointment_time || '').startsWith(dStr))
-      .map(a => ({
-        ...a,
-        time: (a.appointment_time || '').split('T')[1]?.substring(0, 5) || '—',
-        patient: a.patient_name || a.patient_id,
-        status: a.status?.toLowerCase() || 'upcoming'
-      }));
-  }, [appointments, date]);
-
-  const otSchedule = useMemo(() => {
-    const dStr = date.toISOString().split('T')[0];
-    return surgeries.filter(s => (s.scheduled_time || s.date || '').startsWith(dStr));
-  }, [surgeries, date]);
-
-  const handleOptimize = () => {
-    setOptimizing(true);
-    setTimeout(() => {
-      setOptimizing(false);
-      alert("Scheduling Agent: Your schedule for " + selectedDateStr + " has been optimized. 2 overlaps resolved, and gaps reduced by 40 minutes.");
-    }, 1500);
+  const isToday = (someDate) => {
+    const today = new Date();
+    return someDate.getDate() === today.getDate() &&
+      someDate.getMonth() === today.getMonth() &&
+      someDate.getFullYear() === today.getFullYear();
   };
 
-  if (loading) return <div className="schedule-page" style={{padding: '4rem', textAlign: 'center'}}>Loading schedule...</div>;
+  // Helper to get appointments for a specific date
+  // In a real app, this would be an API call. Here we simulate it.
+  const getAppointmentsForDate = (selectedDate) => {
+    // If it's today, return the standard todaySchedule
+    if (isToday(selectedDate)) {
+      return todaySchedule.map((s) => ({
+        ...s,
+        location: s.type === 'Pre-op Check' ? 'OT-3' : 'Room 4',
+        consultationType: s.type,
+      }));
+    }
+
+    // For other dates, we return a subset or empty based on the day of the week to simulate variety
+    const day = selectedDate.getDay();
+    if (day === 0) return []; // Sundays are empty
+
+    // Return a shuffled/subset of today's schedule for other days
+    return todaySchedule.slice(0, (day % 4) + 2).map((s, i) => ({
+      ...s,
+      time: `${9 + i}:00`, // adjust times slightly
+      location: 'Room 4',
+      consultationType: s.type,
+    }));
+  };
+
+  const currentAppointments = getAppointmentsForDate(date);
+  const otSchedule = isSurgeon ? surgeries.filter((s) => s.status === 'scheduled' || s.status === 'pre-op') : [];
+
   return (
     <div className="schedule-page page-enter">
       <div className="schedule-container">
@@ -66,27 +63,7 @@ export default function Schedule() {
         </div>
 
         <div className="schedule-vertical-stack">
-          {/* Scheduling Agent Optimization Section */}
-          <section className="schedule-card agent-card centered-card">
-            <div className="agent-header">
-              <span className="agent-icon">🤖</span>
-              <div>
-                <h3 className="agent-title">Scheduling Agent</h3>
-                <p className="agent-subtitle">AI-driven conflict detection & time optimization</p>
-              </div>
-            </div>
-            <div className="agent-actions">
-               <button 
-                  className={`btn btn--primary ${optimizing ? 'loading' : ''}`} 
-                  onClick={handleOptimize}
-                  disabled={optimizing}
-               >
-                 {optimizing ? 'Optimizing...' : '⚡ Optimize Schedule'}
-               </button>
-            </div>
-          </section>
-
-          {/* Calendar */}
+          {/* Calendar at the top */}
           <section className="schedule-card calendar-card centered-card">
             <h2 className="schedule-card__title">Select Date</h2>
             <div className="calendar-container">
@@ -102,7 +79,7 @@ export default function Schedule() {
           <section className="schedule-card appointments-card centered-card">
             <div className="schedule-card__header">
               <h2 className="schedule-card__title">
-                {selectedDateStr}
+                {isToday(date) ? "Today's Appointments" : `Appointments for ${selectedDateStr}`}
               </h2>
               <span className="schedule-card__count">{currentAppointments.length} items</span>
             </div>
@@ -116,11 +93,12 @@ export default function Schedule() {
                       <span className="schedule-list__patient">{item.patient}</span>
                     </div>
                     <div className="schedule-item__meta">
-                      <span className="schedule-list__type">{item.reason || item.consultationType || 'Consultation'}</span>
+                      <span className="schedule-list__type">{item.consultationType}</span>
+                      <span className="schedule-list__location">{item.location}</span>
                     </div>
                     <div className="schedule-item__actions">
-                      <button type="button" className="schedule-list__btn" onClick={() => item.patient_id && navigate(`/patient/${item.patient_id}`)}>
-                        View Record
+                      <button type="button" className="schedule-list__btn" onClick={() => item.patient && navigate('/patients')}>
+                        View Details
                       </button>
                     </div>
                   </li>
@@ -141,19 +119,18 @@ export default function Schedule() {
                 {otSchedule.map((s) => (
                   <li key={s.id} className="schedule-list__item">
                     <div className="schedule-item__main">
-                      <span className="schedule-list__time">{s.time ||(s.scheduled_time || '').split('T')[1]?.substring(0, 5)}</span>
-                      <span className="schedule-list__patient">{s.patient_name || s.patient_id}</span>
+                      <span className="schedule-list__time">{s.time}</span>
+                      <span className="schedule-list__patient">{s.patient}</span>
                     </div>
                     <div className="schedule-item__meta">
                       <span className="schedule-list__type">{s.type}</span>
-                      <span className="schedule-list__location">{s.ot_id || s.ot}</span>
+                      <span className="schedule-list__location">{s.ot}</span>
                     </div>
                     <button type="button" className="schedule-list__btn" onClick={() => navigate('/surgery')}>
                       View
                     </button>
                   </li>
                 ))}
-                {otSchedule.length === 0 && <p className="empty-state">No surgeries scheduled for this date.</p>}
               </ul>
             </section>
           )}
