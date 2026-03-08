@@ -102,8 +102,8 @@ export default function Header() {
     <header className="header header--ops">
       <div className="header__inner">
         <div className="header__left">
-          <h1 className="header__title">{user.role === roles.ADMIN ? 'CDSS DASHBOARD' : 'Doctor Portal'}</h1>
-          {user.role !== roles.ADMIN && <Breadcrumbs />}
+          <h1 className="header__title">{user.role === roles.ADMIN || user.role === roles.SUPERUSER ? 'CDSS DASHBOARD' : 'Doctor Portal'}</h1>
+          {user.role !== roles.ADMIN && user.role !== roles.SUPERUSER && <Breadcrumbs />}
         </div>
 
         {/* Center: Search — label makes icon + area focus input for accessibility */}

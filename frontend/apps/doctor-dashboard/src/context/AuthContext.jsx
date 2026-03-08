@@ -8,6 +8,7 @@ export const roles = {
     SURGEON: 'surgeon',
     NURSE: 'nurse',
     ADMIN: 'admin',
+    SUPERUSER: 'superuser',
     PATIENT: 'patient',
 };
 
@@ -16,6 +17,7 @@ const users = [
     { id: 'u2', name: 'Dr. Vikram Patel', role: roles.SURGEON, email: 'vikram@cdss.ai', password: '***REDACTED***' },
     { id: 'u3', name: 'Nurse Anjali', role: roles.NURSE, email: 'anjali@cdss.ai', password: '***REDACTED***' },
     { id: 'u4', name: 'Admin Sameer', role: roles.ADMIN, email: 'admin@cdss.ai', password: '***REDACTED***' },
+    { id: 'u5', name: 'Super Admin', role: roles.SUPERUSER, email: 'superuser@cdss.ai', password: '***REDACTED***' },
     { id: 'PT-1001', name: 'Rajesh Kumar', role: roles.PATIENT, email: 'rajesh@patient.demo', password: '***REDACTED***' },
 ];
 

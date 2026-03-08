@@ -34,7 +34,7 @@ export default function Sidebar() {
         navigate('/login');
     };
 
-    const isAdmin = hasRole && hasRole([roles.ADMIN]);
+    const isAdmin = hasRole && hasRole([roles.ADMIN, roles.SUPERUSER]);
     const navItems = isAdmin ? adminNavItems : doctorNavItems;
 
     const displayName = user?.name || currentDoctor?.name || 'Doctor';
@@ -52,7 +52,7 @@ export default function Sidebar() {
                 {!collapsed && (
                     <div className="sidebar__profile-info">
                         <h3 className="sidebar__doctor-name">{displayName}</h3>
-                        <p className="sidebar__doctor-title">{user?.role === roles.ADMIN ? 'Administrator' : 'Primary care doctor'}</p>
+                        <p className="sidebar__doctor-title">{user?.role === roles.SUPERUSER ? 'Super Administrator' : user?.role === roles.ADMIN ? 'Administrator' : 'Primary care doctor'}</p>
                     </div>
                 )}
             </div>

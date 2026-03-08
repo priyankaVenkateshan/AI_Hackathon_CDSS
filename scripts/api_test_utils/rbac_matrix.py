@@ -3,7 +3,7 @@
 RBAC matrix tester: run key API endpoints with a single token and assert
 role-based expectations (200, 403, 404).
 
-Decodes the JWT to determine role (doctor, nurse, admin, patient), then
+Decodes the JWT to determine role (doctor, nurse, admin, superuser, patient), then
 runs a preset list of (method, path, expected_status) for that role.
 For patient role, PATIENT_ID is used where the path contains a patient id.
 
@@ -90,6 +90,18 @@ PATIENT_OWN_OK = [200, 404]  # own record may be 200 or 404
 
 ROLE_MATRIX: dict[str, list[tuple[str, str, list[int]]]] = {
     "admin": [
+        ("GET", "/dashboard", STAFF_OK),
+        ("GET", "/api/v1/patients", STAFF_OK),
+        ("GET", "/api/v1/patients/PT-1001", STAFF_OR_404),
+        ("GET", "/api/v1/surgeries", STAFF_OK),
+        ("GET", "/api/v1/resources", STAFF_OK),
+        ("GET", "/api/v1/schedule", STAFF_OK),
+        ("GET", "/api/v1/admin/audit", STAFF_OK),
+        ("GET", "/api/v1/admin/users", STAFF_OR_404),
+        ("GET", "/api/v1/admin/config", STAFF_OR_404),
+        ("POST", "/agent", STAFF_OK),
+    ],
+    "superuser": [
         ("GET", "/dashboard", STAFF_OK),
         ("GET", "/api/v1/patients", STAFF_OK),
         ("GET", "/api/v1/patients/PT-1001", STAFF_OR_404),

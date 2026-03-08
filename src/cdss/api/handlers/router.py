@@ -14,8 +14,11 @@ from cdss.api.handlers.dashboard import get_dashboard_data
 
 logger = logging.getLogger(__name__)
 
-# Path prefixes that require admin role
+# Path prefixes that require admin role (admin or superuser)
 ADMIN_PATHS = ("/api/v1/admin", "/admin")
+
+# Role that bypasses all RBAC restrictions (admin paths + patient scoping)
+SUPERUSER_ROLE = "superuser"
 
 
 def _repo_root() -> Path:
@@ -134,6 +137,17 @@ def _path_requires_admin(path: str) -> bool:
     if path_normalized.startswith("/dev/") or path_normalized.startswith("/prod/"):
         path_normalized = "/" + path_normalized.split("/", 2)[-1]
     return any(path_normalized.startswith(p.strip().lower()) for p in ADMIN_PATHS)
+
+
+def _is_superuser(role: str) -> bool:
+    """True if role has full access (all admin paths and no patient-scope restrictions)."""
+    return (role or "").strip().lower() == SUPERUSER_ROLE
+
+
+def _can_access_admin_paths(role: str) -> bool:
+    """True if role is allowed to access admin-only paths."""
+    r = (role or "").strip().lower()
+    return r == "admin" or r == SUPERUSER_ROLE
 
 
 def _audit_log(event: dict, action: str, resource: str, resource_id: str | None = None, details: dict | None = None) -> None:
@@ -279,10 +293,9 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 event=event,
             )
 
-        # RBAC: admin-only paths
+        # RBAC: admin-only paths (admin and superuser allowed)
         if _path_requires_admin(path):
-            if role != "admin":
-
+            if not _can_access_admin_paths(role):
                 _audit_log(event, f"{method} {path}", resource, details={"status": 403, "reason": "AdminRequired"})
                 return json_response(
                     403,
@@ -294,9 +307,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         proxy = (event.get("pathParameters") or {}).get("proxy") or ""
 
         # Patient-scoped paths: role `patient` may only access their own record.
-        # - Disallow patient role listing all patients.
-        # - For detail routes, enforce path id == patientId from claims.
-        if role == "patient":
+        # Superuser bypasses patient scoping (full access). Admin already can access all.
+        if role == "patient" and not _is_superuser(role):
             # Normalize for patterns like "v1/patients" and "v1/patients/PT-1001"
             parts = [p for p in proxy.split("/") if p]
             # Block patient from list view of all patients

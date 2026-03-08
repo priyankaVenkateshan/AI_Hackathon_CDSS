@@ -60,7 +60,8 @@ Tokens are obtained via the Cognito Hosted UI or `aws cognito-idp initiate-auth`
 
 | Role | Access Level |
 |------|-------------|
-| `admin` | All endpoints |
+| `admin` | All endpoints including /api/v1/admin/* |
+| `superuser` | Full access: same as admin, plus bypasses patient-scope restrictions (can list all patients and access any patient record) |
 | `doctor` / `nurse` | All non-admin endpoints |
 | `patient` | Own record only (`/api/v1/patients/:own-id`) |
 

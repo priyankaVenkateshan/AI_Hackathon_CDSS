@@ -285,7 +285,7 @@ function AdminDashboard() {
 
 export default function Dashboard() {
   const { hasRole } = useAuth();
-  const isAdmin = hasRole && hasRole([roles.ADMIN]);
+  const isAdmin = hasRole && hasRole([roles.ADMIN, roles.SUPERUSER]);
 
   return isAdmin ? <AdminDashboard /> : <DoctorDashboard />;
 }
