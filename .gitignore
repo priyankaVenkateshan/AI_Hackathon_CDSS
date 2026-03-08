@@ -62,9 +62,32 @@ htmlcov/
 *.tfplan
 terraform.tfvars
 **/lambda.zip
+**/lambda_payload.zip
 gateway_config.json
 **/gateway_tools.zip
 infrastructure/websocket_authorizer_lambda.zip
+
+# Root-level artifacts (keep repo clean)
+/*.exe
+/all-secrets.json
+/secret_val.json
+/api_logs*.json
+/api_log_streams.json
+/full_logs.json
+/log_events.json
+/log_streams.json
+/logs.txt
+/aurora_details.json
+/payload.json
+/payload_seed.json
+/response.json
+/seed_response.json
+/phase3*.txt
+/48201_apps.txt
+/ad268_*.txt
+/App_48201.jsx
+/App_ad268.jsx
+/temp_script.py
 
 # Old folder merged into infrastructure/
 infrastructure_/

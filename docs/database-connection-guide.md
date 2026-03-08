@@ -98,7 +98,7 @@ If the cluster was created with different values (e.g. via `TF_VAR_db_password`)
 | Seed via script | `$env:CDSS_DB_PASSWORD='password'; .\scripts\run_seed_via_tunnel.ps1` |
 | **Test API with real DB** | Tunnel running → `$env:DATABASE_URL="postgresql://cdssadmin:PASSWORD@localhost:5433/cdssdb"; python scripts/test_api_local.py` |
 
-Full tunnel/seed details are also in **aurora_tunnel_config.json** in the repo root.
+Full tunnel/seed details are also in **config/aurora_tunnel_config.json**.
 
 ---
 

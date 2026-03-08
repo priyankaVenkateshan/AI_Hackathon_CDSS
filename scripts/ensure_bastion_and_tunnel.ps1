@@ -8,7 +8,7 @@ $repoRoot = Join-Path $PSScriptRoot ".."
 $infraDir = Join-Path $PSScriptRoot "..\infrastructure"
 $localPort = "5433"
 
-# Aurora endpoint (from aurora_tunnel_config.json or Terraform; update if your cluster differs)
+# Aurora endpoint (from config/aurora_tunnel_config.json or Terraform; update if your cluster differs)
 $auroraHost = "cdss-dev-aurora-instance.c3coggyeulk5.ap-south-1.rds.amazonaws.com"
 
 # Set Terraform DB vars from repo .env (DATABASE_URL) if not already set

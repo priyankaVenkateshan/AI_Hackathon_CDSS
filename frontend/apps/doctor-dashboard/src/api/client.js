@@ -76,11 +76,11 @@ export function getDashboard(doctorId = '') {
 }
 
 export function getPatients() {
-  return api.get('/api/v1/patients').catch(() => api.get('/patients'));
+  return api.get('/api/v1/patients');
 }
 
 export function getPatient(patientId) {
-  return api.get(`/api/v1/patients/${patientId}`).catch(() => api.get(`/patients/${patientId}`));
+  return api.get(`/api/v1/patients/${patientId}`);
 }
 
 export function startConsultation(patientId, doctorId) {
@@ -101,23 +101,23 @@ export function postSummarize(body) {
 }
 
 export function getMedications() {
-  return api.get('/api/v1/medications').catch(() => api.get('/medications'));
+  return api.get('/api/v1/medications');
 }
 
 export function getSurgeries() {
-  return api.get('/api/v1/surgeries').catch(() => api.get('/surgeries'));
+  return api.get('/api/v1/surgeries');
 }
 
 export function getSurgery(surgeryId) {
-  return api.get(`/api/v1/surgeries/${surgeryId}`).catch(() => api.get(`/surgeries/${surgeryId}`));
+  return api.get(`/api/v1/surgeries/${surgeryId}`);
 }
 
 export function getResources() {
-  return api.get('/api/v1/resources').catch(() => api.get('/resources'));
+  return api.get('/api/v1/resources');
 }
 
 export function getSchedule() {
-  return api.get('/api/v1/schedule').catch(() => api.get('/schedule'));
+  return api.get('/api/v1/schedule');
 }
 
 export function sendNudge(patientId, medicationId) {

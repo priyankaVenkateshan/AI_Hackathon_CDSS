@@ -98,7 +98,7 @@ cd infrastructure; terraform apply -var-file=terraform.tfvars -input=false -auto
 
 ### 2.1 Security: Hardcoded Passwords (Critical)
 
-**Fixed:** `test_db_conn.py` and `debug_conn.py` now use `DATABASE_URL` or `CDSS_DB_PASSWORD` (no hardcoded passwords).  
+**Fixed:** `scripts/test_db_conn.py` and `scripts/debug_conn.py` use `DATABASE_URL` or `CDSS_DB_PASSWORD` (no hardcoded passwords).  
 **Config:** `config.json` and `config/my-config.json` are in `.gitignore` so env-specific config is not committed.
 
 ### 2.2 Secrets in AWS
