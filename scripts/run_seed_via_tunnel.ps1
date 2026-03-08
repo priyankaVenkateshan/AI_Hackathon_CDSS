@@ -7,7 +7,7 @@ param(
     [string]$DbHost = "localhost",
     [string]$Port = "5433",
     [string]$Database = "cdssdb",
-    [string]$User = "cdssadmin"
+    [string]$User = "cdssdb"
 )
 
 $ErrorActionPreference = "Stop"

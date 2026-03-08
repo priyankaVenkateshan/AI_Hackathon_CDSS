@@ -305,7 +305,7 @@ export default function PatientConsultation() {
                         </div>
                     )}
 
-                    {consultationStarted && aiSummaryFromStart && (
+                    {consultationStarted && (
                         <div className="ai-summary-block animate-in">
                             <div className="card-header">
                                 <span className="card-header__title">🤖 {summaryLangHeadings[summaryLang] || summaryLangHeadings.en}</span>
@@ -315,7 +315,14 @@ export default function PatientConsultation() {
                                 )}
                             </div>
                             <p className="ai-summary-block__clinical-note">Structured summary for clinical decision-making (generated within 30 seconds).</p>
-                            <div className="ai-summary-block__content">{aiSummaryFromStart}</div>
+                            <div className="ai-summary-block__content">
+                                {aiSummaryFromStart || (
+                                    <div className="ai-summary-placeholder">
+                                        <p>✨ AI is analyzing patient history and preparing a summary...</p>
+                                        <div className="loading-dots"><span>.</span><span>.</span><span>.</span></div>
+                                    </div>
+                                )}
+                            </div>
                             <div className="medical-entities-block">
                                 <div className="card-header" style={{ marginBottom: 'var(--space-2)' }}>
                                     <span className="card-header__title">📌 Medical entities extracted (Req 6.3)</span>

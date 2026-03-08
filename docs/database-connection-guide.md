@@ -13,7 +13,7 @@ Single reference for connecting to Aurora from your machine: IDs, why direct con
 | **Master user** | `cdssadmin` |
 | **RDS security group** | `sg-052fefe84748d25cd` (cdss-dev-aurora-sg) |
 | **Your IP in SG** | `101.127.84.93/32` (already allowed) |
-| **Bastion instance** | `i-08eca02993fe51295` (Public IP: 43.204.30.87) |
+| **Bastion instance** | From Terraform: `cd infrastructure && terraform output -raw bastion_instance_id` (e.g. `i-0b1eb845a0a77296c`) |
 | **Bastion SG** | `sg-05e38417e23f88774` (cdss-dev-bastion-sg) |
 | **VPC** | `vpc-0de2b26e7f9394477` |
 | **RDS subnets** | subnet-07950d1e26581c0c7 (ap-south-1a), subnet-02f6398592f2062dd (ap-south-1b) |
@@ -46,11 +46,14 @@ Leave this terminal open. You should see: `Port 5433 opened for sessionId ...`
 
 **Option B – One-liner**
 
+**Option B – One-liner (after getting instance ID)**
+
 ```powershell
-aws ssm start-session --target i-08eca02993fe51295 --document-name AWS-StartPortForwardingSessionToRemoteHost --parameters "host=cdss-dev-aurora-instance.c3coggyeulk5.ap-south-1.rds.amazonaws.com,portNumber=5432,localPortNumber=5433" --region ap-south-1
+$id = terraform -chdir=infrastructure output -raw bastion_instance_id
+aws ssm start-session --target $id --document-name AWS-StartPortForwardingSessionToRemoteHost --parameters "host=cdss-dev-aurora-instance.c3coggyeulk5.ap-south-1.rds.amazonaws.com,portNumber=5432,localPortNumber=5433" --region ap-south-1
 ```
 
-This forwards **localhost:5433** → Aurora:5432. Do **not** use JSON for `--parameters` in PowerShell (quotes get mangled).
+This forwards **localhost:5433** → Aurora:5432. Prefer **Option A** (`.\scripts\start_ssm_tunnel.ps1`), which also starts the bastion if stopped and waits for SSM.
 
 ---
 
@@ -135,3 +138,34 @@ If you set `DATABASE_URL` but **do not** use the tunnel, you will see connection
 | Password | Same as `db_password` in Terraform / used when creating the cluster. |
 
 Same steps apply for `run_api_local.py`, migrations, seed, or any script that uses `get_session()` and a real DB.
+
+---
+
+## 6. SSM tunnel error: "TargetNotConnected"
+
+If you see:
+
+```text
+An error occurred (TargetNotConnected) when calling the StartSession operation: <instance-id> is not connected.
+```
+
+the **bastion EC2 instance is not available to SSM**. Common causes:
+
+| Cause | What to do |
+|-------|------------|
+| **Instance stopped** | Run `.\scripts\start_ssm_tunnel.ps1` (it starts the instance and waits for SSM). Or in AWS Console → EC2 → Instances, find the bastion (name `cdss-dev-bastion`), start it, wait 2–3 minutes, then run the tunnel again. |
+| **Instance terminated** | Run `terraform output bastion_instance_id` from `infrastructure/` to get the current ID. The script `start_ssm_tunnel.ps1` uses Terraform output automatically. |
+| **SSM Agent / IAM** | Instance must have SSM Agent (default on Amazon Linux 2) and an IAM instance profile with `AmazonSSMManagedInstanceCore`. Check in EC2 → Instance → Security → IAM role. |
+| **No outbound internet** | Bastion needs outbound access to SSM endpoints (443). If the subnet has no NAT Gateway / Internet Gateway, SSM can’t reach the instance. Use a public subnet or add VPC endpoints for SSM. |
+
+**Quick check (PowerShell):**
+
+```powershell
+$id = terraform -chdir=infrastructure output -raw bastion_instance_id
+aws ec2 describe-instance-status --instance-ids $id --region ap-south-1
+```
+
+- If you get `InvalidInstanceID.NotFound`, the instance no longer exists; run `terraform apply` in `infrastructure/` to recreate the bastion.
+- If `InstanceState.Name` is `stopped`, run `.\scripts\start_ssm_tunnel.ps1` (it starts the instance and waits for SSM), or start it in the EC2 console and retry the tunnel.
+
+**Production setup:** All database access uses the bastion and SSM tunnel to Aurora. There is no local Postgres path; start the tunnel with `.\scripts\start_ssm_tunnel.ps1`, then set `DATABASE_URL=postgresql://cdssadmin:PASSWORD@localhost:5433/cdssdb` for migrations, seed, and API.

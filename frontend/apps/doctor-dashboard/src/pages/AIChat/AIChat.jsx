@@ -29,9 +29,17 @@ export default function AIChat() {
         if (!isMockMode()) {
             postAgent({ message: msg, history: messages })
                 .then((res) => {
-                    const reply = (res && (res.reply ?? res.message ?? res.response ?? res.body));
+                    // Supervisor returns { data: { reply, safety_disclaimer }, safety_disclaimer, ... }
+                    const inner = res?.data;
+                    const reply = (inner && inner.reply) ?? res?.reply ?? res?.message ?? res?.response ?? res?.body;
                     const text = typeof reply === 'string' ? reply : (reply?.text ?? JSON.stringify(reply ?? {}));
-                    setMessages(prev => [...prev, { role: 'assistant', text, time: 'Now' }]);
+                    const disclaimer = inner?.safety_disclaimer ?? res?.safety_disclaimer;
+                    setMessages(prev => [...prev, {
+                        role: 'assistant',
+                        text,
+                        time: 'Now',
+                        ...(disclaimer ? { safety_disclaimer: disclaimer } : {}),
+                    }]);
                 })
                 .catch((err) => {
                     setMessages(prev => [...prev, {
@@ -99,6 +107,11 @@ export default function AIChat() {
                         {messages.map((msg, i) => (
                             <div key={i} className={`ai-message ai-message--${msg.role}`}>
                                 <div className="ai-message__bubble">{msg.text}</div>
+                                {msg.safety_disclaimer && (
+                                    <div className="ai-message__disclaimer" role="note">
+                                        {msg.safety_disclaimer}
+                                    </div>
+                                )}
                                 <div className="ai-message__time">{msg.time}</div>
                             </div>
                         ))}

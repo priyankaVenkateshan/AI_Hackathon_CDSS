@@ -35,7 +35,7 @@ def _load_bedrock_config() -> tuple[str, str] | None:
         sm = boto3.client("secretsmanager", region_name=region)
         raw = sm.get_secret_value(SecretId=secret_name).get("SecretString", "{}")
         cfg = json.loads(raw)
-        model_id = cfg.get("model_id") or "anthropic.claude-3-haiku-20240307-v1:0"
+        model_id = cfg.get("model_id") or "apac.amazon.nova-lite-v1:0"
         bedrock_region = cfg.get("region") or region
         return model_id, bedrock_region
     except Exception:

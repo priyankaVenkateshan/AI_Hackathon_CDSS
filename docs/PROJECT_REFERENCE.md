@@ -1,116 +1,57 @@
-# CDSS Project Reference
+# CDSS Project Reference (Single Source of Truth)
 
-This document serves as the single source of truth for the Clinical Decision Support System (CDSS) project configuration, architecture, and implementation status.
+This document contains the centralized configuration, resource identifiers, and endpoints for the Clinical Decision Support System (CDSS) environment.
 
-> [!TIP]
-> **New Developer Onboarding**: See [PROJECT_STATUS.md](PROJECT_STATUS.md) for a high-level overview of "What's Been Done" and the Project Roadmap.
+## 1. Infrastructure (Region: ap-south-1)
 
-
----
-
-## 🚀 Current Status: Complete Multi-Agent Deployment
-The system is now fully implemented with a **5-Agent Architecture** managed by **Amazon Bedrock AgentCore**.
-
-### 🧩 Core Agents (5 Specialized Domains)
-1.  **Patient Agent**: Patient history, summaries, surgery readiness, ABDM records.
-2.  **Surgery Agent**: Surgery classification, checklists, procedural requirements.
-3.  **Resource Agent**: OT availability, staff scheduling, equipment status.
-4.  **Scheduling Agent**: Booking, replacements, team notifications.
-5.  **Engagement Agent**: Medications, reminders, adherence tracking.
-
----
-
-## 🛠 AWS Configuration & Endpoints
-
-| Resource | Value / ID |
-| :--- | :--- |
-| **AWS Region** | `ap-south-1` (Mumbai) |
-| **AWS Account ID** | `746412758276` |
-| **AgentCore Runtime ARN** | `arn:aws:bedrock-agentcore:ap-south-1:746412758276:runtime/cdssagent_Agent-t2U3Q67I4j` |
-| **AgentCore Agent ID** | `cdssagent_Agent-t2U3Q67I4j` |
-| **Execution Role** | `AmazonBedrockAgentCoreSDKRuntime-ap-south-1-6eac3e734d` |
-| **RDS Secret Name** | `cdss-dev/rds-config` |
-| **Bedrock Secret Name** | `cdss-dev/bedrock-config` |
-| **Memory ID** | `cdssagent_Agent_mem-nS20OrA6Kt` |
-| **S3 Code Bucket** | `s3://bedrock-agentcore-codebuild-sources-746412758276-ap-south-1` |
-
-### 🔐 AWS Secrets Manager (boto3)
-
-All sensitive configuration (API keys, endpoints, DB credentials) must be stored in **AWS Secrets Manager** and retrieved at runtime via boto3. Do not use `.env` for secrets or hardcode credentials.
-
-| Env var (secret name / config) | Secret ID (example) | Purpose |
+| Resource | Description | Value / ARN |
 | :--- | :--- | :--- |
-| `RDS_CONFIG_SECRET_NAME` | `cdss-dev/rds-config` | RDS/Aurora host, port, database, username (password = IAM auth token at runtime). |
-| `BEDROCK_CONFIG_SECRET_NAME` | `cdss-dev/bedrock-config` | Bedrock `model_id`, `region`; any API keys if required. |
-| `CDSS_APP_CONFIG_SECRET_NAME` | `cdss-dev/app-config` | App-level config: Cognito, EventBridge, gateway ARNs, API base URLs. |
-| `AWS_REGION` | — | AWS region (e.g. `ap-south-1`); not a secret, set by IaC or env. |
+| **Project Name** | Base deployment prefix | `cdss-dev` |
+| **AWS Region** | Primary region | `ap-south-1` |
+| **VPC ID** | Primary network | `vpc-0123456789abcdef0` (Managed via Terraform) |
+| **Cognito User Pool ID** | IAM for clinical staff | `ap-south-1_0eRSiDzbY` |
+| **Cognito Staff Client ID** | Login for Doctors/Admins | `15hk1uremldsor79jkc7cr866v` |
+| **Cognito Patient Client ID**| Login for Patients | `14qo2b4sdrjgbdnqietsj9jn3u` |
 
-**RDS secret JSON** (e.g. `cdss-dev/rds-config`):
-```json
-{ "host": "<cluster>.ap-south-1.rds.amazonaws.com", "port": 5432, "database": "cdssdb", "username": "cdssadmin", "region": "ap-south-1" }
-```
-Connection uses IAM auth token generated at runtime; no password in the secret.
+## 2. API Endpoints
 
-**Bedrock secret JSON** (e.g. `cdss-dev/bedrock-config`):
-```json
-{ "model_id": "anthropic.claude-3-haiku-20240307-v1:0", "region": "ap-south-1" }
-```
+| Environment | Base URL | WebSocket URL |
+| :--- | :--- | :--- |
+| **Local (API)** | `http://localhost:8080` | N/A |
+| **Production (API)** | `https://b1q9qcuqia.execute-api.ap-south-1.amazonaws.com/dev` | `wss://jcw3vemil9.execute-api.ap-south-1.amazonaws.com/dev` |
+| **Frontend (Dev)** | `http://localhost:5173` | N/A |
 
-**App config secret JSON** (e.g. `cdss-dev/app-config`):
-```json
-{
-  "cognito_user_pool_id": "ap-south-1_xxxxx",
-  "aws_region": "ap-south-1",
-  "event_bus_name": "cdss-events",
-  "agent_runtime_arn": "arn:aws:bedrock-agentcore:...",
-  "gateway_get_hospitals_lambda_arn": "arn:aws:lambda:..."
-}
-```
-Used by WebSocket authorizer, admin handler, and scripts that need Cognito/EventBridge/endpoints. Fallback: same values can be set via environment variables for local dev (secret names and non-secret IDs only; never commit credentials).
+### Public Endpoint Mappings
+- **Swagger UI**: `/api/docs`
+- **OpenAPI Spec**: `/docs/swagger.yaml`
+- **Health Check**: `/health`
+- **Dashboard API**: `/dashboard`
 
-**Code:** `src/cdss/config/secrets.py` — `get_secret()`, `get_app_config()`, `get_rds_config()`, `get_bedrock_config()`.
+## 3. Database (Aurora PostgreSQL)
 
-### 🔗 API Endpoints (Local & Deployed)
-*   **Local API**: `http://localhost:8080` (Run via `python scripts/run_api_local.py`)
-*   **Main Supervisor Entry**: `POST /api/v1/agent` or `POST /agent`
-*   **Health Check**: `GET /health`
-*   **Frontend**: `http://localhost:5173` (Vite / React)
+| Setting | Context | Value |
+| :--- | :--- | :--- |
+| **Cluster Identifier** | RDS Master Cluster | `cdss-dev-aurora-cluster` |
+| **Database Name** | Postgres DB name | `cdssdb` |
+| **Master Username** | Admin User | `cdssadmin` |
+| **Local Proxy Port** | SSH Tunnel | `5433` |
+| **SSL Mode** | Encryption | `require` |
 
----
+## 4. Operational Secrets (Secrets Manager)
 
-## ✅ What's Been Done
-- [x] **Multi-Agent Orchestrator**: Implemented in `agentcore/agent/cdssagent/src/main.py`.
-- [x] **5-Agent Domain Logic**: Specialized prompts for Patient, Surgery, Resource, Scheduling, and Engagement.
-- [x] **Gateway Tools**: 11 clinical tools implemented in `infrastructure/gateway_tools_src/lambda_handler.py`.
-- [x] **Triage Removal**: Architecture consolidated strictly to the 5-agent model.
-- [x] **Clinical Safety**: Enforced Pydantic schemas and auto-escalation rules (confidence < 0.85 → Senior Review).
-- [x] **Audit Trails**: Inter-agent event logging (RDS `AgentEventLog`) and Alert Engine (RDS `AlertLog`).
-- [x] **Database Constraints**: Multi-table RDS schema for patients, surgeries, and resources.
-- [x] **Frontend Dashboards**: Base implementation for Doctor, Nurse, and Patient modules in `frontend/apps`.
+| Secret Name | Usage |
+| :--- | :--- |
+| `cdss-dev/rds-config` | Database credentials and host details |
+| `cdss-dev/bedrock-config` | Bedrock agent and model configurations |
+| `cdss-dev/app-config` | Global feature flags and system settings |
 
+## 5. Notification Topics (SNS ARNs)
+
+| Topic Name | Usage | Placeholder ARN |
+| :--- | :--- | :--- |
+| `cdss-doctor-escalations` | Clinical alerts & staff notifications | `arn:aws:sns:ap-south-1:123456789012:cdss-doctor-escalations` |
+| `cdss-patient-reminders` | Automated patient nudges (Phase 5) | `arn:aws:sns:ap-south-1:123456789012:cdss-patient-reminders` |
+| `cdss-alarms` | System and performance alarms | `arn:aws:sns:ap-south-1:123456789012:cdss-alarms` |
 
 ---
-
-## ⏳ Remaining Actions (Immediate)
-> [!IMPORTANT]  
-> **IAM & Model Access required to finish verification in AWS Console:**
-> 1.  **Model Access**: Enable `Claude 3 Haiku` in Bedrock console (Nova Lite has tool-use limitations).
-> 2.  **IAM Policy**: Attach `AmazonBedrockFullAccess` to the role `AmazonBedrockAgentCoreSDKRuntime-ap-south-1-6eac3e734d`.
-
----
-
-## 📂 Cleanup Log (Removed Files)
-To keep the project clean, the following redundant or outdated files were removed:
-- `TODO.md`, `cdss-backend-status.md`, `next-development-tasks.md`, `next-task-and-implementation.md`, `requirements-remaining-and-verification.md`
-- `architecture-alignment.md`, `agentcore-next-steps-implementation.md`, `implementation-checklist.md`, `rules-and-docs-checklist.md`
-- `infra-verify.md`, `region-change-options.md`, `cicd-and-monitoring.md`, `local-frontend-aurora.md`, `frontend-improvement-plan.md`
-- `sample_api_responses.json`, `agentcore-create-agents-in-aws.md`, `cdss-requirements-completion-action-plan.md`
-
----
-
-## 📖 Key Documentation to Keep
-- [requirements.md](requirements.md): Clinical and technical scope.
-- [design.md](design.md): Architectural design.
-- [api_reference.md](api_reference.md): Full REST API specification.
-- [agentcore-implementation-plan.md](agentcore-implementation-plan.md): Agent-specific technical plan.
-- [agentcore-gateway-manual-steps.md](agentcore-gateway-manual-steps.md): Manual setup for MCP tools.
+*Last Verified: 2026-03-08*

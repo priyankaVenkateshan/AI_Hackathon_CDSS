@@ -85,10 +85,6 @@ export default function Login() {
                 <div className="login-footer">
                     <h3>CDSS Platform © 2026</h3>
                     <p>AI Assisted Clinical Decision Support System</p>
-
-                    <div className="demo-hint">
-                        <small>Demo: Staff priya@cdss.ai / Admin admin@cdss.ai — Patient rajesh@patient.demo (pwd: ***REDACTED***)</small>
-                    </div>
                 </div>
             </div>
         </div>

@@ -470,6 +470,42 @@ List all medications with patient name.
 
 ---
 
+#### `POST /api/v1/medications`
+Prescribe a new medication with automated drug interaction screening (Req 5.1).
+
+**Request:**
+```json
+{
+  "patient_id": "PT-1001",
+  "medication_name": "Aspirin",
+  "frequency": "once daily"
+}
+```
+
+**Response (201):**
+```json
+{
+  "ok": true,
+  "medicationId": 15,
+  "interactions": [
+    { "severity": "high", "warning": "Increased bleeding risk with current Warfarin" }
+  ],
+  "alert_ids": ["uuid-alert-001"]
+}
+```
+
+---
+
+### 14. Clinical Alerts (Phase 5)
+
+#### `GET /api/v1/alerts` (Planned)
+Historical log of clinical and safety alerts for a patient.
+
+#### Automated Triggers
+- **Critical Vitals**: Heart Rate > 130, SpO2 < 90%, or BP Sys > 190 triggers a `critical` alert.
+- **Drug Interactions**: High-severity interactions automatically emit an alert.
+- **Escalation**: All critical alerts initiate an multi-channel escalation sequence (APP -> SMS -> Voice).
+
 ### 8. Reminders
 
 #### `POST /api/v1/reminders`
@@ -816,21 +852,28 @@ All errors follow the same structure:
 | Transcripts | S3 | `cdss-dev-transcripts-*` |
 | CDN | CloudFront | for frontend static assets |
 | Config | SSM Parameter Store | `/cdss/admin/config` |
-| Secrets | Secrets Manager | `cdss/bedrock-config` |
+| Secrets | Secrets Manager | `cdss-dev/rds-config`, `cdss-dev/bedrock-config`, `cdss-dev/app-config` (see [MCP_CONTRACTS.md](MCP_CONTRACTS.md)) |
 
 ### Key Environment Variables (Lambda)
 
 | Variable | Purpose |
 |----------|---------|
 | `DATABASE_SECRET_NAME` | Points to Aurora credentials in Secrets Manager |
-| `BEDROCK_CONFIG_SECRET_NAME` | Bedrock model ID + region |
+| `RDS_CONFIG_SECRET_NAME` | RDS/Aurora config (host, port, database, username) in Secrets Manager |
+| `BEDROCK_CONFIG_SECRET_NAME` | Bedrock model ID + region in Secrets Manager |
+| `CDSS_APP_CONFIG_SECRET_NAME` | App config: Cognito, MCP endpoints (`mcp_hospital_endpoint`, `mcp_abdm_endpoint`, `abdm_sandbox_url`), API base URL, optional MCP/ABDM API keys |
 | `COGNITO_USER_POOL_ID` | For admin user listing |
 | `SNS_TOPIC_PATIENT_REMINDERS_ARN` | Patient reminder notifications |
 | `SNS_TOPIC_DOCTOR_ESCALATIONS_ARN` | Doctor escalation alerts |
 | `USE_AGENTCORE` | `"true"` to enable Bedrock AgentCore runtime |
 | `AGENT_RUNTIME_ARN` | AgentCore runtime ARN |
+| `MCP_HOSPITAL_ENDPOINT` | (Optional) Hospital HIS MCP base URL — or set in app config secret |
+| `MCP_ABDM_ENDPOINT` | (Optional) ABDM Gateway base URL — or set in app config secret |
+| `ABDM_SANDBOX_URL` | (Optional) ABDM sandbox base URL for testing — or set in app config secret |
 | `SUPPORTED_LANGUAGES` | Comma-separated codes: `en,hi,ta,te,bn` |
 | `AWS_REGION` | `ap-south-1` |
+
+**Secrets Manager (production):** All external URLs and credentials MUST come from Secrets Manager or IAM only. See [MCP_CONTRACTS.md](MCP_CONTRACTS.md) for MCP/ABDM secret keys. No hardcoded API keys or passwords in application code.
 
 ---
 

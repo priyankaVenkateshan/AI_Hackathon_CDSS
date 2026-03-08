@@ -48,6 +48,7 @@ resource "aws_lambda_function" "this" {
   runtime         = var.runtime
   filename        = data.archive_file.lambda_zip.output_path
   source_code_hash = data.archive_file.lambda_zip.output_base64sha256
+  layers          = var.layers
 
   dynamic "vpc_config" {
     for_each = length(var.vpc_subnet_ids) > 0 && length(var.vpc_security_group_ids) > 0 ? [1] : []

@@ -1,5 +1,8 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth, roles } from '../../context/AuthContext';
+import { isMockMode } from '../../api/config';
+import { getDashboard, getTasks } from '../../api/client';
 import {
   dashboardOverview,
   pendingClinicalTasks,
@@ -36,17 +39,42 @@ const Sparkline = ({ data, color, height = 48, width = 140, className = '' }) =>
 };
 
 // Doctor Dashboard: Total Patients, Patients Attended, Today's Appointment, Surgery Schedules + Doctor's Tasks
-const doctorKpis = [
-  { label: 'Total Patients', value: dashboardOverview.totalPatients, delta: '▲ 6.7% last week', trend: 'positive', sparkData: dashboardOverview.stats.patients, color: '#48bb78' },
-  { label: 'Patients Attended', value: dashboardOverview.patientsAttended, delta: '▲ 12% last week', trend: 'positive', sparkData: dashboardOverview.stats.attended, color: '#38bdf8' },
-  { label: "Today's Appointment", value: dashboardOverview.todayAppointments, delta: '▼ 2.4% last week', trend: 'negative', sparkData: dashboardOverview.stats.appointments, color: '#f56565' },
-  { label: 'Surgery Schedules', value: dashboardOverview.surgeriesScheduled, delta: '▲ 6.2% last week', trend: 'positive', sparkData: dashboardOverview.stats.surgeries, color: '#818cf8' },
+// KPI definitions use mock defaults; DoctorDashboard overrides from API when !isMockMode() and getDashboard() succeeds.
+const doctorKpiDefaults = [
+  { label: 'Total Patients', value: dashboardOverview.totalPatients, delta: '▲ 6.7% last week', trend: 'positive', sparkData: dashboardOverview.stats.patients, color: '#48bb78', statsKey: 'totalPatients' },
+  { label: 'Patients Attended', value: dashboardOverview.patientsAttended, delta: '▲ 12% last week', trend: 'positive', sparkData: dashboardOverview.stats.attended, color: '#38bdf8', statsKey: null },
+  { label: "Today's Appointment", value: dashboardOverview.todayAppointments, delta: '▼ 2.4% last week', trend: 'negative', sparkData: dashboardOverview.stats.appointments, color: '#f56565', statsKey: null },
+  { label: 'Surgery Schedules', value: dashboardOverview.surgeriesScheduled, delta: '▲ 6.2% last week', trend: 'positive', sparkData: dashboardOverview.stats.surgeries, color: '#818cf8', statsKey: 'activeSurgeries' },
 ];
 
 function DoctorDashboard() {
   const navigate = useNavigate();
   const currentDate = new Date();
   const dateStr = currentDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  const [apiDashboard, setApiDashboard] = useState(null);
+  const [tasks, setTasks] = useState(pendingClinicalTasks);
+
+  useEffect(() => {
+    if (isMockMode()) return;
+    let cancelled = false;
+    getDashboard()
+      .then((data) => { if (!cancelled) setApiDashboard(data || null); })
+      .catch(() => { if (!cancelled) setApiDashboard(null); });
+    getTasks()
+      .then((data) => {
+        if (!cancelled && data?.tasks?.length > 0) {
+          setTasks(data.tasks);
+        }
+      })
+      .catch(() => { /* keep mock tasks */ });
+    return () => { cancelled = true; };
+  }, []);
+
+  const stats = apiDashboard?.stats || {};
+  const doctorKpis = doctorKpiDefaults.map((k) => {
+    const value = k.statsKey && typeof stats[k.statsKey] === 'number' ? stats[k.statsKey] : k.value;
+    return { ...k, value };
+  });
 
   return (
     <div className="dashboard-redesign page-enter">
@@ -75,11 +103,11 @@ function DoctorDashboard() {
               </div>
             </div>
             <div className="tasks-list">
-              {pendingClinicalTasks.map((task) => (
+              {tasks.map((task) => (
                 <div key={task.id} className="task-item">
                   <div className="task-item__main">
-                    <div className={`task-badge ${task.priority.toLowerCase()}`}>
-                      {task.priority.toUpperCase()}
+                    <div className={`task-badge ${(task.priority || 'low').toLowerCase()}`}>
+                      {(task.priority || 'Low').toUpperCase()}
                     </div>
                     <div className="task-content">
                       <span className="task-type">{task.taskType}</span>
@@ -93,7 +121,7 @@ function DoctorDashboard() {
               ))}
             </div>
             <div className="activity-footer">
-              <span className="footer-info">Showing {pendingClinicalTasks.length} pending tasks</span>
+              <span className="footer-info">Showing {tasks.length} pending tasks</span>
             </div>
           </div>
         </section>

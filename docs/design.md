@@ -139,6 +139,8 @@ graph TB
 
 ## Components and Interfaces
 
+External system contracts (Hospital HIS, ABDM): see **[MCP_CONTRACTS.md](MCP_CONTRACTS.md)** for endpoints, auth, and payloads.
+
 ### Core System Components
 
 #### 1. Authentication and Authorization Service

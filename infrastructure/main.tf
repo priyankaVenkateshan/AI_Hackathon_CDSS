@@ -3,6 +3,13 @@
 # Storage: RDS Aurora + S3 only (no DynamoDB per implementation plan).
 
 # CDSS Multi-Agent Lambda (api = router, supervisor, patient, surgery, resource, scheduling, engagement)
+resource "aws_lambda_layer_version" "python_deps" {
+  filename            = "layer.zip"
+  layer_name          = "${local.name_prefix}-python-deps"
+  compatible_runtimes = ["python3.12", "python3.11", "python3.10"]
+  source_code_hash    = filebase64sha256("layer.zip")
+}
+
 module "cdss_lambda" {
   source                = "./modules/lambda"
   name                  = "cdss"
@@ -25,6 +32,7 @@ module "cdss_lambda" {
   })
   attach_bedrock_policy  = true
   bedrock_policy_arn     = aws_iam_policy.bedrock_invoke.arn
+  layers                 = [aws_lambda_layer_version.python_deps.arn]
 
   vpc_subnet_ids         = var.enable_lambda_vpc ? [aws_subnet.private_a.id, aws_subnet.private_b.id] : []
   vpc_security_group_ids = var.enable_lambda_vpc ? [aws_security_group.lambda.id] : []

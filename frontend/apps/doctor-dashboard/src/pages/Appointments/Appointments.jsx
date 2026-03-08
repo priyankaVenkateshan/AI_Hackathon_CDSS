@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { isMockMode } from '../../api/config';
+import { getAppointments } from '../../api/client';
 import { adminAppointmentsList } from '../../data/mockData';
 import './Appointments.css';
 
@@ -9,18 +11,51 @@ export default function Appointments() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const [appointments, setAppointments] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const filtered = adminAppointmentsList.filter((apt) => {
+  useEffect(() => {
+    if (isMockMode()) {
+      setAppointments(adminAppointmentsList);
+      setLoading(false);
+      return;
+    }
+    let cancelled = false;
+    getAppointments()
+      .then((res) => {
+        if (cancelled) return;
+        const items = res?.appointments || [];
+        setAppointments(items.length > 0 ? items : adminAppointmentsList);
+        setLoading(false);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setAppointments(adminAppointmentsList);
+          setLoading(false);
+        }
+      });
+    return () => { cancelled = true; };
+  }, []);
+
+  const filtered = appointments.filter((apt) => {
     const matchSearch =
       !search ||
-      apt.patient.toLowerCase().includes(search.toLowerCase()) ||
-      apt.doctor.toLowerCase().includes(search.toLowerCase()) ||
-      apt.type.toLowerCase().includes(search.toLowerCase());
-    const matchStatus = statusFilter === 'all' || apt.status.toLowerCase() === statusFilter;
-    const matchDateFrom = !dateFrom || apt.date >= dateFrom;
-    const matchDateTo = !dateTo || apt.date <= dateTo;
+      (apt.patient || '').toLowerCase().includes(search.toLowerCase()) ||
+      (apt.doctor || '').toLowerCase().includes(search.toLowerCase()) ||
+      (apt.type || '').toLowerCase().includes(search.toLowerCase());
+    const matchStatus = statusFilter === 'all' || (apt.status || '').toLowerCase() === statusFilter;
+    const matchDateFrom = !dateFrom || (apt.date || '') >= dateFrom;
+    const matchDateTo = !dateTo || (apt.date || '') <= dateTo;
     return matchSearch && matchStatus && matchDateFrom && matchDateTo;
   });
+
+  if (loading) {
+    return (
+      <div className="appointments-page page-enter">
+        <p style={{ textAlign: 'center', padding: '2rem' }}>Loading appointments...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="appointments-page page-enter">

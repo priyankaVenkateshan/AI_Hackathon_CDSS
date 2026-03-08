@@ -7,8 +7,8 @@ This doc explains what you must provide to run migrations and how to fix common 
 | Goal | What to set |
 |------|-----------------------------|
 | **Dry-run only** (no DB, no AWS) | Nothing. Run: `python -m cdss.db.migrations.run --dry-run` |
-| **Local Postgres** (e.g. dev machine) | `DATABASE_URL=postgresql://user:password@host:5432/dbname` |
-| **Aurora in AWS** (IAM auth) | `RDS_CONFIG_SECRET_NAME` + `AWS_REGION` + AWS credentials |
+| **Aurora (production)** | Start SSM tunnel: `.\scripts\start_ssm_tunnel.ps1`, then `DATABASE_URL=postgresql://cdssadmin:PASSWORD@localhost:5433/cdssdb` |
+| **Aurora in AWS** (Lambda / IAM auth) | `RDS_CONFIG_SECRET_NAME` + `AWS_REGION` + AWS credentials |
 
 ### Seed sample data (after migrations)
 
@@ -55,21 +55,25 @@ This only parses the SQL files and prints what would run. It does **not** need `
 
 ---
 
-## 2. Local Postgres (password-based)
+## 2. Aurora via SSM tunnel (production)
 
-Use this when you have a Postgres instance (local or dev) and want to run migrations without AWS Secrets Manager or IAM auth.
+All production and local use of the database goes through the **bastion** and **SSM tunnel** to Aurora.
 
-1. Set **one** of:
-   - **PowerShell:** `$env:DATABASE_URL = "postgresql://user:password@localhost:5432/cdssdb"`
-   - **Bash:** `export DATABASE_URL="postgresql://user:password@localhost:5432/cdssdb"`
+1. Start the tunnel (leave the terminal open):
+   ```powershell
+   .\scripts\start_ssm_tunnel.ps1
+   ```
+2. In a **second** terminal, set the database URL (use the Aurora master password; port **5433** is the local tunnel port):
+   - **PowerShell:** `$env:DATABASE_URL = "postgresql://cdssadmin:PASSWORD@localhost:5433/cdssdb"`
+   - **Bash:** `export DATABASE_URL="postgresql://cdssadmin:PASSWORD@localhost:5433/cdssdb"`
 
-2. Run:
+3. Run migrations:
    ```powershell
    $env:PYTHONPATH = "src"
    python -m cdss.db.migrations.run
    ```
 
-The URL must be a valid PostgreSQL URL (`postgresql://` or `postgresql+psycopg2://`). The user must have permission to create tables in the database.
+The URL must use **localhost:5433** (tunnel port). The user must have permission to create tables in the database. See **docs/database-connection-guide.md** and **docs/BASTION_AND_DB_QUERIES.md**.
 
 ---
 
@@ -156,11 +160,11 @@ $env:AWS_REGION = "us-east-1"   # or ap-south-1 if you deployed there
 python -m cdss.db.check_db
 ```
 
-Or with `DATABASE_URL` for local Postgres:
+Or with `DATABASE_URL` (tunnel to Aurora):
 
 ```powershell
 $env:PYTHONPATH = "src"
-$env:DATABASE_URL = "postgresql://user:pass@host:5432/cdssdb"
+$env:DATABASE_URL = "postgresql://cdssadmin:PASSWORD@localhost:5433/cdssdb"
 python -m cdss.db.check_db
 ```
 

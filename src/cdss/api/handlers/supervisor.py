@@ -94,7 +94,7 @@ def _classify_intent_bedrock(message: str) -> str:
         sm = boto3.client("secretsmanager", region_name=region)
         resp = sm.get_secret_value(SecretId=secret_name)
         config = json.loads(resp.get("SecretString", "{}"))
-        model_id = config.get("model_id") or "anthropic.claude-3-haiku-20240307-v1:0"
+        model_id = config.get("model_id") or "apac.amazon.nova-lite-v1:0"
         bedrock_region = config.get("region") or region
 
         prompt = (

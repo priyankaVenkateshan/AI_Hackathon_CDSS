@@ -3,7 +3,7 @@
 # Then run this script, then start the frontend (npm run dev in frontend/apps/doctor-dashboard).
 
 $ErrorActionPreference = "Stop"
-$repoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+$repoRoot = Split-Path -Parent $PSScriptRoot
 if (-not (Test-Path (Join-Path $repoRoot "src"))) { $repoRoot = (Get-Location).Path }
 
 $env:PYTHONPATH = Join-Path $repoRoot "src"

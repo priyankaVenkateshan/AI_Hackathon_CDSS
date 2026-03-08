@@ -1,19 +1,12 @@
-# Copy to terraform.tfvars and fill in values. Do not commit terraform.tfvars.
-# See .cursor/rules/terraform-standards.mdc: no secrets in .tf; use tfvars (gitignored).
+# Terraform variable template. Copy to terraform.tfvars and set real values.
+# terraform.tfvars is gitignored; do not commit it.
 
-project_name = "cdss"
-environment  = "dev"
-aws_region   = "us-east-1"
+# Required – no defaults (secrets)
+db_username = "cdssadmin"
+db_password = "REPLACE_WITH_AURORA_MASTER_PASSWORD"
 
-# Required: set via TF_VAR_db_username / TF_VAR_db_password or fill below (sensitive)
-# db_username = "admin"
-# db_password = "CHANGE_ME"
+# Optional – Lambda in VPC so it can reach Aurora (default true)
+# enable_lambda_vpc = false
 
-# Optional overrides
-# api_require_cognito = true
-# enable_lambda_vpc   = false
-# bedrock_model_id   = "us.anthropic.claude-3-5-sonnet-v2:0"
-
-# AgentCore (docs/agentcore-implementation-plan.md). Set after deploying agent from agentcore/agent/
-# use_agentcore     = false
-# agent_runtime_arn = ""
+# Optional – require Cognito on API (default true; set false for local/dev without auth)
+# api_require_cognito = false

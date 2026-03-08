@@ -8,6 +8,7 @@
     "apps/*"
   ],
   "scripts": {
+    "dev": "npm run dev --workspace=apps/doctor-dashboard",
     "dev:dashboard": "npm run dev --workspace=apps/doctor-dashboard",
     "dev:patient": "npm run dev --workspace=apps/patient-dashboard",
     "dev:nurse": "npm run dev --workspace=apps/nurse-dashboard",

@@ -1,27 +1,31 @@
 import psycopg2
 import sys
-import boto3
+import os
 
 def test_conn():
     try:
-        # Generate token
-        client = boto3.client("rds", region_name="ap-south-1")
-        token = client.generate_db_auth_token(
-            DBHostname="cdss-db.c3coggyeulk5.ap-south-1.rds.amazonaws.com",
-            Port=5432,
-            DBUsername="cdssadmin"
-        )
+        # Prefer DATABASE_URL; else build from env (no hardcoded credentials)
+        url = os.environ.get("DATABASE_URL")
+        if url:
+            conn = psycopg2.connect(url)
+        else:
+            host = os.environ.get("CDSS_DB_HOST", "localhost")
+            port = int(os.environ.get("CDSS_DB_PORT", "5432"))
+            dbname = os.environ.get("CDSS_DB_NAME", "cdssdb")
+            user = os.environ.get("CDSS_DB_USER", "cdssadmin")
+            password = os.environ.get("CDSS_DB_PASSWORD")
+            if not password:
+                print("Set DATABASE_URL or CDSS_DB_PASSWORD (and optional CDSS_DB_HOST, CDSS_DB_PORT, CDSS_DB_NAME, CDSS_DB_USER)")
+                sys.exit(1)
+            conn = psycopg2.connect(
+                host=host,
+                port=port,
+                dbname=dbname,
+                user=user,
+                password=password,
+            )
         
-        print(f"Token generated (length {len(token)})")
-
-        conn = psycopg2.connect(
-            host="localhost",
-            port=5432,
-            dbname="cdssdb",
-            user="cdssadmin",
-            password="***REDACTED***"
-        )
-        print("Connection successful using Password!")
+        print("Connection successful!")
         conn.close()
     except Exception as e:
         print(f"Connection failed: {e}")

@@ -119,6 +119,15 @@ resource "aws_lambda_permission" "cdss_api_gateway_agent" {
   source_arn    = "${aws_api_gateway_rest_api.main.execution_arn}/*/POST/agent"
 }
 
+# Allow API Gateway to invoke CDSS Lambda for GET /health (production alignment: same contract as local)
+resource "aws_lambda_permission" "cdss_api_gateway_health" {
+  statement_id  = "AllowAPIGatewayInvokeCDSSHealth"
+  action        = "lambda:InvokeFunction"
+  function_name = module.cdss_lambda.api_function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_api_gateway_rest_api.main.execution_arn}/*/GET/health"
+}
+
 
 resource "aws_api_gateway_resource" "health" {
   rest_api_id = aws_api_gateway_rest_api.main.id
@@ -141,7 +150,7 @@ resource "aws_api_gateway_integration" "health_mock" {
   http_method             = aws_api_gateway_method.health_get.http_method
   type                    = "AWS_PROXY"
   integration_http_method = "POST"
-  uri                     = aws_lambda_function.health.invoke_arn
+  uri                     = module.cdss_lambda.invoke_arn
 }
 
 # OPTIONS /health (CORS preflight)

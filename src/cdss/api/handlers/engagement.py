@@ -74,6 +74,43 @@ def _list_medications() -> dict:
         return json_response(200, {"medications": list_data})
 
 
+def _post_medications(event: dict) -> dict:
+    """POST /api/v1/medications – prescribe a new medication (Req 5.1 & 6)."""
+    body = parse_body_json(event)
+    patient_id = body.get("patient_id") or body.get("patientId")
+    med_name = body.get("medication_name") or body.get("medicationName")
+    frequency = body.get("frequency")
+
+    if not patient_id or not med_name:
+        return json_response(400, {"error": "patient_id and medication_name required"})
+
+    # Check for drug interactions (Req 5.1)
+    from cdss.services.drug_interactions import check_drug_interactions
+
+    interactions_result = check_drug_interactions(patient_id, med_name)
+
+    with get_session() as session:
+        med = Medication(
+            patient_id=patient_id,
+            medication_name=med_name,
+            frequency=frequency,
+            status="active",
+            created_at=datetime.now(timezone.utc),
+        )
+        session.add(med)
+        session.flush()
+
+        return json_response(
+            201,
+            {
+                "ok": True,
+                "medicationId": med.id,
+                "interactions": interactions_result.get("interactions", []),
+                "alert_ids": interactions_result.get("alert_ids", []),
+            },
+        )
+
+
 def _post_reminders_nudge(event: dict) -> dict:
     """POST .../reminders/nudge – send nudge via SNS and record."""
     body = parse_body_json(event)
@@ -158,7 +195,7 @@ def _post_reminders(event: dict) -> dict:
 
 
 def _post_consultations_start(event: dict) -> dict:
-    """POST .../consultations/start – create Visit for patient_id, doctor_id; optional transcript to S3."""
+    """POST .../consultations/start – create Visit for patient_id, doctor_id; return AI summary when available."""
     body = parse_body_json(event)
     patient_id = body.get("patient_id") or body.get("patientId")
     doctor_id = body.get("doctor_id") or body.get("doctorId")
@@ -177,7 +214,33 @@ def _post_consultations_start(event: dict) -> dict:
         s3_key = _upload_transcript_if_present(patient_id, visit_id, body)
         if s3_key:
             visit.transcript_s3_key = s3_key
-    return json_response(200, {"visitId": visit_id, "patient_id": patient_id, "doctor_id": doctor_id})
+
+        # AI summary for Phase 4: generate clinician-facing summary from patient + recent visits
+        ai_summary = None
+        try:
+            patient = session.get(Patient, patient_id)
+            if patient:
+                from sqlalchemy import select
+                from cdss.bedrock.patient_summary import get_patient_summary
+                recent = list(
+                    session.scalars(
+                        select(Visit)
+                        .where(Visit.patient_id == patient_id)
+                        .order_by(Visit.visit_date.desc())
+                        .limit(5)
+                    ).all()
+                )
+                ai_summary = get_patient_summary(patient, recent)
+        except Exception as e:
+            logger.debug("Consultation start AI summary skipped: %s", e)
+
+    return json_response(200, {
+        "visitId": visit_id,
+        "patient_id": patient_id,
+        "doctor_id": doctor_id,
+        "summary": ai_summary or "",
+        "ai_summary": ai_summary or "",
+    })
 
 
 def _post_consultations(event: dict) -> dict:
@@ -350,6 +413,8 @@ def handler(event: dict, context: object) -> dict:
         if seg == "medications":
             if method == "GET":
                 return _list_medications()
+            if method == "POST":
+                return _post_medications(event)
             return json_response(405, {"error": "Method not allowed"})
 
         if seg == "reminders":

@@ -22,6 +22,39 @@ from typing import Any, Dict, Optional
 logger = logging.getLogger(__name__)
 
 
+def check_vital_thresholds(patient_id: str, vitals: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """
+    Check vitals against safety thresholds and emit critical alert if exceeded (Req 5.2).
+    Returns the alert result if an alert was emitted, else None.
+    """
+    # Basic clinical thresholds for emergency triggers
+    hr = vitals.get("heart_rate") or vitals.get("heartRate")
+    bp_sys = vitals.get("blood_pressure_sys") or vitals.get("bloodPressureSys")
+    spo2 = vitals.get("oxygen_saturation") or vitals.get("spo2")
+
+    triggers = []
+    if hr and isinstance(hr, (int, float)):
+        if hr > 130: triggers.append(f"Tachycardia ({hr})")
+        if hr < 45: triggers.append(f"Bradycardia ({hr})")
+    if bp_sys and isinstance(bp_sys, (int, float)):
+        if bp_sys > 190: triggers.append(f"Hypertensive Crisis ({bp_sys} sys)")
+        if bp_sys < 85: triggers.append(f"Severe Hypotension ({bp_sys} sys)")
+    if spo2 and isinstance(spo2, (int, float)):
+        if spo2 < 90: triggers.append(f"Critical Hypoxia ({spo2}%)")
+
+    if triggers:
+        message = "Emergency Protocol Triggered: " + "; ".join(triggers)
+        return emit_alert(
+            severity="critical",
+            alert_type="critical_vitals",
+            channel="emergency",
+            patient_id=patient_id,
+            message=message,
+            context={"vitals": vitals, "triggers": triggers},
+        )
+    return None
+
+
 def emit_alert(
     severity: str,
     alert_type: str,
@@ -68,6 +101,14 @@ def emit_alert(
 
     # 2. Route to SNS by severity
     sns_result = _route_to_sns(severity, channel, payload)
+
+    # 3. Trigger escalation if critical (Req 5.3)
+    if severity == "critical":
+        try:
+            from cdss.services.escalations import trigger_escalation_sequence
+            trigger_escalation_sequence(alert_id, severity)
+        except Exception as e:
+            logger.warning("Escalation trigger failed: %s", e)
 
     # 3. Audit log (no PHI in message)
     logger.info(

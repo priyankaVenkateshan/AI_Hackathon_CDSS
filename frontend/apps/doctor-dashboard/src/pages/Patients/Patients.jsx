@@ -90,7 +90,19 @@ export default function Patients() {
         return (
             <div className="patients-page page-enter" style={{ padding: '2rem', textAlign: 'center' }}>
                 <p style={{ color: 'var(--color-error, #c00)' }}>{error}</p>
-                <button className="btn btn--primary" onClick={() => window.location.reload()}>Retry</button>
+                <button
+                    className="btn btn--primary"
+                    onClick={() => {
+                        setError(null);
+                        setLoading(true);
+                        getPatients()
+                            .then((data) => setList(Array.isArray(data) ? data : (data.patients || data.items || [])))
+                            .catch((err) => setError(err.message || 'Failed to load patients'))
+                            .finally(() => setLoading(false));
+                    }}
+                >
+                    Retry
+                </button>
             </div>
         );
     }

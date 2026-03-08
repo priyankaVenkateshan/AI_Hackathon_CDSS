@@ -5,27 +5,73 @@ Local HTTP server that wraps the CDSS Lambda router for frontend-to-backend test
 Run from repo root:
   PYTHONPATH=src python scripts/run_api_local.py
 
-Then in frontend/apps/doctor-dashboard set .env.local:
+Optional: create .env in repo root with DATABASE_URL=postgresql://... to use a real
+database; otherwise the server uses in-memory mock data for patients and surgeries.
+
+Frontend: In frontend/apps/doctor-dashboard set .env.local:
   VITE_API_URL=http://localhost:8080
   VITE_USE_MOCK=false
 
-And run: npm run dev. The app will call this server. Without DATABASE_URL,
-get_session is mocked so responses use empty data.
+Then run: npm run dev. The app will call this server.
 """
 from __future__ import annotations
 
 import json
+import logging
 import os
 import sys
 from contextlib import contextmanager
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
+
+# Configure logging for local visibility
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    stream=sys.stdout
+)
+logger = logging.getLogger("run_api_local")
+
+# Load .env from repo root so DATABASE_URL / RDS_CONFIG_SECRET_NAME are set when present
+try:
+    from dotenv import load_dotenv
+    _env_path = Path(__file__).resolve().parent.parent / ".env"
+    if _env_path.exists():
+        load_dotenv(_env_path)
+except ImportError:
+    pass
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SRC = REPO_ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
+
+# So router can serve /docs/swagger.yaml when cwd differs
+os.environ.setdefault("CDSS_REPO_ROOT", str(REPO_ROOT))
+
+# Optional: load config.json for local run (align with PROJECT_REFERENCE / all-secrets)
+_config_path = REPO_ROOT / "config.json"
+if _config_path.exists():
+    try:
+        _cfg = json.loads(_config_path.read_text(encoding="utf-8"))
+        if not os.environ.get("AWS_REGION") and _cfg.get("aws_region"):
+            os.environ["AWS_REGION"] = _cfg["aws_region"]
+        if not os.environ.get("BEDROCK_CONFIG_SECRET_NAME") and _cfg.get("bedrock_config_secret_name"):
+            os.environ["BEDROCK_CONFIG_SECRET_NAME"] = _cfg["bedrock_config_secret_name"]
+        if not os.environ.get("CDSS_APP_CONFIG_SECRET_NAME") and _cfg.get("app_config_secret_name"):
+            os.environ["CDSS_APP_CONFIG_SECRET_NAME"] = _cfg["app_config_secret_name"]
+        if not os.environ.get("RDS_CONFIG_SECRET_NAME") and _cfg.get("rds_config_secret_name"):
+            os.environ["RDS_CONFIG_SECRET_NAME"] = _cfg["rds_config_secret_name"]
+        # MCP / ABDM endpoints (Phase 2): set from config so adapter can call real or sandbox when non-empty
+        if _cfg.get("mcp_hospital_endpoint") and not os.environ.get("MCP_HOSPITAL_ENDPOINT"):
+            os.environ["MCP_HOSPITAL_ENDPOINT"] = str(_cfg["mcp_hospital_endpoint"]).strip()
+        if _cfg.get("mcp_abdm_endpoint") and not os.environ.get("MCP_ABDM_ENDPOINT"):
+            os.environ["MCP_ABDM_ENDPOINT"] = str(_cfg["mcp_abdm_endpoint"]).strip()
+        if _cfg.get("abdm_sandbox_url") and not os.environ.get("ABDM_SANDBOX_URL"):
+            os.environ["ABDM_SANDBOX_URL"] = str(_cfg["abdm_sandbox_url"]).strip()
+    except Exception:
+        pass
 
 # Optional: mock DB when no DATABASE_URL so server works without Aurora
 USE_DB = bool(os.environ.get("DATABASE_URL") or os.environ.get("RDS_CONFIG_SECRET_NAME"))
@@ -46,10 +92,10 @@ def _mock_session():
         MockModel(id="PT-1002", name="Priya Sharma", date_of_birth=datetime.date(1992, 8, 15), gender="F", conditions=["Asthma"], blood_group="O+", severity="low", status="active", vitals={"bp": "118/76", "hr": 72}, last_visit=datetime.date(2025, 3, 1)),
     ]
 
-    # Sample Surgeries
+    # Sample Surgeries (include ot_id, surgeon_id, duration_minutes for list/detail handlers)
     surgeries = [
-        MockModel(id="SRG-001", patient_id="PT-1001", type="Laparoscopic Cholecystectomy", scheduled_date=datetime.date(2025, 3, 15), scheduled_time="09:00", status="scheduled", requirements={"instruments": ["Laparoscope"], "complexity": "Moderate"}),
-        MockModel(id="SRG-002", patient_id="PT-1003", type="Cataract Surgery", scheduled_date=datetime.date(2025, 3, 18), scheduled_time="11:00", status="scheduled", requirements={"instruments": ["IOL"], "complexity": "Low"}),
+        MockModel(id="SRG-001", patient_id="PT-1001", type="Laparoscopic Cholecystectomy", scheduled_date=datetime.date(2025, 3, 15), scheduled_time="09:00", status="scheduled", requirements={"instruments": ["Laparoscope"], "complexity": "Moderate"}, ot_id="OT-1", surgeon_id="DR-001", duration_minutes=90),
+        MockModel(id="SRG-002", patient_id="PT-1003", type="Cataract Surgery", scheduled_date=datetime.date(2025, 3, 18), scheduled_time="11:00", status="scheduled", requirements={"instruments": ["IOL"], "complexity": "Low"}, ot_id="OT-2", surgeon_id="DR-002", duration_minutes=45),
     ]
 
     session = MagicMock()
@@ -78,9 +124,34 @@ def _mock_session():
         return None
         
     session.scalar.side_effect = mock_scalar
-    session.execute.return_value.all.return_value = []
-    session.execute.return_value.first.return_value = None
-    
+
+    # Surgery list/detail use session.execute(select(Surgery, Patient.name).join(...)).all() / .first()
+    patient_names = {"PT-1001": "Rajesh Kumar", "PT-1003": "Unknown"}
+    surgery_rows = [(s, patient_names.get(s.patient_id, "Unknown")) for s in surgeries]
+
+    def mock_execute(statement):
+        stmt_str = str(statement).lower()
+        mock_result = MagicMock()
+        if "surgeries" in stmt_str and ("join" in stmt_str or "patient" in stmt_str):
+            mock_result.all.return_value = surgery_rows
+            mock_result.first.return_value = surgery_rows[0] if surgery_rows else None
+            mock_result.__iter__ = lambda x: iter(surgery_rows)
+        else:
+            mock_result.all.return_value = []
+            mock_result.first.return_value = None
+            mock_result.__iter__ = lambda x: iter([])
+        return mock_result
+
+    session.execute.side_effect = mock_execute
+
+    def mock_get(model_class, ident):
+        if str(model_class).lower().endswith("patient'>"):
+            for p in patients:
+                if p.id == ident:
+                    return p
+        return None
+    session.get.side_effect = mock_get
+
     return session
 
 
@@ -95,7 +166,14 @@ def _mock_get_session():
     def fake_get_session(secret_name=None):
         return fake_cm()
 
-    with patch("cdss.db.session.get_session", fake_get_session):
+    # Patch both the session module and handlers that supervisor imports (they hold a
+    # reference to get_session at import time, so patch where they look it up).
+    with patch("cdss.db.session.get_session", fake_get_session), \
+         patch("cdss.api.handlers.patient.get_session", fake_get_session), \
+         patch("cdss.api.handlers.surgery.get_session", fake_get_session), \
+         patch("cdss.api.handlers.resource.get_session", fake_get_session), \
+         patch("cdss.api.handlers.scheduling.get_session", fake_get_session), \
+         patch("cdss.api.handlers.engagement.get_session", fake_get_session):
         yield
 
 
@@ -187,9 +265,14 @@ class CDSSHandler(BaseHTTPRequestHandler):
         status = result.get("statusCode", 500)
         headers = result.get("headers", {})
         body_out = result.get("body", "{}")
+        # Conform to api-aws: API Gateway proxy format (statusCode, body, headers, Content-Type: application/json)
         self.send_response(status)
         self._send_cors()
         for k, v in headers.items():
+            # Skip CORS headers already set by _send_cors to avoid duplicates
+            # (browsers reject duplicate Access-Control-Allow-Origin values)
+            if k.lower().startswith("access-control-"):
+                continue
             self.send_header(k, v)
         self.end_headers()
         if body_out:
@@ -202,7 +285,9 @@ class CDSSHandler(BaseHTTPRequestHandler):
 def main():
     port = int(os.environ.get("PORT", "8080"))
     with HTTPServer(("", port), CDSSHandler) as httpd:
-        print(f"CDSS local API at http://localhost:{port} (mock DB: {not USE_DB})")
+        db_source = "database (DATABASE_URL/RDS)" if USE_DB else "mock data (set DATABASE_URL in .env for real DB)"
+        print(f"CDSS local API at http://localhost:{port}")
+        print(f"Data source: {db_source}")
         print("Set VITE_API_URL=http://localhost:{port} and VITE_USE_MOCK=false in frontend .env.local")
         httpd.serve_forever()
 

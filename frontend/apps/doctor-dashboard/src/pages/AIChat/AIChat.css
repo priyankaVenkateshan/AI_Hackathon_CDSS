@@ -196,3 +196,14 @@
     transform: scale(1.05);
     box-shadow: var(--shadow-glow-primary);
 }
+
+/* Safety disclaimer under AI replies (Phase 3.5) */
+.ai-message__disclaimer {
+    margin-top: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    background: var(--surface-border);
+    border-radius: var(--radius-md);
+    border-left: 3px solid var(--color-accent);
+}

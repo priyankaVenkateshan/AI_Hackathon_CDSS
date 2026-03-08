@@ -4,6 +4,7 @@
  */
 const VITE_API_URL = import.meta.env.VITE_API_URL ?? '';
 const VITE_USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true' || import.meta.env.VITE_USE_MOCK === '1';
+const VITE_API_KEY = import.meta.env.VITE_API_KEY ?? '';
 const VITE_COGNITO_USER_POOL_ID = import.meta.env.VITE_COGNITO_USER_POOL_ID ?? '';
 const VITE_COGNITO_CLIENT_ID = import.meta.env.VITE_COGNITO_CLIENT_ID ?? '';
 const VITE_COGNITO_REGION = import.meta.env.VITE_COGNITO_REGION ?? 'ap-south-1';
@@ -11,6 +12,7 @@ const VITE_WS_URL = import.meta.env.VITE_WS_URL ?? '';
 
 export const config = {
   apiUrl: VITE_API_URL?.replace(/\/$/, '') || '',
+  apiKey: VITE_API_KEY?.trim() || '',
   useMock: VITE_USE_MOCK,
   cognito: {
     userPoolId: VITE_COGNITO_USER_POOL_ID,
@@ -24,8 +26,12 @@ export function isCognitoEnabled() {
   return !!(config.cognito.userPoolId && config.cognito.clientId);
 }
 
+/**
+ * True only when mock is explicitly requested via VITE_USE_MOCK.
+ * When false, the app always calls the API (no fallback to local mock data).
+ */
 export function isMockMode() {
-  return config.useMock || !config.apiUrl;
+  return config.useMock;
 }
 
 /** Call once at app init to warn if live API is expected but URL is missing. */

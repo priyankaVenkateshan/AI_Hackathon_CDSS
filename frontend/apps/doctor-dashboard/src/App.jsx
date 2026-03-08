@@ -38,11 +38,13 @@ import PatientPortalSummary from './pages/PatientPortal/PatientPortalSummary';
 import PatientPortalAppointments from './pages/PatientPortal/PatientPortalAppointments';
 import Notifications from './pages/Notifications/Notifications';
 import MyActivity from './pages/MyActivity/MyActivity';
+import ApiHealthBanner from './components/ApiHealthBanner/ApiHealthBanner';
 import './App.css';
 
 function AppLayout() {
   return (
     <div className="app-layout">
+      <ApiHealthBanner />
       <Sidebar />
       <div className="app-content">
         <Header />

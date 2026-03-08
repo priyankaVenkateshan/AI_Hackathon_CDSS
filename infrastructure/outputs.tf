@@ -58,9 +58,19 @@ output "staff_app_cf_url" {
   value       = aws_cloudfront_distribution.staff_app.domain_name
 }
 
+output "staff_app_cf_id" {
+  description = "CloudFront distribution ID for Staff Web App (use for invalidations)"
+  value       = aws_cloudfront_distribution.staff_app.id
+}
+
 output "patient_portal_cf_url" {
   description = "URL of the Patient Portal CloudFront Distribution"
   value       = aws_cloudfront_distribution.patient_portal.domain_name
+}
+
+output "patient_portal_cf_id" {
+  description = "CloudFront distribution ID for Patient Portal"
+  value       = aws_cloudfront_distribution.patient_portal.id
 }
 
 output "rds_endpoint" {

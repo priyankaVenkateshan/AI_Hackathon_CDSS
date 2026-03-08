@@ -21,11 +21,25 @@ async function request(method, path, body = null) {
   if (token) {
     headers.Authorization = `Bearer ${token}`;
   }
+  if (config.apiKey) {
+    headers['x-api-key'] = config.apiKey;
+  }
   const options = { method, headers };
   if (body != null && method !== 'GET') {
     options.body = JSON.stringify(body);
   }
-  const res = await fetch(url, options);
+  let res;
+  try {
+    res = await fetch(url, options);
+  } catch (err) {
+    const isNetworkError =
+      (err && err.message === 'Failed to fetch') ||
+      (err && typeof err.message === 'string' && err.message.includes('NetworkError'));
+    const msg = isNetworkError
+      ? `Cannot reach API at ${config.apiUrl || '(not set)'}. Ensure the backend is running (e.g. run: python scripts/run_api_local.py) and VITE_API_URL in .env.local is correct.`
+      : (err?.message || 'Network error');
+    throw new Error(msg);
+  }
   if (!res.ok) {
     const text = await res.text();
     let errBody;
@@ -81,6 +95,11 @@ export function postAgent(body) {
   return api.post('/agent', body);
 }
 
+/** POST /api/ai/summarize – summarize text or conversation; returns { summary, safety_disclaimer }. */
+export function postSummarize(body) {
+  return api.post('/api/ai/summarize', body).catch(() => api.post('/api/v1/ai/summarize', body));
+}
+
 export function getMedications() {
   return api.get('/api/v1/medications').catch(() => api.get('/medications'));
 }
@@ -134,4 +153,35 @@ export function updateSystemConfig(body) {
 
 export function getAnalytics() {
   return api.get('/api/v1/admin/analytics');
+}
+
+// Appointments
+export function getAppointments() {
+  return api.get('/api/v1/appointments');
+}
+
+export function createAppointment(body) {
+  return api.post('/api/v1/appointments', body);
+}
+
+// Tasks
+export function getTasks() {
+  return api.get('/api/v1/tasks');
+}
+
+// AI Agent endpoints
+export function postAiPrescription(body) {
+  return api.post('/api/ai/prescription', body);
+}
+
+export function postAiAdherence(body) {
+  return api.post('/api/ai/adherence', body);
+}
+
+export function postAiEngagement(body) {
+  return api.post('/api/ai/engagement', body);
+}
+
+export function postAiResources(body) {
+  return api.post('/api/ai/resources', body);
 }

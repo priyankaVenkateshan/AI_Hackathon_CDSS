@@ -55,10 +55,13 @@ def get_secret(secret_name: str, region: str | None = None) -> dict[str, Any]:
         return json.loads(raw)
     except ClientError as e:
         code = e.response.get("Error", {}).get("Code", "")
+        if code == "ResourceNotFoundException":
+            logger.debug("Secret %s not found in Secrets Manager. Fallback to env.", secret_name)
+            return {}
         logger.warning("Secrets Manager get_secret_value failed for %s: %s", secret_name, code)
-        raise
-    except json.JSONDecodeError as e:
-        logger.warning("Secret %s is not valid JSON: %s", secret_name, e)
+        return {}  # Avoid raising to prevent request hangs
+    except Exception as e:
+        logger.warning("Secret %s retrieval failed: %s", secret_name, e)
         return {}
 
 

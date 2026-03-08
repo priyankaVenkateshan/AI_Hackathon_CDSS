@@ -8,8 +8,10 @@ import os
 # AWS Region
 AWS_REGION = os.environ.get("AWS_REGION", "ap-south-1")
 
-# Bedrock Configuration
-BEDROCK_MODEL_ID = os.environ.get("BEDROCK_MODEL_ID", "anthropic.claude-3-haiku-20240307-v1:0")
+# Bedrock Configuration — default Nova Lite (ap-south-1) when Haiku not enabled
+BEDROCK_MODEL_ID = os.environ.get(
+    "BEDROCK_MODEL_ID", "apac.amazon.nova-lite-v1:0"
+)
 BEDROCK_MAX_TOKENS = int(os.environ.get("BEDROCK_MAX_TOKENS", "2048"))
 BEDROCK_TEMPERATURE = float(os.environ.get("BEDROCK_TEMPERATURE", "0.3"))
 

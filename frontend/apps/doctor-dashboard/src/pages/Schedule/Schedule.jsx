@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Calendar from 'react-calendar';
 import { useAuth, roles } from '../../context/AuthContext';
-import { todaySchedule, surgeries } from '../../data/mockData';
+import { isMockMode } from '../../api/config';
+import { getSchedule, getSurgeries } from '../../api/client';
+import { todaySchedule, surgeries as mockSurgeries } from '../../data/mockData';
 import { useNavigate } from 'react-router-dom';
 import 'react-calendar/dist/Calendar.css';
 import './Schedule.css';
@@ -11,6 +13,38 @@ export default function Schedule() {
   const navigate = useNavigate();
   const isSurgeon = hasRole(roles.SURGEON);
   const [date, setDate] = useState(new Date());
+  const [scheduleData, setScheduleData] = useState([]);
+  const [surgeriesData, setSurgeriesData] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (isMockMode()) {
+      setScheduleData(todaySchedule);
+      setSurgeriesData(mockSurgeries);
+      setLoading(false);
+      return;
+    }
+    let cancelled = false;
+    Promise.all([
+      getSchedule().catch(() => ({ schedule: [] })),
+      getSurgeries().catch(() => ({ surgeries: [] })),
+    ]).then(([schedRes, surgRes]) => {
+      if (cancelled) return;
+      const slots = schedRes?.schedule || schedRes?.items || [];
+      setScheduleData(slots.length > 0 ? slots.map(s => ({
+        time: s.slot_time || s.time || '09:00',
+        patient: s.patient_name || s.patient || 'Patient',
+        type: s.surgery_type || s.type || 'Consultation',
+        status: s.status || 'upcoming',
+        location: s.ot_id || s.location || 'Room 4',
+        consultationType: s.surgery_type || s.type || 'Consultation',
+      })) : todaySchedule);
+      const surgs = surgRes?.surgeries || surgRes?.items || [];
+      setSurgeriesData(surgs.length > 0 ? surgs : mockSurgeries);
+      setLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, []);
 
   // Format date for comparison and display
   const selectedDateStr = date.toLocaleDateString('en-GB', {
@@ -27,32 +61,38 @@ export default function Schedule() {
   };
 
   // Helper to get appointments for a specific date
-  // In a real app, this would be an API call. Here we simulate it.
   const getAppointmentsForDate = (selectedDate) => {
-    // If it's today, return the standard todaySchedule
     if (isToday(selectedDate)) {
-      return todaySchedule.map((s) => ({
+      return scheduleData.map((s) => ({
         ...s,
-        location: s.type === 'Pre-op Check' ? 'OT-3' : 'Room 4',
-        consultationType: s.type,
+        location: s.location || (s.type === 'Pre-op Check' ? 'OT-3' : 'Room 4'),
+        consultationType: s.consultationType || s.type,
       }));
     }
 
-    // For other dates, we return a subset or empty based on the day of the week to simulate variety
     const day = selectedDate.getDay();
-    if (day === 0) return []; // Sundays are empty
+    if (day === 0) return [];
 
-    // Return a shuffled/subset of today's schedule for other days
-    return todaySchedule.slice(0, (day % 4) + 2).map((s, i) => ({
+    return scheduleData.slice(0, (day % 4) + 2).map((s, i) => ({
       ...s,
-      time: `${9 + i}:00`, // adjust times slightly
+      time: `${9 + i}:00`,
       location: 'Room 4',
-      consultationType: s.type,
+      consultationType: s.consultationType || s.type,
     }));
   };
 
   const currentAppointments = getAppointmentsForDate(date);
-  const otSchedule = isSurgeon ? surgeries.filter((s) => s.status === 'scheduled' || s.status === 'pre-op') : [];
+  const otSchedule = isSurgeon ? surgeriesData.filter((s) => s.status === 'scheduled' || s.status === 'pre-op') : [];
+
+  if (loading) {
+    return (
+      <div className="schedule-page page-enter">
+        <div className="schedule-container">
+          <p style={{ textAlign: 'center', padding: '2rem' }}>Loading schedule...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="schedule-page page-enter">
@@ -139,4 +179,3 @@ export default function Schedule() {
     </div>
   );
 }
-

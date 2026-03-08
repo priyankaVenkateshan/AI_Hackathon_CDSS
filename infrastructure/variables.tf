@@ -105,11 +105,11 @@ variable "websocket_connections_table_name" {
   default     = "cdss-websocket-connections"
 }
 
-# Lambda VPC (for RDS access). When true, Lambdas run in private subnets; add Bedrock VPC endpoint if needed.
+# Lambda VPC (for RDS access). When true, Lambdas run in private subnets with NAT for Bedrock.
 variable "enable_lambda_vpc" {
-  description = "Attach Lambdas to VPC so they can reach RDS (private subnets)"
+  description = "Attach Lambdas to VPC so they can reach RDS (private subnets); NAT allows Bedrock"
   type        = bool
-  default     = false
+  default     = true
 }
 
 # Frontend / CloudFront
@@ -162,4 +162,19 @@ variable "budget_notification_emails" {
   description = "Email addresses for budget alerts (80%% and 100%% actual/forecasted). At least one required when monthly_budget_usd > 0."
   type        = list(string)
   default     = ["your-email@example.com"]
+}
+
+# Bastion SSH (optional – per reference/docs/infrastructure/bastion-setup.md)
+# When set, opens port 22 from your IP so you can use SSH tunnel instead of SSM.
+variable "bastion_ssh_public_key" {
+  description = "SSH public key for bastion (e.g. from cat ~/.ssh/id_rsa.pub). If set, enables SSH tunnel; leave empty for SSM-only."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "bastion_allowed_cidr" {
+  description = "Your IP in CIDR for bastion SSH (e.g. 203.0.113.42/32). Use with bastion_ssh_public_key."
+  type        = string
+  default     = ""
 }

@@ -41,6 +41,9 @@ Thumbs.db
 .env
 *.pem
 .env.local
+.ssh/
+config.json
+config/my-config.json
 
 # Jupyter
 .ipynb_checkpoints/

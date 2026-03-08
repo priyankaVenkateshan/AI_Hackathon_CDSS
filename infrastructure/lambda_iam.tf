@@ -32,6 +32,14 @@ resource "aws_iam_policy" "cdss_lambda_services" {
         Resource = "arn:aws:ssm:${data.aws_region.current.name}:${data.aws_caller_identity.iam_current.account_id}:parameter/cdss/*"
       },
       {
+        Sid    = "RDSConnect"
+        Effect = "Allow"
+        Action = [
+          "rds-db:connect"
+        ]
+        Resource = "arn:aws:rds-db:${data.aws_region.current.name}:${data.aws_caller_identity.iam_current.account_id}:dbuser:*/${var.db_username}"
+      },
+      {
         Sid    = "SSMAdminConfigWrite"
         Effect = "Allow"
         Action = [

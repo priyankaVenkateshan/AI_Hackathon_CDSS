@@ -258,12 +258,78 @@ def _get_ot_status(event: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _get_abdm_record(event: Dict[str, Any]) -> Dict[str, Any]:
-    """Stub for ABDM record lookup."""
+    """ABDM record lookup. When ABDM_SANDBOX_URL or MCP_ABDM_ENDPOINT is set (env or app config), calls API; else stub."""
+    patient_id = (event.get("patient_id") or "").strip()
+    if not patient_id:
+        return {"error": "patient_id is required", "safety_disclaimer": SAFETY_DISCLAIMER}
+
+    base_url = _get_abdm_endpoint()
+    api_key = _get_abdm_api_key()
+    if base_url:
+        out = _http_get_abdm(base_url, patient_id, api_key)
+        if out is not None:
+            return {**out, "safety_disclaimer": CLINICAL_DISCLAIMER}
+
     return {
         "record_found": False,
         "message": "ABDM integration pending.",
+        "patient_id": patient_id,
         "safety_disclaimer": SAFETY_DISCLAIMER,
     }
+
+
+def _get_abdm_endpoint() -> str:
+    """ABDM or sandbox base URL from env or app config secret."""
+    url = (os.environ.get("ABDM_SANDBOX_URL") or os.environ.get("MCP_ABDM_ENDPOINT") or "").strip().rstrip("/")
+    if url:
+        return url
+    try:
+        secret_name = os.environ.get("CDSS_APP_CONFIG_SECRET_NAME", "").strip()
+        if not secret_name:
+            return ""
+        import boto3
+        region = os.environ.get("AWS_REGION", "ap-south-1")
+        sm = boto3.client("secretsmanager", region_name=region)
+        raw = sm.get_secret_value(SecretId=secret_name).get("SecretString", "{}")
+        cfg = json.loads(raw)
+        return (cfg.get("abdm_sandbox_url") or cfg.get("mcp_abdm_endpoint") or "").strip().rstrip("/")
+    except Exception:
+        return ""
+
+
+def _get_abdm_api_key() -> str:
+    """Optional API key for ABDM/sandbox from app config secret."""
+    try:
+        secret_name = os.environ.get("CDSS_APP_CONFIG_SECRET_NAME", "").strip()
+        if not secret_name:
+            return ""
+        import boto3
+        region = os.environ.get("AWS_REGION", "ap-south-1")
+        sm = boto3.client("secretsmanager", region_name=region)
+        raw = sm.get_secret_value(SecretId=secret_name).get("SecretString", "{}")
+        cfg = json.loads(raw)
+        return (cfg.get("abdm_sandbox_api_key") or cfg.get("abdm_api_key") or "").strip()
+    except Exception:
+        return ""
+
+
+def _http_get_abdm(base_url: str, patient_id: str, api_key: str) -> Dict[str, Any] | None:
+    """GET ABDM/sandbox patient record; return dict or None on failure."""
+    try:
+        from urllib.request import Request, urlopen
+        from urllib.parse import quote
+        url = f"{base_url}/patient/record?patient_id={quote(patient_id)}"
+        req = Request(url, method="GET")
+        req.add_header("Accept", "application/json")
+        if api_key:
+            req.add_header("Authorization", f"Bearer {api_key}")
+            req.add_header("X-API-Key", api_key)
+        with urlopen(req, timeout=10) as resp:
+            raw = resp.read().decode("utf-8")
+            return json.loads(raw) if raw else None
+    except Exception as e:
+        logger.warning("ABDM GET failed: %s", e)
+        return None
 
 
 # ─── Patient Agent tools ────────────────────────────────────────────

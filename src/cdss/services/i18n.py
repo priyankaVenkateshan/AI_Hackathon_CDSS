@@ -31,6 +31,45 @@ LANGUAGE_NAMES = {
     "pa": "Punjabi",
 }
 
+# R7 / Phase 3.4: Approved medical terminology (en -> Hindi, Tamil) for consistent translation.
+# Used by /api/ai/translate and agent responses. See docs/TERMINOLOGY.md.
+APPROVED_TERMINOLOGY: dict[str, dict[str, str]] = {
+    "en": {"hi": "", "ta": ""},  # source English
+    "Hypertension": {"hi": "उच्च रक्तचाप", "ta": "உயர் இரத்த அழுத்தம்"},
+    "Diabetes": {"hi": "मधुमेह", "ta": "சர்க்கரை நோய்"},
+    "Medication": {"hi": "दवा", "ta": "மருந்து"},
+    "Dosage": {"hi": "खुराक", "ta": "மருந்தளவு"},
+    "Blood pressure": {"hi": "रक्तचाप", "ta": "இரத்த அழுத்தம்"},
+    "Consultation": {"hi": "परामर्श", "ta": "ஆலோசனை"},
+    "Patient": {"hi": "रोगी", "ta": "நோயாளி"},
+    "Doctor": {"hi": "डॉक्टर", "ta": "மருத்துவர்"},
+    "Surgery": {"hi": "शल्य चिकित्सा", "ta": "அறுவை சிகிச்சை"},
+    "Prescription": {"hi": "नुस्खा", "ta": "மருந்து பட்டியல்"},
+    "Follow-up": {"hi": "अनुवर्ती", "ta": "பின்தொடர்வு"},
+    "Allergy": {"hi": "एलर्जी", "ta": "அலர்ஜி"},
+    "Symptoms": {"hi": "लक्षण", "ta": "அறிகுறிகள்"},
+    "Treatment": {"hi": "उपचार", "ta": "சிகிச்சை"},
+}
+
+
+def get_approved_terminology_for_lang(target_lang: str) -> str:
+    """
+    Return a prompt snippet listing approved terms for the target language (hi, ta).
+    Used so translation uses consistent medical terminology (R7 / Phase 3.4).
+    """
+    if target_lang not in ("hi", "ta"):
+        return ""
+    pairs = []
+    for en_term, trans in APPROVED_TERMINOLOGY.items():
+        if en_term == "en":
+            continue
+        val = trans.get(target_lang)
+        if val:
+            pairs.append(f"{en_term} → {val}")
+    if not pairs:
+        return ""
+    return " Use these approved terms when applicable: " + "; ".join(pairs[:14]) + "."
+
 
 def get_supported_languages() -> list[str]:
     """Return list of supported language codes from env or default."""

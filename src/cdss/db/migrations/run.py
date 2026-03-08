@@ -52,7 +52,13 @@ def _ensure_serial_defaults(engine) -> None:
     if inspector.dialect.name != "postgresql":
         return
 
-    tables_with_serial = ["audit_log", "visits", "schedule_slots", "medications", "reminders", "consents"]
+    tables_with_serial = [
+        "audit_log", "visits", "schedule_slots", "medications", "reminders",
+        "consents", "medical_conditions", "allergies", "surgery_requirements",
+        "surgical_team", "resource_status_log", "doctor_replacements",
+        "conversation_summaries", "medication_adherence_log",
+        "language_translations", "agent_event_log", "alert_log", "escalation_log"
+    ]
     with engine.connect() as conn:
         for table in tables_with_serial:
             if table not in inspector.get_table_names():

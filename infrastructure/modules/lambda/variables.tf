@@ -45,3 +45,9 @@ variable "vpc_security_group_ids" {
   type        = list(string)
   default     = []
 }
+
+variable "layers" {
+  description = "List of Lambda Layer Version ARNs"
+  type        = list(string)
+  default     = []
+}

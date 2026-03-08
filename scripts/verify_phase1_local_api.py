@@ -29,6 +29,8 @@ if SRC not in sys.path:
 BASE_URL = (os.environ.get("BASE_URL") or "http://localhost:8080").strip().rstrip("/")
 TIMEOUT = 30
 SERVER_START_WAIT = 5
+# When auto-starting the server, use this port to avoid conflict with another app on 8080
+AUTO_START_PORT = "8081"
 
 
 def post_agent(body: dict) -> tuple[int, dict]:
@@ -61,11 +63,12 @@ def post_agent(body: dict) -> tuple[int, dict]:
     return 0, {"error": "Connection refused. Start server: PYTHONPATH=src python scripts/run_api_local.py"}
 
 
-def _server_reachable() -> bool:
-    """Return True if BASE_URL is the CDSS API (200 with service=cdss or /health)."""
+def _server_reachable(url: str | None = None) -> bool:
+    """Return True if url (or BASE_URL) is the CDSS API (200 with service=cdss or /health)."""
+    base = (url or BASE_URL).strip().rstrip("/")
     for path in ("/health", "/"):
         try:
-            req = urllib.request.Request(BASE_URL + path, method="GET")
+            req = urllib.request.Request(base + path, method="GET")
             with urllib.request.urlopen(req, timeout=3) as f:
                 if f.getcode() != 200:
                     continue
@@ -78,13 +81,14 @@ def _server_reachable() -> bool:
     return False
 
 
-def _start_local_server() -> bool:
-    """Start run_api_local.py in the background; return True if started."""
+def _start_local_server(port: str) -> bool:
+    """Start run_api_local.py in the background on the given port; return True if started."""
     script = os.path.join(REPO_ROOT, "scripts", "run_api_local.py")
     if not os.path.isfile(script):
         return False
     env = os.environ.copy()
     env["PYTHONPATH"] = SRC
+    env["PORT"] = port
     try:
         if sys.platform == "win32":
             DETACHED = 0x00000008
@@ -111,6 +115,7 @@ def _start_local_server() -> bool:
 
 
 def main() -> int:
+    global BASE_URL
     print("Phase 1.3: Local API and agent endpoint verification")
     print(f"  BASE_URL={BASE_URL}")
     print()
@@ -119,13 +124,19 @@ def main() -> int:
     if "localhost" in BASE_URL or "127.0.0.1" in BASE_URL:
         if not _server_reachable():
             print("  Local API not detected. Starting run_api_local.py ...")
-            if _start_local_server():
-                print(f"  Waiting {SERVER_START_WAIT}s for server to listen ...")
+            # Use 8081 when auto-starting so we don't conflict with another app on 8080
+            use_port = AUTO_START_PORT
+            if _start_local_server(use_port):
+                auto_url = f"http://localhost:{use_port}"
+                print(f"  Waiting {SERVER_START_WAIT}s for server to listen on port {use_port} ...")
                 time.sleep(SERVER_START_WAIT)
-                if not _server_reachable():
-                    print("  Server started but port may be in use by another app (getting 404).")
-                    print("  Stop any other app on port 8080, then run this script again.")
-                    print("  Or use another port: $env:PORT=\"8081\"; $env:BASE_URL=\"http://localhost:8081\"; python scripts/verify_phase1_local_api.py")
+                if _server_reachable(auto_url):
+                    BASE_URL = auto_url
+                    print(f"  Using {BASE_URL} (auto-started on port {use_port}).")
+                else:
+                    print("  Server may have failed to start. Run manually in another terminal:")
+                    print(f'    $env:PYTHONPATH="src"; $env:PORT="{use_port}"; python scripts/run_api_local.py')
+                    print(f"  Then: $env:BASE_URL=\"{auto_url}\"; python scripts/verify_phase1_local_api.py")
             else:
                 print("  Could not start server. Run manually in another terminal:")
                 print('    $env:PYTHONPATH="src"; python scripts/run_api_local.py')

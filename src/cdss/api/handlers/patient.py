@@ -17,6 +17,7 @@ from datetime import date, datetime, timezone
 from cdss.api.handlers.common import json_response, parse_body_json
 from cdss.db.session import get_session
 from cdss.mcp.adapter import get_abdm_record
+from cdss.services.alerts import check_vital_thresholds
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +51,7 @@ def _patient_list_item(patient) -> dict:
         "severity": getattr(patient, "severity", None) or "",
         "status": getattr(patient, "status", None) or "",
         "vitals": getattr(patient, "vitals", None) or {},
-        "conditions": patient.conditions or [],
+        "conditions": [c.condition_name if hasattr(c, 'condition_name') else str(c) for c in (patient.conditions or [])],
         "lastVisit": _serialize_date(patient.last_visit),
         "nextAppointment": None,
     }
@@ -81,7 +82,7 @@ def _patient_detail(patient, include_abdm: bool = False, ai_summary: str | None 
         "severity": getattr(patient, "severity", None) or "",
         "status": getattr(patient, "status", None) or "",
         "vitals": getattr(patient, "vitals", None) or {},
-        "conditions": patient.conditions or [],
+        "conditions": [c.condition_name if hasattr(c, 'condition_name') else str(c) for c in (patient.conditions or [])],
         "medications": [],
         "lastVisit": _serialize_date(patient.last_visit),
         "nextAppointment": None,
@@ -219,6 +220,7 @@ def _post_patients(event: dict) -> dict:
             patient.status = (body.get("status") or "").strip() or None
         if "vitals" in body and isinstance(body.get("vitals"), dict):
             patient.vitals = body["vitals"]
+            check_vital_thresholds(patient_id, body["vitals"])
         if "surgery_readiness" in body or "surgeryReadiness" in body:
             patient.surgery_readiness = body.get("surgery_readiness") or body.get("surgeryReadiness")
         session.add(patient)
@@ -272,6 +274,7 @@ def _put_patient(event: dict, patient_id: str) -> dict:
             patient.status = str(body.get("status") or "").strip() or None
         if "vitals" in body and isinstance(body.get("vitals"), dict):
             patient.vitals = body["vitals"]
+            check_vital_thresholds(patient_id, body["vitals"])
         if "surgery_readiness" in body or "surgeryReadiness" in body:
             patient.surgery_readiness = body.get("surgery_readiness") or body.get("surgeryReadiness")
 
@@ -306,6 +309,14 @@ def handler(event: dict, context: object) -> dict:
             if method == "POST":
                 return _post_patients(event)
             return _list_patients()
+        # Legacy /api/patients and /api/patients/:id (no v1 prefix)
+        if len(parts) >= 2 and parts[0].lower() == "patients":
+            patient_id = parts[1]
+            if method == "GET":
+                return _get_patient(patient_id)
+            if method == "PUT":
+                return _put_patient(event, patient_id)
+            return json_response(405, {"error": "Method not allowed"})
         return json_response(404, {"error": "Not found"})
     except Exception as e:
         logger.error(

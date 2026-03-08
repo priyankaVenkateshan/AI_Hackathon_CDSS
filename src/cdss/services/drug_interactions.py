@@ -115,8 +115,8 @@ def _fetch_patient_medications(patient_id: str) -> List[str]:
 
         with get_session() as session:
             meds = (
-                session.query(Medication.drug_name)
-                .filter(Medication.patient_id == patient_id, Medication.active == True)  # noqa: E712
+                session.query(Medication.medication_name)
+                .filter(Medication.patient_id == patient_id, Medication.status == "active")
                 .all()
             )
             return [m[0] for m in meds if m[0]]
