@@ -94,3 +94,6 @@ infrastructure_/
 
 # Docs not for public push (credentials, internal reports)
 docs_archive/
+
+# Local file used for git filter-repo (never commit)
+.git-credentials-replacements.txt
