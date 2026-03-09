@@ -100,9 +100,8 @@ if (-not $StaffOnly -and $PatientBucket) {
 Write-Host "Deploy done. Staff app: s3://$StaffBucket/ (CloudFront: $StaffCfId)"
 if ($CognitoPoolId) {
     Write-Host ""
-    Write-Host "To enable demo login on the deployed link (same URL for admin and patient), run once:"
+    Write-Host "To enable demo login on the deployed link, run once:"
     Write-Host "  python scripts/auth/create_superuser.py --demo           # admin/doctor"
     Write-Host "  python scripts/auth/create_superuser.py --demo-patient    # patient"
-    Write-Host "  Credentials: demo@cdss.ai / ***REDACTED***  and  patient@cdss.ai / ***REDACTED***"
-    Write-Host "  See docs/DEMO_CREDENTIALS.md"
+    Write-Host "  Set DEMO_PASSWORD and PATIENT_DEMO_PASSWORD in env when running; do not commit credentials."
 }

@@ -5,14 +5,23 @@ import json
 import os
 import subprocess
 
+# Use env for credentials (do not commit). Set COGNITO_USER_POOL_ID, COGNITO_CLIENT_ID, COGNITO_TEST_USERNAME, COGNITO_TEST_PASSWORD.
+user_pool_id = os.environ.get("COGNITO_USER_POOL_ID", "").strip()
+client_id = os.environ.get("COGNITO_CLIENT_ID", "").strip()
+username = os.environ.get("COGNITO_TEST_USERNAME", "").strip()
+password = os.environ.get("COGNITO_TEST_PASSWORD", "").strip()
+if not all([user_pool_id, client_id, username, password]):
+    print("Set COGNITO_USER_POOL_ID, COGNITO_CLIENT_ID, COGNITO_TEST_USERNAME, COGNITO_TEST_PASSWORD (do not commit).")
+    exit(1)
+
 # 1. Get Cognito token
 print("Getting Cognito token...")
 result = subprocess.run([
     "python", "scripts/auth/get_token.py",
-    "--user-pool-id", "ap-south-1_0eRSiDzbY",
-    "--client-id", "15hk1uremldsor79jkc7cr866v",
-    "--username", "doc2@cdss.ai",
-    "--password", "***REDACTED***"
+    "--user-pool-id", user_pool_id,
+    "--client-id", client_id,
+    "--username", username,
+    "--password", password,
 ], capture_output=True, text=True)
 
 if result.returncode != 0:
@@ -22,7 +31,7 @@ if result.returncode != 0:
 token = result.stdout.strip()
 print(f"Token length: {len(token)}")
 
-base_url = "https://b1q9qcuqia.execute-api.ap-south-1.amazonaws.com/dev"
+base_url = os.environ.get("API_BASE_URL", "https://b1q9qcuqia.execute-api.ap-south-1.amazonaws.com/dev")
 
 def test_endpoint(path):
     url = f"{base_url}{path}"

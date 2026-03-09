@@ -9,7 +9,7 @@ Usage:
   # From repo root (picks up Terraform output if run from infrastructure/)
   python scripts/auth/create_superuser.py --email superuser@cdss.ai --password 'YourSecurePassword'
 
-  # Create demo user for deployed dashboard (demo@cdss.ai / ***REDACTED***)
+  # Create demo user for deployed dashboard (demo@cdss.ai; set DEMO_PASSWORD in env)
   python scripts/auth/create_superuser.py --demo
 
   # With explicit User Pool ID
@@ -357,11 +357,11 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    # Demo user: fixed credentials for deployed link (meets Cognito password policy)
+    # Demo user: require env so no credentials in repo
     DEMO_EMAIL = "demo@cdss.ai"
-    DEMO_PASSWORD = os.environ.get("DEMO_PASSWORD", "***REDACTED***")
+    DEMO_PASSWORD = os.environ.get("DEMO_PASSWORD")
     PATIENT_EMAIL = "patient@cdss.ai"
-    PATIENT_PASSWORD = os.environ.get("PATIENT_DEMO_PASSWORD", "***REDACTED***")
+    PATIENT_PASSWORD = os.environ.get("PATIENT_DEMO_PASSWORD")
 
     user_pool_id = (args.user_pool_id or "").strip()
     email = (args.email or "").strip()
@@ -370,9 +370,15 @@ def main() -> int:
     if args.demo:
         email = DEMO_EMAIL
         password = DEMO_PASSWORD
+        if not password:
+            print("Error: Set DEMO_PASSWORD in env when using --demo (do not commit credentials).", file=sys.stderr)
+            return 1
 
     # Create demo patient user (same portal, redirects to patient dashboard)
     if args.demo_patient:
+        if not PATIENT_PASSWORD:
+            print("Error: Set PATIENT_DEMO_PASSWORD in env when using --demo-patient (do not commit credentials).", file=sys.stderr)
+            return 1
         if not user_pool_id:
             print(
                 "Error: Cognito User Pool ID required. Set COGNITO_USER_POOL_ID or run from repo with Terraform state, or pass --user-pool-id.",
@@ -394,7 +400,7 @@ def main() -> int:
             print("")
             print("  Patient login (same portal URL):")
             print(f"    User ID:  {PATIENT_EMAIL}")
-            print(f"    Password: {PATIENT_PASSWORD}")
+            print("    Password: (set via PATIENT_DEMO_PASSWORD)")
             print("  After login you are redirected to the patient dashboard.")
             return 0
         except Exception as e:
@@ -432,8 +438,7 @@ def main() -> int:
             print("")
             print("  Demo login on your deployed dashboard:")
             print(f"    Email:    {email}")
-            print(f"    Password: {DEMO_PASSWORD}")
-            print("  See docs/DEMO_CREDENTIALS.md for details.")
+            print("    Password: (set via DEMO_PASSWORD env)")
         return 0
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)

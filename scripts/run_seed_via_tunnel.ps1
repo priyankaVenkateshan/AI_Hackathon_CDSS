@@ -14,7 +14,7 @@ $ErrorActionPreference = "Stop"
 
 if (-not $Password) {
     Write-Host "Set CDSS_DB_PASSWORD or pass -Password 'yourpassword'" -ForegroundColor Yellow
-    Write-Host "Example: `$env:CDSS_DB_PASSWORD='***REDACTED***'; .\scripts\run_seed_via_tunnel.ps1" -ForegroundColor Gray
+    Write-Host "Example: `$env:CDSS_DB_PASSWORD='<your-password>'; .\scripts\run_seed_via_tunnel.ps1" -ForegroundColor Gray
     exit 1
 }
 

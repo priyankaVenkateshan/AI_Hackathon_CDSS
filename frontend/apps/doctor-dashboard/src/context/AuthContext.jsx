@@ -14,12 +14,12 @@ export const roles = {
 
 // Local mock users — used only when Cognito is disabled (no VITE_COGNITO_*). Do not use in production.
 const users = [
-    { id: 'u1', name: 'Dr. Priya Sharma', role: roles.DOCTOR, email: 'priya@cdss.ai', password: '***REDACTED***' },
-    { id: 'u2', name: 'Dr. Vikram Patel', role: roles.SURGEON, email: 'vikram@cdss.ai', password: '***REDACTED***' },
-    { id: 'u3', name: 'Nurse Anjali', role: roles.NURSE, email: 'anjali@cdss.ai', password: '***REDACTED***' },
-    { id: 'u4', name: 'Admin Sameer', role: roles.ADMIN, email: 'admin@cdss.ai', password: '***REDACTED***' },
-    { id: 'u5', name: 'Super Admin', role: roles.SUPERUSER, email: 'superuser@cdss.ai', password: '***REDACTED***' },
-    { id: 'PT-1001', name: 'Rajesh Kumar', role: roles.PATIENT, email: 'rajesh@patient.demo', password: '***REDACTED***' },
+    { id: 'u1', name: 'Dr. Priya Sharma', role: roles.DOCTOR, email: 'priya@cdss.ai', password: 'mock' },
+    { id: 'u2', name: 'Dr. Vikram Patel', role: roles.SURGEON, email: 'vikram@cdss.ai', password: 'mock' },
+    { id: 'u3', name: 'Nurse Anjali', role: roles.NURSE, email: 'anjali@cdss.ai', password: 'mock' },
+    { id: 'u4', name: 'Admin Sameer', role: roles.ADMIN, email: 'admin@cdss.ai', password: 'mock' },
+    { id: 'u5', name: 'Super Admin', role: roles.SUPERUSER, email: 'superuser@cdss.ai', password: 'mock' },
+    { id: 'PT-1001', name: 'Rajesh Kumar', role: roles.PATIENT, email: 'rajesh@patient.demo', password: 'mock' },
 ];
 
 const CDSS_USER_KEY = 'cdss_user';

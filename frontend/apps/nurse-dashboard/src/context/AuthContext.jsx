@@ -5,10 +5,10 @@ const AuthContext = createContext();
 export const roles = { DOCTOR: 'doctor', SURGEON: 'surgeon', NURSE: 'nurse', ADMIN: 'admin' };
 
 const users = [
-  { id: 'u1', name: 'Dr. Priya Sharma', role: roles.DOCTOR, email: 'priya@cdss.ai', password: '***REDACTED***' },
-  { id: 'u2', name: 'Dr. Vikram Patel', role: roles.SURGEON, email: 'vikram@cdss.ai', password: '***REDACTED***' },
-  { id: 'u3', name: 'Nurse Anjali', role: roles.NURSE, email: 'anjali@cdss.ai', password: '***REDACTED***' },
-  { id: 'u4', name: 'Admin Sameer', role: roles.ADMIN, email: 'admin@cdss.ai', password: '***REDACTED***' },
+  { id: 'u1', name: 'Dr. Priya Sharma', role: roles.DOCTOR, email: 'priya@cdss.ai', password: 'mock' },
+  { id: 'u2', name: 'Dr. Vikram Patel', role: roles.SURGEON, email: 'vikram@cdss.ai', password: 'mock' },
+  { id: 'u3', name: 'Nurse Anjali', role: roles.NURSE, email: 'anjali@cdss.ai', password: 'mock' },
+  { id: 'u4', name: 'Admin Sameer', role: roles.ADMIN, email: 'admin@cdss.ai', password: 'mock' },
 ];
 
 const CDSS_USER_KEY = 'cdss_nurse_user';

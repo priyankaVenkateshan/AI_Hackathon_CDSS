@@ -47,7 +47,7 @@ export default function Login() {
         </form>
         <div className="login-footer">
           <p>Secured access to your health information</p>
-          <div className="demo-hint"><small>Demo: patient@cdss.ai / ***REDACTED***</small></div>
+          <div className="demo-hint"><small>Contact team for demo access</small></div>
         </div>
       </div>
     </div>

@@ -1,13 +1,20 @@
+import os
 import psycopg2
 import random
 from datetime import date, timedelta
 
 def get_db_connection():
+    url = os.environ.get("DATABASE_URL")
+    if url:
+        return psycopg2.connect(url)
+    pwd = os.environ.get("CDSS_DB_PASSWORD")
+    if not pwd:
+        raise RuntimeError("Set DATABASE_URL or CDSS_DB_PASSWORD (do not commit credentials).")
     return psycopg2.connect(
         host="localhost",
         database="cdssdb",
         user="postgres",
-        password="password",
+        password=pwd,
         port="5433"
     )
 

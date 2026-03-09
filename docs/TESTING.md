@@ -153,7 +153,7 @@ cd frontend/apps/doctor-dashboard
 npm run dev
 ```
 
-Open http://localhost:5173. Log in with e.g. `priya@cdss.ai` / `***REDACTED***`. You’ll see mock patients, surgeries, admin audit, etc., with no backend.
+Open http://localhost:5173. Log in with local mock credentials (contact team for demo access). You’ll see mock patients, surgeries, admin audit, etc., with no backend.
 
 ### Option A.5 – Local API server + frontend (no AWS deploy)
 
@@ -264,7 +264,7 @@ For **patient** role, use the patient portal client:
 
 ```powershell
 $env:COGNITO_CLIENT_ID = ""
-python scripts/auth/get_token.py --username "patient@demo.in" --password "Pass" --client-type patient
+python scripts/auth/get_token.py --username "user@example.com" --password "<set in env>" --client-type patient
 ```
 
 **CI-friendly:** Set `COGNITO_USER_POOL_ID`, `COGNITO_CLIENT_ID`, `AWS_REGION`, `TEST_USERNAME`, `TEST_PASSWORD`; run `python scripts/auth/get_token.py`. Use `--json` for JSON output.

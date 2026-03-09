@@ -20,8 +20,11 @@ def is_container_running(name):
 
 def setup_db():
     container_name = "cdss-pg"
-    password = "password"
-    port = "5433"
+    password = os.environ.get("CDSS_DB_PASSWORD", os.environ.get("POSTGRES_PASSWORD", ""))
+    if not password:
+        print("Set CDSS_DB_PASSWORD or POSTGRES_PASSWORD for local Docker DB (do not commit).")
+        sys.exit(1)
+    port = os.environ.get("CDSS_DB_PORT", "5433")
 
     print(f"--- 1. Checking Docker Container: {container_name} ---")
     if not is_container_running(container_name):

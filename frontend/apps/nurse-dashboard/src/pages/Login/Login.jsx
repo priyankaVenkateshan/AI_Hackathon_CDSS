@@ -43,7 +43,7 @@ export default function Login() {
           <button type="submit" className="login-btn" disabled={isSubmitting}>{isSubmitting ? 'Signing in...' : 'Sign in'}</button>
         </form>
         <div className="login-footer">
-          <div className="demo-hint"><small>Demo: anjali@cdss.ai / ***REDACTED***</small></div>
+          <div className="demo-hint"><small>Contact team for demo access</small></div>
         </div>
       </div>
     </div>
