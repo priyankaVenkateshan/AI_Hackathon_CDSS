@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { NavLink, useNavigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { patients } from '../../data/mockData';
 import { t } from './i18n';
-import { resolvePortalPatient } from './resolvePortalPatient';
 import '../Sidebar/Sidebar.css';
 import './PatientPortalLayout.css';
 
@@ -16,19 +16,18 @@ export default function PatientPortalLayout() {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
     const [navCollapsed, setNavCollapsed] = useState(false);
-    const patient = useMemo(
-        () => resolvePortalPatient(user),
-        [user?.id, user?.email, user?.name]
-    );
+    const patient = useMemo(() => patients.find((p) => p.id === user?.id) ||
+        patients.find((p) => (p.email || '').toLowerCase() === (user?.email || '').toLowerCase()) ||
+        patients[0] || null, [user?.id, user?.email]);
 
     const storageKey = 'cdss_patient_portal_language';
     const [language, setLanguage] = useState('en');
 
     const patientNavItems = useMemo(() => ([
-        { path: '/patient-portal', end: true, icon: '🏠', label: t(language, 'nav_dashboard') },
-        { path: '/patient-portal/summary', end: false, icon: '🧠', label: t(language, 'nav_summary') },
-        { path: '/patient-portal/medication-tracker', end: false, icon: '💊', label: t(language, 'nav_meds') },
-        { path: '/patient-portal/appointments', end: false, icon: '📅', label: t(language, 'nav_appts') },
+        { path: '/', end: true, icon: '🏠', label: t(language, 'nav_dashboard') },
+        { path: '/summary', end: false, icon: '🧠', label: t(language, 'nav_summary') },
+        { path: '/medication-tracker', end: false, icon: '💊', label: t(language, 'nav_meds') },
+        { path: '/appointments', end: false, icon: '📅', label: t(language, 'nav_appts') },
     ]), [language]);
 
     useEffect(() => {

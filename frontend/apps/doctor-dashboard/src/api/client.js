@@ -112,6 +112,11 @@ export function getSurgery(surgeryId) {
   return api.get(`/api/v1/surgeries/${surgeryId}`);
 }
 
+/** POST /api/v1/surgeries/:id/analyse – get AI-generated checklist and required instruments for the surgery. */
+export function analyseSurgery(surgeryId) {
+  return api.post(`/api/v1/surgeries/${surgeryId}/analyse`, {});
+}
+
 export function getResources() {
   return api.get('/api/v1/resources');
 }

@@ -45,9 +45,9 @@ variable "bedrock_agent_alias_id" {
 }
 
 variable "bedrock_model_id" {
-  description = "Bedrock model for Converse fallback (when agent not configured)"
+  description = "Bedrock model for Converse/chat (e.g. apac.amazon.nova-lite-v1:0 in ap-south-1)"
   type        = string
-  default     = "us.anthropic.claude-3-5-sonnet-v2:0"
+  default     = "apac.amazon.nova-lite-v1:0"
 }
 
 # CDSS Lambda (multi-agent) - handlers and env

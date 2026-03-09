@@ -31,16 +31,17 @@ export default function Schedule() {
     ]).then(([schedRes, surgRes]) => {
       if (cancelled) return;
       const slots = schedRes?.schedule || schedRes?.items || [];
-      setScheduleData(slots.length > 0 ? slots.map(s => ({
+      setScheduleData(slots.length > 0 ? slots.map((s) => ({
         time: s.slot_time || s.time || '09:00',
-        patient: s.patient_name || s.patient || 'Patient',
+        patient: s.patient_name || s.patient || '—',
         type: s.surgery_type || s.type || 'Consultation',
         status: s.status || 'upcoming',
-        location: s.ot_id || s.location || 'Room 4',
+        location: s.ot_id || s.ot || s.location || '—',
         consultationType: s.surgery_type || s.type || 'Consultation',
-      })) : todaySchedule);
+        date: s.date,
+      })) : []);
       const surgs = surgRes?.surgeries || surgRes?.items || [];
-      setSurgeriesData(surgs.length > 0 ? surgs : mockSurgeries);
+      setSurgeriesData(surgs.length > 0 ? surgs : []);
       setLoading(false);
     });
     return () => { cancelled = true; };
@@ -60,23 +61,29 @@ export default function Schedule() {
       someDate.getFullYear() === today.getFullYear();
   };
 
-  // Helper to get appointments for a specific date
+  // Helper to get appointments for a specific date (filter by date when using API data)
   const getAppointmentsForDate = (selectedDate) => {
-    if (isToday(selectedDate)) {
-      return scheduleData.map((s) => ({
+    const targetDateStr = selectedDate.toISOString().slice(0, 10);
+    if (isMockMode()) {
+      if (isToday(selectedDate)) {
+        return scheduleData.map((s) => ({
+          ...s,
+          location: s.location || (s.type === 'Pre-op Check' ? 'OT-3' : 'Room 4'),
+          consultationType: s.consultationType || s.type,
+        }));
+      }
+      const day = selectedDate.getDay();
+      if (day === 0) return [];
+      return scheduleData.slice(0, (day % 4) + 2).map((s, i) => ({
         ...s,
-        location: s.location || (s.type === 'Pre-op Check' ? 'OT-3' : 'Room 4'),
+        time: `${9 + i}:00`,
+        location: 'Room 4',
         consultationType: s.consultationType || s.type,
       }));
     }
-
-    const day = selectedDate.getDay();
-    if (day === 0) return [];
-
-    return scheduleData.slice(0, (day % 4) + 2).map((s, i) => ({
+    return scheduleData.filter((s) => (s.date || '').slice(0, 10) === targetDateStr).map((s) => ({
       ...s,
-      time: `${9 + i}:00`,
-      location: 'Room 4',
+      location: s.location || s.ot || '—',
       consultationType: s.consultationType || s.type,
     }));
   };

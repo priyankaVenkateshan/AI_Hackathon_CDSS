@@ -36,6 +36,9 @@ if (-not $PatientBucket) { $PatientBucket = Get-TerraformOutput "s3_bucket_corpu
 if (-not $WsUrl)    { $WsUrl    = Get-TerraformOutput "websocket_url" }
 if (-not $StaffCfId)   { $StaffCfId   = Get-TerraformOutput "staff_app_cf_id" }
 if (-not $PatientCfId) { $PatientCfId = Get-TerraformOutput "patient_portal_cf_id" }
+$CognitoPoolId = Get-TerraformOutput "cognito_user_pool_id"
+$CognitoStaffClientId = Get-TerraformOutput "cognito_staff_client_id"
+$CognitoRegion = "ap-south-1"
 
 if (-not $ApiUrl) {
     Write-Warning "API URL not set. Set VITE_API_URL or run from repo with Terraform applied and pass -ApiUrl."
@@ -49,6 +52,11 @@ $DoctorEnv = @{
     VITE_API_URL   = $ApiUrl
     VITE_WS_URL    = $WsUrl
     VITE_USE_MOCK  = "false"
+}
+if ($CognitoPoolId) {
+    $DoctorEnv["VITE_COGNITO_USER_POOL_ID"] = $CognitoPoolId
+    $DoctorEnv["VITE_COGNITO_CLIENT_ID"]    = $CognitoStaffClientId
+    $DoctorEnv["VITE_COGNITO_REGION"]       = $CognitoRegion
 }
 Write-Host "Building doctor-dashboard with VITE_API_URL=$ApiUrl"
 Push-Location (Join-Path $RepoRoot "frontend\apps\doctor-dashboard")
@@ -72,15 +80,14 @@ if (-not $SkipInvalidation -and $StaffCfId) {
 }
 
 if (-not $StaffOnly -and $PatientBucket) {
-    if (-not (Test-Path $PatientDist)) {
-        Write-Host "Building patient-dashboard..."
-        Push-Location (Join-Path $RepoRoot "frontend\apps\patient-dashboard")
-        try {
-            [Environment]::SetEnvironmentVariable("VITE_API_URL", $ApiUrl, "Process")
-            [Environment]::SetEnvironmentVariable("VITE_USE_MOCK", "false", "Process")
-            npm run build 2>&1
-        } finally { Pop-Location }
-    }
+    Write-Host "Building patient-dashboard..."
+    Push-Location (Join-Path $RepoRoot "frontend\apps\patient-dashboard")
+    try {
+        [Environment]::SetEnvironmentVariable("VITE_API_URL", $ApiUrl, "Process")
+        [Environment]::SetEnvironmentVariable("VITE_USE_MOCK", "false", "Process")
+        npm run build 2>&1
+        if ($LASTEXITCODE -ne 0) { throw "Patient-dashboard build failed" }
+    } finally { Pop-Location }
     if (Test-Path $PatientDist) {
         Write-Host "Uploading patient-dashboard to s3://$PatientBucket/"
         aws s3 sync $PatientDist "s3://$PatientBucket/" --delete
@@ -91,3 +98,11 @@ if (-not $StaffOnly -and $PatientBucket) {
 }
 
 Write-Host "Deploy done. Staff app: s3://$StaffBucket/ (CloudFront: $StaffCfId)"
+if ($CognitoPoolId) {
+    Write-Host ""
+    Write-Host "To enable demo login on the deployed link (same URL for admin and patient), run once:"
+    Write-Host "  python scripts/auth/create_superuser.py --demo           # admin/doctor"
+    Write-Host "  python scripts/auth/create_superuser.py --demo-patient    # patient"
+    Write-Host "  Credentials: demo@cdss.ai / ***REDACTED***  and  patient@cdss.ai / ***REDACTED***"
+    Write-Host "  See docs/DEMO_CREDENTIALS.md"
+}

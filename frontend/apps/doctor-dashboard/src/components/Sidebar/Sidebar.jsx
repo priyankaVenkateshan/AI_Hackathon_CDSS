@@ -9,6 +9,7 @@ const adminNavItems = [
     { path: '/patients', icon: '👥', label: 'Patients', tooltip: 'Patients' },
     { path: '/doctors', icon: '🩺', label: 'Doctors', tooltip: 'Doctors' },
     { path: '/appointments', icon: '📅', label: 'Appointments', tooltip: 'Appointments' },
+    { path: '/ai', icon: '🤖', label: 'AI Assistant', tooltip: 'AI Assistant' },
     { path: '/reports', icon: '📄', label: 'Reports', tooltip: 'Reports' },
     { path: '/admin/analytics', icon: '📈', label: 'Analytics', tooltip: 'Analytics' },
     { path: '/settings', icon: '⚙️', label: 'Settings', tooltip: 'Settings' },
@@ -19,6 +20,7 @@ const doctorNavItems = [
     { path: '/', icon: '🎛️', label: 'Dashboard', tooltip: 'Dashboard' },
     { path: '/schedule', icon: '📅', label: 'Appointments', tooltip: 'Appointments' },
     { path: '/patients', icon: '👥', label: 'Patients', tooltip: 'Patients' },
+    { path: '/ai', icon: '🤖', label: 'AI Assistant', tooltip: 'AI Assistant' },
     { path: '/surgery', icon: '🏥', label: 'Surgery', tooltip: 'Surgery' },
 ];
 

@@ -195,52 +195,65 @@ def _post_reminders(event: dict) -> dict:
 
 
 def _post_consultations_start(event: dict) -> dict:
-    """POST .../consultations/start – create Visit for patient_id, doctor_id; return AI summary when available."""
+    """POST .../consultations/start – create Visit for patient_id, doctor_id; return AI summary when available.
+    doctor_id is optional: if missing, use Cognito sub from request context or placeholder so Start consultation always works.
+    Returns 503 with a clear message if DB is unavailable (so UI shows that instead of generic HTTP 500)."""
     body = parse_body_json(event)
     patient_id = body.get("patient_id") or body.get("patientId")
     doctor_id = body.get("doctor_id") or body.get("doctorId")
-    if not patient_id or not doctor_id:
-        return json_response(400, {"error": "patient_id and doctor_id required"})
-    with get_session() as session:
-        visit = Visit(
-            patient_id=patient_id,
-            doctor_id=doctor_id,
-            visit_date=date.today(),
-            created_at=datetime.now(timezone.utc),
-        )
-        session.add(visit)
-        session.flush()
-        visit_id = visit.id
-        s3_key = _upload_transcript_if_present(patient_id, visit_id, body)
-        if s3_key:
-            visit.transcript_s3_key = s3_key
+    if not patient_id:
+        return json_response(400, {"error": "patient_id required"})
+    if not doctor_id:
+        request_ctx = (event.get("requestContext") or {}).get("authorizer") or {}
+        claims = request_ctx.get("claims") or request_ctx
+        doctor_id = claims.get("sub") or "DOC-CURRENT"
+    try:
+        with get_session() as session:
+            visit = Visit(
+                patient_id=patient_id,
+                doctor_id=doctor_id,
+                visit_date=date.today(),
+                created_at=datetime.now(timezone.utc),
+            )
+            session.add(visit)
+            session.flush()
+            visit_id = visit.id
+            s3_key = _upload_transcript_if_present(patient_id, visit_id, body)
+            if s3_key:
+                visit.transcript_s3_key = s3_key
 
-        # AI summary for Phase 4: generate clinician-facing summary from patient + recent visits
-        ai_summary = None
-        try:
-            patient = session.get(Patient, patient_id)
-            if patient:
-                from sqlalchemy import select
-                from cdss.bedrock.patient_summary import get_patient_summary
-                recent = list(
-                    session.scalars(
-                        select(Visit)
-                        .where(Visit.patient_id == patient_id)
-                        .order_by(Visit.visit_date.desc())
-                        .limit(5)
-                    ).all()
-                )
-                ai_summary = get_patient_summary(patient, recent)
-        except Exception as e:
-            logger.debug("Consultation start AI summary skipped: %s", e)
+            # AI summary: optional; never fail the request if Bedrock/DB read fails
+            ai_summary = None
+            try:
+                patient = session.get(Patient, patient_id)
+                if patient:
+                    from sqlalchemy import select
+                    from cdss.bedrock.patient_summary import get_patient_summary
+                    recent = list(
+                        session.scalars(
+                            select(Visit)
+                            .where(Visit.patient_id == patient_id)
+                            .order_by(Visit.visit_date.desc())
+                            .limit(5)
+                        ).all()
+                    )
+                    ai_summary = get_patient_summary(patient, recent)
+            except Exception as e:
+                logger.debug("Consultation start AI summary skipped: %s", e)
 
-    return json_response(200, {
-        "visitId": visit_id,
-        "patient_id": patient_id,
-        "doctor_id": doctor_id,
-        "summary": ai_summary or "",
-        "ai_summary": ai_summary or "",
-    })
+        return json_response(200, {
+            "visitId": visit_id,
+            "patient_id": patient_id,
+            "doctor_id": doctor_id,
+            "summary": ai_summary or "",
+            "ai_summary": ai_summary or "",
+        })
+    except Exception as e:
+        logger.warning("Consultation start failed (DB or session): %s", e)
+        return json_response(503, {
+            "error": "Database temporarily unavailable. Check RDS connectivity and tunnel.",
+            "message": "Database temporarily unavailable. Check RDS connectivity and tunnel.",
+        })
 
 
 def _post_consultations(event: dict) -> dict:

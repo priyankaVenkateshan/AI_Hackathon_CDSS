@@ -27,6 +27,7 @@ logger = logging.getLogger(__name__)
 SAFETY_DISCLAIMER = (
     "AI is for clinical support only. All decisions require qualified medical judgment."
 )
+_FALLBACK_MODEL_ID = "apac.amazon.nova-lite-v1:0"
 
 
 def _bedrock_converse(prompt: str, system: str, max_tokens: int = 600) -> str:
@@ -40,8 +41,10 @@ def _bedrock_converse(prompt: str, system: str, max_tokens: int = 600) -> str:
         sm = boto3.client("secretsmanager", region_name=region)
         raw = sm.get_secret_value(SecretId=secret_name).get("SecretString", "{}")
         cfg = json.loads(raw)
-        model_id = (cfg.get("model_id") or "apac.amazon.nova-lite-v1:0").strip()
+        model_id = (cfg.get("model_id") or _FALLBACK_MODEL_ID).strip()
         br_region = (cfg.get("region") or region).strip()
+        if model_id.lower().startswith("anthropic."):
+            model_id = _FALLBACK_MODEL_ID
     except Exception as e:
         logger.warning("AI: Bedrock config load failed: %s", e)
         return ""
@@ -51,7 +54,7 @@ def _bedrock_converse(prompt: str, system: str, max_tokens: int = 600) -> str:
             modelId=model_id,
             system=[{"text": system}],
             messages=[{"role": "user", "content": [{"text": prompt[:8000]}]}],
-            inferenceConfig={"maxTokens": max_tokens, "temperature": 0.2},
+            inferenceConfig={"maxTokens": max_tokens, "temperature": 0.1},
         )
         content = resp.get("output", {}).get("message", {}).get("content", []) or []
         return next((c.get("text", "") for c in content if isinstance(c, dict) and "text" in c), "").strip()
@@ -78,7 +81,14 @@ def _summarize(body: Dict[str, Any]) -> Dict[str, Any]:
         "in 2–4 concise sentences. Do not add diagnosis or treatment advice; state only what was discussed."
     )
     summary = _bedrock_converse(text, system, max_tokens=400)
-    return {"summary": summary or "(Summarization unavailable.)", "safety_disclaimer": SAFETY_DISCLAIMER}
+    # When Bedrock is not configured, provide a safe fallback so the UI always shows something
+    if not summary or not summary.strip():
+        excerpt = (text[:400] + "…") if len(text) > 400 else text
+        summary = (
+            "Summary (AI not configured): Key points from your notes — "
+            + (excerpt.replace("\n", " ").strip() or "No content to summarize.")
+        )
+    return {"summary": summary, "safety_disclaimer": SAFETY_DISCLAIMER}
 
 
 def _entities(body: Dict[str, Any]) -> Dict[str, Any]:

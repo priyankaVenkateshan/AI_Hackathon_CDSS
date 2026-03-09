@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { patients } from '../../data/mockData';
 import { doseStatusLabel, normalizeDoseStatus, t } from '../../components/PatientPortal/i18n';
-import { resolvePortalPatient } from '../../components/PatientPortal/resolvePortalPatient';
 import './PatientPortalPages.css';
 
 function Tag({ language, value }) {
@@ -25,7 +25,9 @@ function ProgressBar({ value }) {
 export default function PatientPortalMedications() {
     const { user } = useAuth();
     const { language } = useOutletContext() || { language: 'en' };
-    const patient = resolvePortalPatient(user);
+    const patient = patients.find((p) => p.id === user?.id) ||
+        patients.find((p) => (p.email || '').toLowerCase() === (user?.email || '').toLowerCase()) ||
+        patients[0] || null;
     const todayMeds = Array.isArray(patient?.portal?.todayMedications) ? patient.portal.todayMedications : [];
 
     const [overrides, setOverrides] = useState({});

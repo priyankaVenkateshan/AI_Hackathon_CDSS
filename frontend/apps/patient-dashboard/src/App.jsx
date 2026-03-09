@@ -1,36 +1,14 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
-import Sidebar from './components/Sidebar/Sidebar';
-import Header from './components/Header/Header';
-import Dashboard from './pages/Dashboard/Dashboard';
-import MyAppointments from './pages/MyAppointments/MyAppointments';
-import MyMedications from './pages/MyMedications/MyMedications';
-import MyRecords from './pages/MyRecords/MyRecords';
-import Contact from './pages/Contact/Contact';
+import PatientPortalLayout from './components/PatientPortal/PatientPortalLayout';
+import PatientPortalHome from './pages/PatientPortal/PatientPortalHome';
+import PatientPortalSummary from './pages/PatientPortal/PatientPortalSummary';
+import PatientPortalMedications from './pages/PatientPortal/PatientPortalMedications';
+import PatientPortalAppointments from './pages/PatientPortal/PatientPortalAppointments';
 import Login from './pages/Login/Login';
 import './App.css';
-
-function AppLayout() {
-  return (
-    <div className="app-layout">
-      <Sidebar />
-      <div className="app-content">
-        <Header />
-        <main className="app-main">
-          <Routes>
-            <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-            <Route path="/appointments" element={<ProtectedRoute><MyAppointments /></ProtectedRoute>} />
-            <Route path="/medications" element={<ProtectedRoute><MyMedications /></ProtectedRoute>} />
-            <Route path="/records" element={<ProtectedRoute><MyRecords /></ProtectedRoute>} />
-            <Route path="/contact" element={<ProtectedRoute><Contact /></ProtectedRoute>} />
-          </Routes>
-        </main>
-      </div>
-    </div>
-  );
-}
 
 function App() {
   return (
@@ -39,7 +17,17 @@ function App() {
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<Login />} />
-            <Route path="/*" element={<AppLayout />} />
+            <Route path="/" element={
+              <ProtectedRoute>
+                <PatientPortalLayout />
+              </ProtectedRoute>
+            }>
+              <Route index element={<PatientPortalHome />} />
+              <Route path="summary" element={<PatientPortalSummary />} />
+              <Route path="medication-tracker" element={<PatientPortalMedications />} />
+              <Route path="appointments" element={<PatientPortalAppointments />} />
+            </Route>
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </BrowserRouter>
       </ThemeProvider>

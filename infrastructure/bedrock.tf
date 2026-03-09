@@ -1,6 +1,8 @@
 # Bedrock is a regional managed service - no resource creation needed.
 # Enable model access in AWS Console: Bedrock > Model access in the left menu.
 # This IAM policy grants permissions for applications (e.g. Lambda) to invoke Bedrock models.
+# Statement 1: Allow Converse/InvokeModel on any Bedrock model (avoids AccessDeniedException for cross-region or inference profiles).
+# Statement 2: Explicit region/model ARNs for least-privilege preference.
 
 resource "aws_iam_policy" "bedrock_invoke" {
   name        = "${local.name_prefix}-bedrock-invoke"
@@ -9,6 +11,12 @@ resource "aws_iam_policy" "bedrock_invoke" {
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
+      {
+        Sid    = "BedrockInvokeAny"
+        Effect = "Allow"
+        Action = ["bedrock:InvokeModel", "bedrock:InvokeModelWithResponseStream"]
+        Resource = "*"
+      },
       {
         Effect = "Allow"
         Action = ["bedrock:InvokeModel", "bedrock:InvokeModelWithResponseStream"]

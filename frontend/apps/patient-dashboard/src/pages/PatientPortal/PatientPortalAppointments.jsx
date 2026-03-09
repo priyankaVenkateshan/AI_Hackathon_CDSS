@@ -1,7 +1,7 @@
 import { Link, useOutletContext } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { patients } from '../../data/mockData';
 import { t } from '../../components/PatientPortal/i18n';
-import { resolvePortalPatient } from '../../components/PatientPortal/resolvePortalPatient';
 import './PatientPortalPages.css';
 
 function formatDateTime(value) {
@@ -14,7 +14,9 @@ function formatDateTime(value) {
 export default function PatientPortalAppointments() {
     const { user } = useAuth();
     const { language } = useOutletContext() || { language: 'en' };
-    const patient = resolvePortalPatient(user);
+    const patient = patients.find((p) => p.id === user?.id) ||
+        patients.find((p) => (p.email || '').toLowerCase() === (user?.email || '').toLowerCase()) ||
+        patients[0] || null;
     const appts = patient?.portal?.appointments || {};
     const upcoming = Array.isArray(appts?.upcoming) ? appts.upcoming : [];
     const past = Array.isArray(appts?.past) ? appts.past : [];
@@ -69,7 +71,7 @@ export default function PatientPortalAppointments() {
                                     <div className="patient-portal-appts__dt">{formatDateTime(v.dateTime)}</div>
                                     <div style={{ marginTop: 'var(--space-2)' }}>
                                         {v.summaryAvailable ? (
-                                            <Link to="/patient-portal/summary" className="patient-portal-link-btn">
+                                            <Link to="/summary" className="patient-portal-link-btn">
                                                 {t(language, 'appts_summaryAccess')}
                                             </Link>
                                         ) : (

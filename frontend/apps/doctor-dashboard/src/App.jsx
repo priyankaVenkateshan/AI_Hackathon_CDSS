@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeContext';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, roles } from './context/AuthContext';
 import AuthApiBridge from './components/Auth/AuthApiBridge';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
 import ErrorBoundary from './components/ErrorBoundary/ErrorBoundary';
@@ -54,7 +54,11 @@ function AppLayout() {
             <Route path="/activity" element={<ProtectedRoute><MyActivity /></ProtectedRoute>} />
             <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
             <Route path="/patients" element={<ProtectedRoute><Patients /></ProtectedRoute>} />
-            <Route path="/doctors" element={<ProtectedRoute requiredRoles={['admin']}><Doctors /></ProtectedRoute>} />
+            <Route path="/doctors" element={
+              <ProtectedRoute requiredRoles={[roles.ADMIN, roles.SUPERUSER]}>
+                <Doctors />
+              </ProtectedRoute>
+            } />
             <Route path="/appointments" element={<ProtectedRoute><Appointments /></ProtectedRoute>} />
             <Route path="/patient/:patientId" element={<ProtectedRoute><PatientConsultation /></ProtectedRoute>} />
             <Route path="/ai" element={<ProtectedRoute><AIChat /></ProtectedRoute>} />
@@ -70,14 +74,34 @@ function AppLayout() {
             <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             <Route path="/resources" element={<ProtectedRoute><Resources /></ProtectedRoute>} />
-            <Route path="/admin/users" element={<ProtectedRoute requiredRoles={['admin']}><AdminUsers /></ProtectedRoute>} />
+            <Route path="/admin/users" element={
+              <ProtectedRoute requiredRoles={[roles.ADMIN, roles.SUPERUSER]}>
+                <AdminUsers />
+              </ProtectedRoute>
+            } />
             <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
-            <Route path="/admin/audit" element={<ProtectedRoute requiredRoles={['admin']}><AdminAudit /></ProtectedRoute>} />
-            <Route path="/admin/config" element={<ProtectedRoute requiredRoles={['admin']}><AdminConfig /></ProtectedRoute>} />
-            <Route path="/admin/analytics" element={<ProtectedRoute requiredRoles={['admin']}><AdminAnalytics /></ProtectedRoute>} />
-            <Route path="/admin/resources" element={<ProtectedRoute requiredRoles={['admin']}><AdminResources /></ProtectedRoute>} />
+            <Route path="/admin/audit" element={
+              <ProtectedRoute requiredRoles={[roles.ADMIN, roles.SUPERUSER]}>
+                <AdminAudit />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/config" element={
+              <ProtectedRoute requiredRoles={[roles.ADMIN, roles.SUPERUSER]}>
+                <AdminConfig />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/analytics" element={
+              <ProtectedRoute requiredRoles={[roles.ADMIN, roles.SUPERUSER]}>
+                <AdminAnalytics />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/resources" element={
+              <ProtectedRoute requiredRoles={[roles.ADMIN, roles.SUPERUSER]}>
+                <AdminResources />
+              </ProtectedRoute>
+            } />
             <Route path="/settings" element={
-              <ProtectedRoute requiredRoles={['admin']}>
+              <ProtectedRoute requiredRoles={[roles.ADMIN, roles.SUPERUSER]}>
                 <Settings />
               </ProtectedRoute>
             } />
@@ -100,7 +124,7 @@ function App() {
                 {/* Admin Dashboard — standalone full-viewport layout (no sidebar/header) */}
                 <Route path="/admin/dashboard" element={
                   <DoctorModuleGuard>
-                    <ProtectedRoute requiredRoles={['admin']}>
+                    <ProtectedRoute requiredRoles={[roles.ADMIN, roles.SUPERUSER]}>
                       <AdminDashboard />
                     </ProtectedRoute>
                   </DoctorModuleGuard>

@@ -1,7 +1,7 @@
 import { useOutletContext } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { patients } from '../../data/mockData';
 import { adherenceLabel, doseStatusLabel, normalizeDoseStatus, t } from '../../components/PatientPortal/i18n';
-import { resolvePortalPatient } from '../../components/PatientPortal/resolvePortalPatient';
 import './PatientPortalPages.css';
 
 function formatDateTime(value) {
@@ -29,7 +29,12 @@ function ProgressBar({ value }) {
 export default function PatientPortalHome() {
     const { user } = useAuth();
     const { language } = useOutletContext() || { language: 'en' };
-    const patient = resolvePortalPatient(user);
+    const patientId = user?.id;
+    const patientEmail = (user?.email || '').toLowerCase();
+    // Match by id first, then by email (so demo login always finds the right record)
+    const patient = patients.find((p) => p.id === patientId) ||
+        patients.find((p) => (p.email || '').toLowerCase() === patientEmail) ||
+        patients[0] || null;
     const portal = patient?.portal || {};
 
     const adherencePct = patient?.adherence != null ? Math.round((patient.adherence || 0) * 100) : null;

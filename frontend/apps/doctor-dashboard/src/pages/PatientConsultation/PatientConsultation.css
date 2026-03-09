@@ -584,6 +584,23 @@
     gap: var(--space-3);
 }
 
+.ai-panel__empty {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    padding: var(--space-4);
+    text-align: center;
+    line-height: 1.5;
+}
+
+.ai-panel__error {
+    font-size: var(--text-sm);
+    color: var(--color-error, #c00);
+    padding: var(--space-2) var(--space-4);
+    margin: 0;
+    background: rgba(200, 0, 0, 0.08);
+    border-radius: var(--radius-md);
+}
+
 .ai-message {
     max-width: 90%;
     animation: fadeInUp 300ms var(--ease-out) both;
@@ -622,6 +639,16 @@
     color: var(--text-muted);
     margin-top: 4px;
     padding: 0 var(--space-2);
+}
+
+.ai-message__disclaimer {
+    margin-top: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    background: var(--surface-border);
+    border-radius: var(--radius-md);
+    border-left: 3px solid var(--color-accent);
 }
 
 /* AI Typing indicator */
@@ -798,6 +825,37 @@
 .surgery-readiness-modal__status--pending { color: var(--color-warning); }
 .surgery-readiness-modal__status--cleared { color: var(--color-success, #0a0); }
 .surgery-readiness-modal__status--not_assessed { color: var(--text-muted); }
+
+.surgery-readiness-modal__ai-section {
+    margin-top: var(--space-4);
+    padding-top: var(--space-3);
+    border-top: 1px solid var(--border-color, #e5e7eb);
+}
+.surgery-readiness-modal__ai-title {
+    margin: 0 0 var(--space-1);
+    font-size: var(--text-base);
+}
+.surgery-readiness-modal__ai-desc {
+    margin: 0 0 var(--space-3);
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+}
+.surgery-readiness-modal__ai-error {
+    margin: var(--space-2) 0 0;
+    font-size: var(--text-sm);
+    color: var(--color-error, #c00);
+}
+.surgery-readiness-modal__ai-reply {
+    margin-top: var(--space-3);
+    padding: var(--space-3);
+    background: var(--surface-elevated, #f9fafb);
+    border-radius: var(--radius-md);
+    font-size: var(--text-sm);
+}
+.surgery-readiness-modal__ai-reply-text {
+    white-space: pre-wrap;
+    margin-top: var(--space-1);
+}
 
 /* Patient Summary card: responsive stacking below 768px */
 @media (max-width: 768px) {

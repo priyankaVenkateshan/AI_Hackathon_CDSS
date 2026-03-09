@@ -112,7 +112,38 @@ UI (Patients.jsx, Surgery.jsx, Dashboard) render
 
 ---
 
-## 8. Summary of Changes Made
+## 9. AI Assistant (POST /agent) and Bedrock
+
+When the **AI Assistant** on the patient page (or the standalone AI chat) shows **"Unable to generate response"**, check the following.
+
+**Response shape:** The Supervisor returns `{ "intent", "agent", "data": { "reply", "safety_disclaimer" }, ... }`. The frontend must read **`response.data.reply`** (not only `response.reply`). This is fixed in PatientConsultation and Surgery Readiness modal.
+
+**Backend (Bedrock):**
+- **Lambda** must have **`BEDROCK_CONFIG_SECRET_NAME`** set (Terraform sets this to the Bedrock config secret name).
+- **Secrets Manager**: The secret must exist and contain JSON with **`model_id`** (e.g. `apac.amazon.nova-lite-v1:0` or a Claude model ID) and optionally **`region`** (e.g. `ap-south-1`).
+- **IAM**: The Lambda execution role must allow **`bedrock:InvokeModel`** (or `bedrock:InvokeModelWithResponseStream`) and **`secretsmanager:GetSecretValue`** on the Bedrock config secret.
+- **Bedrock console**: The model must be **enabled** in the AWS Bedrock console for the account/region.
+
+**Quick test (deployed API):**
+```bash
+curl -s -X POST "https://YOUR_API_URL/agent" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_COGNITO_ID_TOKEN" \
+  -d '{"message":"Hello","patient_id":"PT-1025"}' | jq .
+```
+Check that the response has `data.reply` with a non-empty string. If `data.reply` is missing or empty, the backend may be returning a Bedrock error or "Bedrock is not configured"; check Lambda logs in CloudWatch.
+
+**When you see "AI is temporarily unavailable":** The reply now includes a short hint from the exception (e.g. model not found, access denied). Check:
+1. **Secrets Manager** – Secret `BEDROCK_CONFIG_SECRET_NAME` exists and contains valid JSON with `model_id` and optional `region`.
+2. **Model ID** – Must be a model **enabled** in the Bedrock console (e.g. `apac.amazon.nova-lite-v1:0` or a Claude model ID for your region).
+3. **Lambda IAM** – Role has `bedrock:InvokeModel` (or `InvokeModelWithResponseStream`) and `secretsmanager:GetSecretValue` for the secret.
+4. **Region** – Model must be available in the region (e.g. `ap-south-1`). Cross-region invoke may require different config.
+
+**Local test:** With the local API running and `BEDROCK_CONFIG_SECRET_NAME` set (and AWS credentials able to read the secret and invoke Bedrock), `POST http://localhost:8080/agent` with body `{"message":"Hello"}` should return 200 with `data.reply` populated.
+
+---
+
+## 10. Summary of Changes Made
 
 | Area | Change |
 |------|--------|
@@ -130,7 +161,9 @@ UI (Patients.jsx, Surgery.jsx, Dashboard) render
 
 ---
 
-## 9. Confirmation Checklist
+---
+
+## 11. Confirmation Checklist
 
 - [x] API routes: frontend paths and methods match backend.
 - [x] Backend uses database when `DATABASE_URL` or RDS secret is set; no mock in that case.

@@ -14,7 +14,7 @@ resource "aws_secretsmanager_secret_version" "bedrock_config" {
   secret_id = aws_secretsmanager_secret.bedrock_config.id
   secret_string = jsonencode({
     region   = var.aws_region
-    model_id = "anthropic.claude-3-haiku-20240307-v1:0"
+    model_id = var.bedrock_model_id
   })
 }
 

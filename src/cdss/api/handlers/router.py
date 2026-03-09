@@ -224,14 +224,22 @@ def _agent_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         except Exception:
             pass
         user_message = (body.get("message") or body.get("prompt") or "").strip()
+        history = body.get("history") or body.get("conversation") or []
         try:
-            from cdss.bedrock.chat import invoke_chat
-            result = invoke_chat(user_message)
+            if history and isinstance(history, list) and len(history) > 0:
+                from cdss.bedrock.chat import invoke_chat_multi_turn
+                messages_list = list(history)
+                messages_list.append({"role": "user", "text": user_message or "(No message)"})
+                result = invoke_chat_multi_turn(messages_list)
+            else:
+                from cdss.bedrock.chat import invoke_chat
+                result = invoke_chat(user_message)
             return json_response(
                 200,
                 {
                     "message": result.message or "OK",
                     "reply": result.reply,
+                    "data": {"reply": result.reply, "safety_disclaimer": result.safety_disclaimer},
                     "safety_disclaimer": result.safety_disclaimer,
                 },
                 event=event,
@@ -242,6 +250,7 @@ def _agent_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 {
                     "message": "Agent endpoint ready. Connect Bedrock for live responses.",
                     "reply": "Agent endpoint ready.",
+                    "data": {"reply": "Agent endpoint ready.", "safety_disclaimer": "AI is not configured or unavailable."},
                     "safety_disclaimer": "AI is not configured or unavailable.",
                 },
                 event=event,

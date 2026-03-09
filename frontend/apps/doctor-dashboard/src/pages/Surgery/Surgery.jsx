@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth, roles } from '../../context/AuthContext';
 import { isMockMode } from '../../api/config';
-import { getSurgeries } from '../../api/client';
+import { getSurgeries, analyseSurgery } from '../../api/client';
 import { surgeries } from '../../data/mockData';
 import './Surgery.css';
 
@@ -26,6 +26,8 @@ export default function Surgery() {
     const [selectedPreOp, setSelectedPreOp] = useState(null);
     const [sessionRequirements, setSessionRequirements] = useState({});
     const [newItemTexts, setNewItemTexts] = useState({ equipment: '', checklist: '' });
+    const [suggestionsLoading, setSuggestionsLoading] = useState(false);
+    const [suggestionsError, setSuggestionsError] = useState(null);
 
     const mockReplacements = [
         { id: 'DR-ALT-1', name: 'Dr. Suresh Reddy', specialty: 'General Surgery', status: 'available' },
@@ -53,6 +55,30 @@ export default function Surgery() {
             });
         return () => { cancelled = true; };
     }, []);
+
+    // When Pre-Op modal opens, fetch AI suggestions for this surgery (real API only)
+    useEffect(() => {
+        if (!selectedPreOp?.id || isMockMode()) return;
+        setSuggestionsLoading(true);
+        setSuggestionsError(null);
+        analyseSurgery(selectedPreOp.id)
+            .then((result) => {
+                const equipment = (result.requiredInstruments || []).map((name) => ({ name: String(name), checked: false }));
+                const checklist = (result.checklist || []).map((c) => ({
+                    name: typeof c === 'string' ? c : (c.text || c.name || String(c)),
+                    checked: !!(c && c.completed),
+                }));
+                setSessionRequirements((prev) => ({
+                    ...prev,
+                    [selectedPreOp.id]: {
+                        equipment: equipment.length > 0 ? equipment : (prev[selectedPreOp.id]?.equipment || []),
+                        checklist: checklist.length > 0 ? checklist : (prev[selectedPreOp.id]?.checklist || []),
+                    },
+                }));
+            })
+            .catch((err) => setSuggestionsError(err?.message || 'Could not load AI suggestions'))
+            .finally(() => setSuggestionsLoading(false));
+    }, [selectedPreOp?.id]);
 
     if (loading && !isMockMode()) {
         return (
@@ -280,9 +306,35 @@ export default function Surgery() {
             {selectedPreOp && (() => {
                 const sId = selectedPreOp.id;
                 // Initialize or get session-specific data for this surgery
-                const sessionData = sessionRequirements[sId] || {
-                    equipment: (selectedPreOp.preOpRequirements?.equipment || []).map(name => ({ name, checked: false })),
-                    checklist: (selectedPreOp.preOpRequirements?.checklist || []).map(name => ({ name, checked: false }))
+                const existing = sessionRequirements[sId];
+                const defaultEquipment = (selectedPreOp.preOpRequirements?.equipment || []).map(name => ({ name, checked: false }));
+                const defaultChecklist = (selectedPreOp.preOpRequirements?.checklist || []).map(name => ({ name, checked: false }));
+                const sessionData = existing || {
+                    equipment: defaultEquipment,
+                    checklist: defaultChecklist
+                };
+
+                const fetchSuggestions = () => {
+                    if (!sId || isMockMode()) return;
+                    setSuggestionsLoading(true);
+                    setSuggestionsError(null);
+                    analyseSurgery(sId)
+                        .then((result) => {
+                            const equipment = (result.requiredInstruments || []).map((name) => ({ name: String(name), checked: false }));
+                            const checklist = (result.checklist || []).map((c) => ({
+                                name: typeof c === 'string' ? c : (c.text || c.name || String(c)),
+                                checked: !!(c && c.completed),
+                            }));
+                            setSessionRequirements((prev) => ({
+                                ...prev,
+                                [sId]: {
+                                    equipment: equipment.length > 0 ? equipment : prev[sId]?.equipment || [],
+                                    checklist: checklist.length > 0 ? checklist : prev[sId]?.checklist || [],
+                                },
+                            }));
+                        })
+                        .catch((err) => setSuggestionsError(err?.message || 'Could not load AI suggestions'))
+                        .finally(() => setSuggestionsLoading(false));
                 };
 
                 const toggleItem = (type, index) => {
@@ -311,6 +363,23 @@ export default function Surgery() {
                                 <button className="pre-op-modal__close" onClick={() => setSelectedPreOp(null)}>×</button>
                             </div>
                             <div className="pre-op-modal__content">
+                                {!isMockMode() && (
+                                    <div className="pre-op-suggestions-bar" style={{ marginBottom: 'var(--space-4)', padding: 'var(--space-3)', background: 'var(--surface-bg)', borderRadius: 'var(--radius-md)' }}>
+                                        {suggestionsLoading && <p className="pre-op-suggestions-loading" style={{ margin: 0, fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>Loading AI suggestions…</p>}
+                                        {suggestionsError && !/^HTTP \d+$/.test(suggestionsError) && (
+                                            <p className="pre-op-suggestions-error" style={{ margin: '0 0 8px 0', fontSize: 'var(--text-sm)', color: 'var(--color-error, #c00)' }}>{suggestionsError}</p>
+                                        )}
+                                        <button
+                                            type="button"
+                                            className="btn btn--outline"
+                                            style={{ fontSize: 'var(--text-sm)' }}
+                                            onClick={fetchSuggestions}
+                                            disabled={suggestionsLoading}
+                                        >
+                                            {suggestionsLoading ? 'Loading…' : 'Get AI suggestions'}
+                                        </button>
+                                    </div>
+                                )}
                                 {/* Equipment Section */}
                                 <div className="pre-op-section">
                                     <h4 className="pre-op-section__title">🛠 Required Equipment</h4>

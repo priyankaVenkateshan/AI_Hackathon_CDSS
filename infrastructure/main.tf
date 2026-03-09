@@ -29,6 +29,7 @@ module "cdss_lambda" {
     SNS_TOPIC_PATIENT_REMINDERS_ARN  = aws_sns_topic.patient_reminders.arn
     USE_AGENTCORE              = var.use_agentcore ? "true" : "false"
     AGENT_RUNTIME_ARN          = var.agent_runtime_arn
+    DB_CONNECT_TIMEOUT         = "10"
   })
   attach_bedrock_policy  = true
   bedrock_policy_arn     = aws_iam_policy.bedrock_invoke.arn

@@ -8,5 +8,8 @@ db_password = "REPLACE_WITH_AURORA_MASTER_PASSWORD"
 # Optional – Lambda in VPC so it can reach Aurora (default true)
 # enable_lambda_vpc = false
 
+# Optional – Bedrock model for AI Assistant (default: apac.amazon.nova-lite-v1:0 for ap-south-1)
+# bedrock_model_id = "apac.amazon.nova-lite-v1:0"
+
 # Optional – require Cognito on API (default true; set false for local/dev without auth)
 # api_require_cognito = false

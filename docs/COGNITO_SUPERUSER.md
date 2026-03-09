@@ -20,6 +20,10 @@ If Terraform state is available, the script can read the User Pool ID automatica
 python scripts/auth/create_superuser.py --email superuser@cdss.ai --password 'YourSecurePassword'
 ```
 
+**Password:** Must meet the User Pool’s password policy (e.g. length, numeric and symbol characters). If you see `InvalidPasswordException`, use a stronger password (e.g. `YourSecurePassword1!`).
+
+**Email-alias pools:** If the pool uses email as an alias, the script uses a UUID for the internal Cognito username; sign-in remains with the email above.
+
 **Options:**
 
 | Option | Description |

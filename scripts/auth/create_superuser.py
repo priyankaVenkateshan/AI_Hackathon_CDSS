@@ -9,6 +9,9 @@ Usage:
   # From repo root (picks up Terraform output if run from infrastructure/)
   python scripts/auth/create_superuser.py --email superuser@cdss.ai --password 'YourSecurePassword'
 
+  # Create demo user for deployed dashboard (demo@cdss.ai / ***REDACTED***)
+  python scripts/auth/create_superuser.py --demo
+
   # With explicit User Pool ID
   COGNITO_USER_POOL_ID=ap-south-1_xxxxxxxxx python scripts/auth/create_superuser.py \\
     --email superuser@cdss.ai --password 'YourSecurePassword'
@@ -27,6 +30,7 @@ import argparse
 import os
 import subprocess
 import sys
+import uuid
 from pathlib import Path
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -67,6 +71,43 @@ def _get_user_pool_id_from_secrets() -> str | None:
         return None
 
 
+def _pool_uses_email_alias(client, user_pool_id: str) -> bool:
+    """Return True if the user pool uses email as an alias (Username must not be email format)."""
+    try:
+        resp = client.describe_user_pool(UserPoolId=user_pool_id)
+        pool = resp.get("UserPool", {})
+        # Email as alias: AliasAttributes or UsernameAttributes (primary username)
+        aliases = pool.get("AliasAttributes") or []
+        attrs = pool.get("UsernameAttributes") or []
+        return "email" in aliases or "email" in attrs
+    except Exception:
+        return False
+
+
+def _username_slug(email: str) -> str:
+    """Return a stable non-email username for pools that use email alias."""
+    return email.strip().lower().replace("@", "_at_").replace(".", "_")
+
+
+def _find_username_by_email(client, user_pool_id: str, email: str) -> str | None:
+    """Find Cognito Username for a user with the given email attribute (for email-alias pools)."""
+    want = email.strip().lower()
+    pagination_token = None
+    while True:
+        kwargs = {"UserPoolId": user_pool_id, "Limit": 60}
+        if pagination_token:
+            kwargs["PaginationToken"] = pagination_token
+        resp = client.list_users(**kwargs)
+        for u in resp.get("Users", []):
+            for attr in u.get("Attributes", []):
+                if attr.get("Name") == "email" and (attr.get("Value") or "").strip().lower() == want:
+                    return u["Username"]
+        pagination_token = resp.get("PaginationToken")
+        if not pagination_token:
+            break
+    return None
+
+
 def ensure_superuser(
     user_pool_id: str,
     email: str,
@@ -91,26 +132,45 @@ def ensure_superuser(
         raise RuntimeError("boto3 is required. Install with: pip install boto3") from None
 
     client = boto3.client("cognito-idp", region_name=region)
-    username = email.strip().lower()
+    email_norm = email.strip().lower()
+    uses_email_alias = _pool_uses_email_alias(client, user_pool_id)
+
+    # Internal Cognito Username: for email-alias pools use UUID (Cognito rejects email-like formats); otherwise email.
+    if uses_email_alias:
+        cognito_username_create = str(uuid.uuid4())
+    else:
+        cognito_username_create = email_norm
 
     user_attributes = [
-        {"Name": "email", "Value": username},
+        {"Name": "email", "Value": email_norm},
         {"Name": "email_verified", "Value": "true"},
         {"Name": "custom:role", "Value": "superuser"},
     ]
 
-    # Check if user exists
-    try:
-        client.admin_get_user(UserPoolId=user_pool_id, Username=username)
-        user_exists = True
-    except client.exceptions.UserNotFoundException:
-        user_exists = False
+    # Resolve existing user's Cognito Username (for email-alias pools find by email)
+    cognito_username: str | None = None
+    if uses_email_alias:
+        cognito_username = _find_username_by_email(client, user_pool_id, email_norm)
+        if cognito_username is None:
+            try:
+                client.admin_get_user(UserPoolId=user_pool_id, Username=cognito_username_create)
+                cognito_username = cognito_username_create
+            except client.exceptions.UserNotFoundException:
+                pass
+    else:
+        try:
+            client.admin_get_user(UserPoolId=user_pool_id, Username=email_norm)
+            cognito_username = email_norm
+        except client.exceptions.UserNotFoundException:
+            pass
+
+    user_exists = cognito_username is not None
 
     if user_exists:
         if set_role_only:
             client.admin_update_user_attributes(
                 UserPoolId=user_pool_id,
-                Username=username,
+                Username=cognito_username,
                 UserAttributes=[
                     {"Name": "custom:role", "Value": "superuser"},
                 ],
@@ -119,13 +179,13 @@ def ensure_superuser(
         # Update role and optionally set new password
         client.admin_update_user_attributes(
             UserPoolId=user_pool_id,
-            Username=username,
+            Username=cognito_username,
             UserAttributes=[{"Name": "custom:role", "Value": "superuser"}],
         )
         if password:
             client.admin_set_user_password(
                 UserPoolId=user_pool_id,
-                Username=username,
+                Username=cognito_username,
                 Password=password,
                 Permanent=True,
             )
@@ -138,7 +198,7 @@ def ensure_superuser(
 
     client.admin_create_user(
         UserPoolId=user_pool_id,
-        Username=username,
+        Username=cognito_username_create,
         UserAttributes=user_attributes,
         TemporaryPassword=password,
         MessageAction="SUPPRESS",
@@ -146,11 +206,110 @@ def ensure_superuser(
     # Set permanent password immediately so user is not forced to change on first login
     client.admin_set_user_password(
         UserPoolId=user_pool_id,
-        Username=username,
+        Username=cognito_username_create,
         Password=password,
         Permanent=True,
     )
     return "Created new superuser and set permanent password."
+
+
+def ensure_user_with_role(
+    user_pool_id: str,
+    email: str,
+    role: str,
+    password: str | None = None,
+    set_role_only: bool = False,
+    region: str = "ap-south-1",
+) -> str:
+    """
+    Create or update a Cognito user with custom:role=<role> (e.g. superuser, patient).
+
+    :param user_pool_id: Cognito User Pool ID
+    :param email: User email (used as username/alias)
+    :param role: Value for custom:role (e.g. "superuser", "patient")
+    :param password: Permanent password (required unless set_role_only and user exists)
+    :param set_role_only: If True, only update custom:role
+    :param region: AWS region
+    :return: Message string
+    """
+    try:
+        import boto3
+    except ImportError:
+        raise RuntimeError("boto3 is required. Install with: pip install boto3") from None
+
+    client = boto3.client("cognito-idp", region_name=region)
+    email_norm = email.strip().lower()
+    uses_email_alias = _pool_uses_email_alias(client, user_pool_id)
+
+    if uses_email_alias:
+        cognito_username_create = str(uuid.uuid4())
+    else:
+        cognito_username_create = email_norm
+
+    user_attributes = [
+        {"Name": "email", "Value": email_norm},
+        {"Name": "email_verified", "Value": "true"},
+        {"Name": "custom:role", "Value": role},
+    ]
+
+    cognito_username: str | None = None
+    if uses_email_alias:
+        cognito_username = _find_username_by_email(client, user_pool_id, email_norm)
+        if cognito_username is None:
+            try:
+                client.admin_get_user(UserPoolId=user_pool_id, Username=cognito_username_create)
+                cognito_username = cognito_username_create
+            except client.exceptions.UserNotFoundException:
+                pass
+    else:
+        try:
+            client.admin_get_user(UserPoolId=user_pool_id, Username=email_norm)
+            cognito_username = email_norm
+        except client.exceptions.UserNotFoundException:
+            pass
+
+    user_exists = cognito_username is not None
+
+    if user_exists:
+        if set_role_only:
+            client.admin_update_user_attributes(
+                UserPoolId=user_pool_id,
+                Username=cognito_username,
+                UserAttributes=[{"Name": "custom:role", "Value": role}],
+            )
+            return f"Updated existing user to role {role!r}."
+        client.admin_update_user_attributes(
+            UserPoolId=user_pool_id,
+            Username=cognito_username,
+            UserAttributes=[{"Name": "custom:role", "Value": role}],
+        )
+        if password:
+            client.admin_set_user_password(
+                UserPoolId=user_pool_id,
+                Username=cognito_username,
+                Password=password,
+                Permanent=True,
+            )
+            return f"Updated existing user to role {role!r} and set new password."
+        return f"Updated existing user to role {role!r} (password unchanged)."
+
+    if not password:
+        raise RuntimeError("Password required when creating a new user (or use --set-role-only for existing user).")
+
+    client.admin_create_user(
+        UserPoolId=user_pool_id,
+        Username=cognito_username_create,
+        UserAttributes=user_attributes,
+        TemporaryPassword=password,
+        MessageAction="SUPPRESS",
+    )
+    client.admin_set_user_password(
+        UserPoolId=user_pool_id,
+        Username=cognito_username_create,
+        Password=password,
+        Permanent=True,
+    )
+    return f"Created new user with role {role!r} and set permanent password."
 
 
 def main() -> int:
@@ -186,11 +345,61 @@ def main() -> int:
         default=os.environ.get("AWS_REGION", "ap-south-1"),
         help="AWS region (default: ap-south-1)",
     )
+    parser.add_argument(
+        "--demo",
+        action="store_true",
+        help="Create/update the standard demo user for the deployed dashboard (demo@cdss.ai). Use these credentials on the deployed login page.",
+    )
+    parser.add_argument(
+        "--demo-patient",
+        action="store_true",
+        help="Create/update the demo patient user (patient@cdss.ai). Patient logs in on the same portal and is redirected to the patient dashboard.",
+    )
     args = parser.parse_args()
+
+    # Demo user: fixed credentials for deployed link (meets Cognito password policy)
+    DEMO_EMAIL = "demo@cdss.ai"
+    DEMO_PASSWORD = os.environ.get("DEMO_PASSWORD", "***REDACTED***")
+    PATIENT_EMAIL = "patient@cdss.ai"
+    PATIENT_PASSWORD = os.environ.get("PATIENT_DEMO_PASSWORD", "***REDACTED***")
 
     user_pool_id = (args.user_pool_id or "").strip()
     email = (args.email or "").strip()
     password = (args.password or "").strip() or None
+
+    if args.demo:
+        email = DEMO_EMAIL
+        password = DEMO_PASSWORD
+
+    # Create demo patient user (same portal, redirects to patient dashboard)
+    if args.demo_patient:
+        if not user_pool_id:
+            print(
+                "Error: Cognito User Pool ID required. Set COGNITO_USER_POOL_ID or run from repo with Terraform state, or pass --user-pool-id.",
+                file=sys.stderr,
+            )
+            return 1
+        try:
+            msg = ensure_user_with_role(
+                user_pool_id=user_pool_id,
+                email=PATIENT_EMAIL,
+                role="patient",
+                password=PATIENT_PASSWORD,
+                set_role_only=False,
+                region=args.region,
+            )
+            print(msg)
+            print(f"  User: {PATIENT_EMAIL}")
+            print(f"  Pool: {user_pool_id}")
+            print("")
+            print("  Patient login (same portal URL):")
+            print(f"    User ID:  {PATIENT_EMAIL}")
+            print(f"    Password: {PATIENT_PASSWORD}")
+            print("  After login you are redirected to the patient dashboard.")
+            return 0
+        except Exception as e:
+            print(f"Error: {e}", file=sys.stderr)
+            return 1
 
     if not user_pool_id:
         print(
@@ -219,6 +428,12 @@ def main() -> int:
         print(msg)
         print(f"  User: {email}")
         print(f"  Pool: {user_pool_id}")
+        if args.demo:
+            print("")
+            print("  Demo login on your deployed dashboard:")
+            print(f"    Email:    {email}")
+            print(f"    Password: {DEMO_PASSWORD}")
+            print("  See docs/DEMO_CREDENTIALS.md for details.")
         return 0
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)

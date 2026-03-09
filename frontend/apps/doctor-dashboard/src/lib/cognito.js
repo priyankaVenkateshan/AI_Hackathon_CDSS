@@ -9,6 +9,24 @@ import { config, isCognitoEnabled } from '../api/config';
 
 let configured = false;
 
+/** Derive a display name from email or username (e.g. doc1@cdss.ai → Doc1, priya.sharma@... → Priya Sharma). */
+function displayNameFromEmailOrUsername(emailOrUsername) {
+  if (!emailOrUsername || typeof emailOrUsername !== 'string') return '';
+  const local = emailOrUsername.includes('@') ? emailOrUsername.split('@')[0] : emailOrUsername;
+  const words = local.replace(/[._-]+/g, ' ').trim().split(/\s+/);
+  return words.map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ') || local;
+}
+
+function getDisplayName(payload, fallbackEmailOrUsername) {
+  if (payload.name && typeof payload.name === 'string' && payload.name.trim()) return payload.name.trim();
+  const given = payload.given_name;
+  const family = payload.family_name;
+  if (given && family) return `${given} ${family}`.trim();
+  if (given) return given;
+  if (payload.preferred_username && typeof payload.preferred_username === 'string') return payload.preferred_username.trim();
+  return displayNameFromEmailOrUsername(payload.email || fallbackEmailOrUsername);
+}
+
 function ensureConfigured() {
   if (configured) return;
   if (!isCognitoEnabled()) return;
@@ -32,7 +50,7 @@ export async function cognitoSignIn(email, password) {
   const jwt = idToken?.toString();
   const payload = idToken?.payload || {};
   const role = payload['custom:role'] || payload.role || 'doctor';
-  const name = payload.name || payload['cognito:username'] || email;
+  const name = getDisplayName(payload, email);
   return {
     id: payload.sub || email,
     name,
@@ -52,10 +70,11 @@ export async function cognitoGetSession() {
     const jwt = idToken?.toString();
     const payload = idToken?.payload || {};
     const role = payload['custom:role'] || payload.role || 'doctor';
+    const email = payload.email || user?.signInDetails?.loginId || '';
     return {
       id: payload.sub || user?.userId,
-      name: payload.name || user?.username || '',
-      email: payload.email || user?.signInDetails?.loginId || '',
+      name: getDisplayName(payload, email || user?.username),
+      email,
       role: role.toLowerCase(),
       token: jwt,
     };

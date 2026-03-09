@@ -37,6 +37,108 @@ SAFETY_DISCLAIMER = (
     "medical judgment. This system does not replace a doctor."
 )
 
+_FALLBACK_MODEL_ID = "apac.amazon.nova-lite-v1:0"
+
+
+def _truncate_text(value: str, limit: int) -> str:
+    s = (value or "").strip()
+    return s if len(s) <= limit else (s[:limit] + "…")
+
+
+def _load_bedrock_model_and_region() -> tuple[str, str] | None:
+    """Load Bedrock model/region from Secrets Manager; force Nova Lite if Anthropic is configured."""
+    secret_name = (os.environ.get("BEDROCK_CONFIG_SECRET_NAME") or "").strip()
+    region = os.environ.get("AWS_REGION", "ap-south-1")
+    if not secret_name:
+        return None
+    try:
+        import boto3
+
+        sm = boto3.client("secretsmanager", region_name=region)
+        resp = sm.get_secret_value(SecretId=secret_name)
+        config = json.loads(resp.get("SecretString", "{}"))
+        model_id = (config.get("model_id") or _FALLBACK_MODEL_ID).strip()
+        bedrock_region = (config.get("region") or region).strip()
+        if model_id.lower().startswith("anthropic."):
+            model_id = _FALLBACK_MODEL_ID
+        return model_id, bedrock_region
+    except Exception:
+        return None
+
+
+def _bedrock_converse_messages(system: str, messages: list[dict], max_tokens: int = 450) -> str:
+    cfg = _load_bedrock_model_and_region()
+    if cfg is None:
+        return ""
+    model_id, bedrock_region = cfg
+    try:
+        import boto3
+
+        br = boto3.client("bedrock-runtime", region_name=bedrock_region)
+        resp = br.converse(
+            modelId=model_id,
+            system=[{"text": system}],
+            messages=messages,
+            inferenceConfig={"maxTokens": max_tokens, "temperature": 0.1},
+        )
+        content = resp.get("output", {}).get("message", {}).get("content", []) or []
+        return next((c.get("text", "") for c in content if isinstance(c, dict) and c.get("text")), "").strip()
+    except Exception:
+        return ""
+
+
+def _doctor_chat_reply(message: str, history: list, patient_snapshot: dict | None) -> dict:
+    """
+    Fast path for the doctor-side AI Assistant: one Bedrock call (Nova Lite),
+    grounded in the patient snapshot provided by the UI.
+    """
+    snapshot = patient_snapshot if isinstance(patient_snapshot, dict) else {}
+    snapshot_json = json.dumps(snapshot, ensure_ascii=False, default=str)
+
+    # Keep history short for latency + relevance.
+    trimmed = []
+    if isinstance(history, list):
+        for m in history[-8:]:
+            if not isinstance(m, dict):
+                continue
+            role = (m.get("role") or "user").strip().lower()
+            if role not in ("user", "assistant"):
+                role = "user"
+            text = _truncate_text(m.get("text") or m.get("content") or "", 800)
+            if text:
+                trimmed.append({"role": role, "content": [{"text": text}]})
+
+    user_turn = _truncate_text(message or "", 900)
+    messages = [*trimmed, {"role": "user", "content": [{"text": user_turn}]}]
+
+    system = (
+        "You are a clinical decision support assistant for doctors.\n"
+        "Use ONLY the provided patient snapshot JSON and the conversation.\n"
+        "If information is missing, explicitly say what is missing.\n"
+        "Be concise, structured, and action-oriented. Avoid definitive diagnosis.\n\n"
+        "Return the response in this format:\n"
+        "## Summary\n"
+        "- ...\n"
+        "## Key risks / red flags\n"
+        "- ...\n"
+        "## Medications & interactions (if meds provided)\n"
+        "- ...\n"
+        "## Pre-op checklist (if surgery planned)\n"
+        "- ...\n"
+        "## Next steps\n"
+        "- ...\n"
+    )
+
+    # Provide snapshot as an initial user message to keep the system prompt smaller.
+    context_msg = {
+        "role": "user",
+        "content": [{"text": f"Patient snapshot JSON (authorised):\n{snapshot_json[:12000]}"}],
+    }
+    reply = _bedrock_converse_messages(system=system, messages=[context_msg, *messages], max_tokens=420)
+    if not reply:
+        reply = "AI is temporarily unavailable."
+    return {"reply": reply, "safety_disclaimer": SAFETY_DISCLAIMER}
+
 # Intent labels → agent domains
 INTENT_LABELS = [
     "patient",       # Patient Agent: history, summaries, surgery readiness
@@ -352,6 +454,33 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     message = (body.get("message") or body.get("prompt") or "").strip()
     patient_id = (body.get("patient_id") or body.get("patientId") or "").strip()
     extra_context = body.get("context") or {}
+    history = body.get("history") or body.get("conversation") or []
+    patient_snapshot = body.get("patient_snapshot") or (extra_context.get("patient_snapshot") if isinstance(extra_context, dict) else None)
+
+    if not message and not history:
+        return json_response(
+            400,
+            {"error": "message is required", "safety_disclaimer": SAFETY_DISCLAIMER},
+            event=event,
+        )
+
+    # Fast doctor chat path: if UI provides a patient snapshot, do one grounded Nova Lite call.
+    if patient_snapshot:
+        data = _doctor_chat_reply(message or "(Continue)", history if isinstance(history, list) else [], patient_snapshot)
+        duration_ms = int((time.perf_counter() - start) * 1000)
+        return json_response(
+            200,
+            {
+                "intent": "doctor_chat",
+                "agent": "supervisor",
+                "data": data,
+                "safety_disclaimer": data.get("safety_disclaimer", SAFETY_DISCLAIMER),
+                "correlationId": correlation_id,
+                "source": "local",
+                "duration_ms": duration_ms,
+            },
+            event=event,
+        )
 
     if not message:
         return json_response(

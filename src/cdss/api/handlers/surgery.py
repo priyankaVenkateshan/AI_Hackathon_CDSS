@@ -93,18 +93,32 @@ def _checklist_from_raw(raw: list | dict | None) -> list:
 def _analyse_surgery_sync(surgery_id: str) -> dict | None:
     """
     Generate checklist and requirements for a surgery (sync, optional Bedrock).
-    Returns CDSS-aligned structure: pre_op_status, checklist_flags, risk_factors, requires_senior_review.
+    Returns CDSS-aligned structure. Never raises: on DB/Bedrock failure returns default checklist.
     """
-    with get_session() as session:
-        stmt = (
-            select(Surgery, Patient)
-            .join(Patient, Surgery.patient_id == Patient.id)
-            .where(Surgery.id == surgery_id)
-        )
-        row = session.execute(stmt).first()
-        if row is None:
-            return None
-        surgery, patient = row
+    default_result = {
+        "surgery_id": surgery_id,
+        "pre_op_status": "pending",
+        "checklist": list(DEFAULT_CHECKLIST),
+        "checklist_flags": [c["text"] for c in DEFAULT_CHECKLIST],
+        "requiredInstruments": ["Standard surgical set", "Electrocautery", "Suction", "Suture kit"],
+        "risk_factors": [],
+        "requires_senior_review": False,
+        "safety_disclaimer": "AI is for support only. Clinical decisions require qualified judgment.",
+    }
+    try:
+        with get_session() as session:
+            stmt = (
+                select(Surgery, Patient)
+                .join(Patient, Surgery.patient_id == Patient.id)
+                .where(Surgery.id == surgery_id)
+            )
+            row = session.execute(stmt).first()
+            if row is None:
+                return None
+            surgery, patient = row
+    except Exception as e:
+        logger.warning("Surgery analyse: database unavailable for %s: %s", surgery_id, e)
+        return default_result
 
     conditions = getattr(patient, "conditions", None) or []
     conditions_str = ", ".join(conditions) if isinstance(conditions, list) else str(conditions)

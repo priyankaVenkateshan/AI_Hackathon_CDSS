@@ -25,12 +25,12 @@ export default function Appointments() {
       .then((res) => {
         if (cancelled) return;
         const items = res?.appointments || [];
-        setAppointments(items.length > 0 ? items : adminAppointmentsList);
+        setAppointments(items);
         setLoading(false);
       })
       .catch(() => {
         if (!cancelled) {
-          setAppointments(adminAppointmentsList);
+          setAppointments([]);
           setLoading(false);
         }
       });
