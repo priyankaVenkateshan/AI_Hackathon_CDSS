@@ -80,7 +80,7 @@ Terraform expects **`db_username`** and **`db_password`** (snake_case), not `DB_
 
 ```hcl
 db_username = "cdssadmin"
-db_password = "***REDACTED***"   # or your real password; keep tfvars gitignored
+db_password = "REPLACE_WITH_AURORA_MASTER_PASSWORD"   # use a strong password; keep tfvars gitignored
 ```
 
 If the cluster was created with different values (e.g. via `TF_VAR_db_password`), use that same password in `DATABASE_URL`.

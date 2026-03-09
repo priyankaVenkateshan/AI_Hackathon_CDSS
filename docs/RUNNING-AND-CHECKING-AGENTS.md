@@ -235,7 +235,7 @@ cd D:\AI_Hackathon_CDSS\frontend
 npm run dev:dashboard
 ```
 
-Open http://localhost:5173. Log in (e.g. `priya@cdss.ai` / `***REDACTED***`). Use the UI: Patients, Surgery, Medications, Admin. No API calls; all data is in-app mock.
+Open http://localhost:5173. Log in with your local mock or Cognito credentials (see frontend setup; do not commit real passwords).
 
 **Option B — Frontend with local API (agents behind API):**
 

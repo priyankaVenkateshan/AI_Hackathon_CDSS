@@ -5,7 +5,7 @@ If Terraform apply is still running or the state file is locked, wait for it to 
 ```powershell
 cd d:\AI_Hackathon_CDSS\infrastructure
 $env:TF_VAR_db_username = 'cdssadmin'
-$env:TF_VAR_db_password = '***REDACTED***'
+$env:TF_VAR_db_password = 'YOUR_SECURE_PASSWORD'
 terraform apply -input=false -auto-approve
 ```
 

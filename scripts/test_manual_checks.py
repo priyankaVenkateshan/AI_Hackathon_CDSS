@@ -101,11 +101,13 @@ def test_adherence():
     print(f"Adherence Pct: {data.get('adherence_pct')}% (Expected ~66.7%)")
 
 if __name__ == "__main__":
-    # Ensure environment is set (assuming tunnel is up at 5433)
-    os.environ["DATABASE_URL"] = "postgresql://cdssadmin:***REDACTED***@127.0.0.1:5433/cdssdb"
-    os.environ["BEDROCK_CONFIG_SECRET_NAME"] = "cdss-dev/bedrock-config"
-    os.environ["AWS_REGION"] = "ap-south-1"
-    
+    # Use env: DATABASE_URL or RDS_CONFIG_SECRET_NAME + AWS_REGION. Do not commit real credentials.
+    if not os.environ.get("DATABASE_URL"):
+        os.environ.setdefault("BEDROCK_CONFIG_SECRET_NAME", "cdss-dev/bedrock-config")
+        os.environ.setdefault("AWS_REGION", "ap-south-1")
+        print("Set DATABASE_URL (e.g. postgresql://user:password@127.0.0.1:5433/cdssdb) for local DB tests.")
+        print("Skipping DB-dependent tests.")
+        sys.exit(0)
     try:
         test_consultation_flow()
         test_adherence()

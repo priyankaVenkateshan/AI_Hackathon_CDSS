@@ -91,3 +91,6 @@ infrastructure/websocket_authorizer_lambda.zip
 
 # Old folder merged into infrastructure/
 infrastructure_/
+
+# Docs not for public push (credentials, internal reports)
+docs_archive/

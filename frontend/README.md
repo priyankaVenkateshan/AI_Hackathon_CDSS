@@ -15,9 +15,9 @@ npm run dev:nurse       # Nurse dashboard  → http://localhost:5175
 
 | App | Path | Port | Demo login |
 |-----|------|------|------------|
-| Doctor dashboard | `apps/doctor-dashboard` | 5173 | priya@cdss.ai / ***REDACTED*** |
-| Patient portal | `apps/patient-dashboard` | 5174 | patient@cdss.ai / ***REDACTED*** |
-| Nurse dashboard | `apps/nurse-dashboard` | 5175 | anjali@cdss.ai / ***REDACTED*** |
+| Doctor dashboard | `apps/doctor-dashboard` | 5173 | Contact team for demo access |
+| Patient portal | `apps/patient-dashboard` | 5174 | Contact team for demo access |
+| Nurse dashboard | `apps/nurse-dashboard` | 5175 | Contact team for demo access |
 
 ## Build & lint
 

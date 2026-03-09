@@ -41,9 +41,7 @@ npm run dev
 Open the URL shown (usually `http://localhost:5173` or `5174`).
 
 ## 3. Test Credentials
-Use these to log in to the dashboard:
-- **Email:** `doc1@cdss.ai`
-- **Password:** `***REDACTED***`
+Use your Cognito or local mock credentials to log in to the dashboard (do not commit real passwords; contact team for demo access if needed).
 
 ## 4. Clinical Safety Verification (Phase 5–6)
 Before using in a clinical setting, verify the following safety mechanisms:

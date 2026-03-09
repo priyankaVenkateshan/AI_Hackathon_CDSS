@@ -12,6 +12,7 @@ export const roles = {
     PATIENT: 'patient',
 };
 
+// Local mock users — used only when Cognito is disabled (no VITE_COGNITO_*). Do not use in production.
 const users = [
     { id: 'u1', name: 'Dr. Priya Sharma', role: roles.DOCTOR, email: 'priya@cdss.ai', password: '***REDACTED***' },
     { id: 'u2', name: 'Dr. Vikram Patel', role: roles.SURGEON, email: 'vikram@cdss.ai', password: '***REDACTED***' },

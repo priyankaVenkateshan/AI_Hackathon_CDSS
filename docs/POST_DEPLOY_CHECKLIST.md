@@ -53,4 +53,4 @@ Open the deployed dashboard (e.g. https://d2yy4v2hr1otkm.cloudfront.net) and ref
 | `.\scripts\run_after_tunnel.ps1` | Migrations + seed + RDS IAM grant (tunnel must be up) |
 | `.\scripts\connect_backend_to_db.ps1` | Tries to start tunnel in a new window, then runs run_after_tunnel steps |
 
-See **DEBUGGING_REPORT_2026_03_08.md** and **CONNECT_DEPLOYED_BACKEND_TO_DATABASE.md** for troubleshooting.
+See internal runbooks or contact the team for detailed troubleshooting (tunnel, IAM, DB).
